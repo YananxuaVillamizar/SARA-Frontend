@@ -1,26 +1,56 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 1. Definición de colores y variables SARA */
+@theme {
+  /* Colores Institucionales */
+  --color-sara-red: #8B1A1A;
+  --color-sara-red-dark: #6B1212;
+  --color-sara-red-light: #A52020;
+  --color-sara-gold: #C9A84C;
+  --color-sara-gold-light: #D4B96A;
+
+  /* Colores de Interfaz */
+  --color-sidebar-bg: #1A1A2E;
+  --color-card-bg: #FFFFFF;
+  --color-page-bg: #F4F6F9;
+
+  /* Sombras y Bordes */
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 4px 20px rgba(0, 0, 0, 0.12);
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* 2. Estilos base */
+@layer base {
+  * {
+    @apply border-gray-200;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html,
+  body {
+    height: 100%;
+    background-color: #F4F6F9;
+    color: #1A1A2E;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* 3. Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4F6F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9A84C;
+  border-radius: 3px;
+}
+
+/* Utilidad para transiciones suaves */
+* {
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }

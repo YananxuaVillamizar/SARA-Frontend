@@ -170,372 +170,498 @@ export default function AsistenciasPage() {
 
 
 
-        const handleExportarPDF = (grupoData: any, sesionData: any) => {
+    const handleExportarPDF = (grupoData: any, sesionData: any, progName?: string, facName?: string) => {
+        // Dynamic academic filename
+        const cleanAsig = (grupoData.asignatura || 'Curso').replace(/[^a-zA-Z0-9]/g, '_');
+        const cleanGrupo = (grupoData.grupo || 'SinGrupo').replace(/[^a-zA-Z0-9]/g, '_');
+        const cleanFecha = (sesionData.fecha || 'SinFecha');
+        const filename = `Asistencia_${cleanAsig}_Grupo_${cleanGrupo}_${cleanFecha}`;
+
         const sTotal = sesionData.records.length;
-        const sPresentes = sesionData.records.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
+        const sPresentes = sesionData.records.filter((r: any) => r.estado === 'asistencia' || r.estado === 'asistencia con retraso').length;
         const sPct = sTotal > 0 ? Math.round((sPresentes / sTotal) * 100) : 0;
         const dateObj = sesionData.fecha ? (() => {
             const [y, m, d] = sesionData.fecha.split('-').map(Number);
             return new Date(y, m - 1, d);
         })() : null;
-        const dateStr = dateObj ? dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : "Sin Fecha";
+        const weekdayStr = dateObj ? dateObj.toLocaleDateString('es-ES', { weekday: 'long' }) : 'Sin Fecha';
+        const capitalizedWeekday = weekdayStr.charAt(0).toUpperCase() + weekdayStr.slice(1);
+        const dateYMD = sesionData.fecha || '—';
 
-        const printWindow = window.open("", "_blank");
-        if (!printWindow) return;
+        const now = new Date();
+        const dateStrPart = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+        const timeStrPart = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const cleanTimeStr = timeStrPart.toLowerCase().replace('am', 'a. m.').replace('pm', 'p. m.');
+        const generationDateStr = `${dateStrPart} a las ${cleanTimeStr}`;
+
+        const logoUrl = window.location.origin + '/logo_unipamplona.png';
 
         const htmlContent = `
             <html>
                 <head>
-                    <title>Reporte de Asistencia - Universidad de Pamplona</title>
+                    <title>${filename}</title>
                     <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+                        
+                        @page {
+                            size: letter;
+                            margin: 0mm; /* Hides default browser header/footers like about:blank */
+                        }
+                        
                         body {
                             font-family: 'Inter', sans-serif;
                             color: #1e293b;
                             margin: 0;
-                            padding: 40px;
+                            padding: 1.5cm; /* Restores exact page margin interior */
                             background: #ffffff;
+                            font-size: 10px;
+                            line-height: 1.4;
                         }
+                        
+                        .top-strip {
+                            height: 5px;
+                            background: linear-gradient(90deg, #ad3333 0%, #eab308 50%, #003366 100%);
+                            margin-bottom: 20px;
+                        }
+                        
                         .header {
                             display: flex;
                             align-items: center;
                             justify-content: space-between;
-                            border-bottom: 3px solid #0f766e;
-                            padding-bottom: 20px;
-                            margin-bottom: 30px;
+                            border-bottom: 2px solid #ad3333;
+                            padding-bottom: 15px;
+                            margin-bottom: 25px;
                         }
+                        
                         .header-logo {
-                            width: 80px;
-                            height: 80px;
                             display: flex;
                             align-items: center;
-                            justify-content: center;
+                            gap: 15px;
                         }
-                        .header-text {
-                            text-align: right;
+                        
+                        .header-logo img {
+                            height: 85px;
+                            width: auto;
                         }
-                        .header-text h1 {
-                            font-size: 20px;
-                            font-weight: 900;
-                            margin: 0;
-                            color: #0f766e;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
+                        
+                        .header-title-container {
+                            display: flex;
+                            flex-direction: column;
                         }
-                        .header-text p {
-                            font-size: 11px;
-                            color: #64748b;
-                            margin: 4px 0 0 0;
-                            font-weight: 600;
-                        }
-                        .title-section {
-                            margin-bottom: 30px;
-                            text-align: center;
-                        }
-                        .title-section h2 {
+                        
+                        .header-title-main {
                             font-size: 16px;
                             font-weight: 800;
-                            color: #1e293b;
+                            color: #ad3333;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
                             margin: 0;
-                            text-transform: uppercase;
-                            letter-spacing: 0.5px;
                         }
-                        .title-section p {
-                            font-size: 12px;
-                            color: #0f766e;
-                            margin: 6px 0 0 0;
-                            font-weight: 700;
-                        }
-                        .meta-grid {
-                            display: grid;
-                            grid-template-cols: 1fr 1fr;
-                            gap: 15px;
-                            margin-bottom: 35px;
-                        }
-                        .meta-card {
-                            background: #f8fafc;
-                            border: 1px solid #e2e8f0;
-                            border-radius: 12px;
-                            padding: 15px;
-                        }
-                        .meta-card h3 {
+                        
+                        .header-title-sub {
                             font-size: 10px;
-                            font-weight: 900;
-                            color: #0f766e;
-                            margin: 0 0 8px 0;
+                            font-weight: 600;
+                            color: #eab308;
                             text-transform: uppercase;
-                            letter-spacing: 1px;
-                        }
-                        .meta-card p {
-                            font-size: 12px;
-                            font-weight: 700;
-                            margin: 0 0 6px 0;
-                            color: #334155;
-                        }
-                        .meta-card p:last-child {
-                            margin-bottom: 0;
-                        }
-                        .meta-card span {
-                            font-weight: 500;
-                            color: #64748b;
-                        }
-                        .stats-row {
-                            display: flex;
-                            gap: 15px;
-                            margin-bottom: 35px;
-                        }
-                        .stat-box {
-                            flex: 1;
-                            background: #f0fdf4;
-                            border: 1px solid #bbf7d0;
-                            border-radius: 12px;
-                            padding: 15px;
-                            text-align: center;
-                        }
-                        .stat-box.ausentes {
-                            background: #fef2f2;
-                            border: 1px solid #fecaca;
-                        }
-                        .stat-box.porcentaje {
-                            background: #f0fdfa;
-                            border: 1px solid #99f6e4;
-                        }
-                        .stat-value {
-                            font-size: 20px;
-                            font-weight: 900;
-                            color: #166534;
-                            margin-bottom: 4px;
-                        }
-                        .stat-box.ausentes .stat-value {
-                            color: #991b1b;
-                        }
-                        .stat-box.porcentaje .stat-value {
-                            color: #0f766e;
-                        }
-                        .stat-label {
-                            font-size: 9px;
-                            font-weight: 800;
-                            color: #64748b;
-                            text-transform: uppercase;
+                            margin: 2px 0 0 0;
                             letter-spacing: 0.5px;
                         }
-                        .table-title {
-                            font-size: 11px;
-                            font-weight: 900;
-                            color: #0f766e;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
-                            margin-bottom: 12px;
-                            border-left: 3px solid #0f766e;
-                            padding-left: 8px;
+                        
+                        .header-meta {
+                            text-align: right;
                         }
-                        table {
+                        
+                        .header-meta-doc {
+                            font-size: 12px;
+                            font-weight: 800;
+                            color: #ad3333;
+                            text-transform: uppercase;
+                            margin: 0;
+                        }
+                        
+                        .header-meta-date {
+                            font-size: 9px;
+                            color: #64748b;
+                            font-weight: 600;
+                            margin: 3px 0 0 0;
+                        }
+                        
+                        .section-title {
+                            font-size: 11px;
+                            font-weight: 800;
+                            color: #1e293b;
+                            text-transform: uppercase;
+                            letter-spacing: 0.75px;
+                            margin: 25px 0 10px 0;
+                            border-bottom: 1.5px solid #1e293b; /* Matches section title color */
+                            padding-bottom: 4px;
+                            page-break-after: avoid;
+                        }
+                        
+                        .horizontal-table {
                             width: 100%;
                             border-collapse: collapse;
-                            margin-bottom: 45px;
+                            margin-bottom: 20px;
+                            background: #ffffff;
                         }
-                        th {
+                        
+                        .horizontal-table th {
                             background: #f8fafc;
-                            color: #475569;
-                            font-size: 10px;
-                            font-weight: 800;
+                            color: #334155;
+                            font-size: 9px;
+                            font-weight: 700;
                             text-transform: uppercase;
                             letter-spacing: 0.5px;
-                            padding: 10px 12px;
-                            border-bottom: 2px solid #e2e8f0;
+                            padding: 8px 10px;
+                            border: 1.5px solid #94a3b8; /* Thicker table borders */
                             text-align: left;
                         }
-                        td {
-                            padding: 10px 12px;
-                            font-size: 11px;
+                        
+                        .horizontal-table td {
+                            padding: 8px 10px;
+                            font-size: 9.5px;
                             color: #334155;
-                            border-bottom: 1px solid #f1f5f9;
-                            font-weight: 600;
+                            border: 1.5px solid #94a3b8; /* Thicker table borders */
+                            font-weight: 500;
                         }
-                        tr:last-child td {
-                            border-bottom: 2px solid #e2e8f0;
+                        
+                        .stats-grid {
+                            display: flex;
+                            gap: 15px;
+                            margin: 15px 0 20px 0;
                         }
-                        .student-name {
-                            font-weight: 700;
-                            color: #1e293b;
+                        
+                        .stat-card {
+                            flex: 1;
+                            border: 1.5px solid #94a3b8; /* Matches thicker table border style */
+                            border-radius: 6px;
+                            padding: 10px 15px;
+                            text-align: center;
+                            background: #f8fafc;
                         }
-                        .student-doc {
-                            font-size: 9px;
-                            color: #94a3b8;
-                            font-family: monospace;
-                            margin-top: 2px;
+                        
+                        .stat-card.presentes {
+                            border-left: 4px solid #166534;
                         }
-                        .status-badge {
-                            display: inline-block;
-                            padding: 3px 8px;
-                            border-radius: 9999px;
-                            font-size: 9px;
+                        
+                        .stat-card.ausentes {
+                            border-left: 4px solid #ad3333;
+                        }
+                        
+                        .stat-card.porcentaje {
+                            border-left: 4px solid #eab308;
+                        }
+                        
+                        .stat-val {
+                            font-size: 16px;
                             font-weight: 800;
-                            text-transform: uppercase;
+                            margin: 0;
                         }
-                        .status-presente {
-                            background: #dcfce7;
-                            color: #15803d;
+                        
+                        .stat-card.presentes .stat-val {
+                            color: #166534;
                         }
-                        .status-tarde {
-                            background: #fef3c7;
+                        
+                        .stat-card.ausentes .stat-val {
+                            color: #ad3333;
+                        }
+                        
+                        .stat-card.porcentaje .stat-val {
                             color: #b45309;
                         }
-                        .status-ausente {
-                            background: #fee2e2;
-                            color: #b91c1c;
+                        
+                        .stat-lbl {
+                            font-size: 8.5px;
+                            font-weight: 700;
+                            color: #64748b;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            margin-top: 2px;
                         }
+                        
+                        .badge {
+                            display: inline-block;
+                            padding: 2px 6px;
+                            border-radius: 4px;
+                            font-size: 8px;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            letter-spacing: 0.25px;
+                        }
+                        
+                        .badge-sara {
+                            background: #eff6ff;
+                            color: #1e40af;
+                            border: 0.5px solid #bfdbfe;
+                        }
+                        
+                        .badge-biometria {
+                            background: #f5f3ff;
+                            color: #5b21b6;
+                            border: 0.5px solid #ddd6fe;
+                        }
+                        
+                        .badge-supervisado {
+                            background: #ecfdf5;
+                            color: #047857;
+                            border: 0.5px solid #a7f3d0;
+                        }
+                        
+                        .status-badge {
+                            display: inline-block;
+                            padding: 2px 6px;
+                            border-radius: 4px;
+                            font-size: 8px;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            letter-spacing: 0.25px;
+                            text-align: center;
+                        }
+                        
+                        .status-presente {
+                            background: #f0fdf4;
+                            color: #166534;
+                            border: 0.5px solid #bbf7d0;
+                        }
+                        
+                        .status-tarde {
+                            background: #fffbeb;
+                            color: #b45309;
+                            border: 0.5px solid #fef3c7;
+                        }
+                        
+                        .status-ausente {
+                            background: #fef2f2;
+                            color: #ad3333;
+                            border: 0.5px solid #fecaca;
+                        }
+                        
                         .signatures {
                             display: grid;
                             grid-template-cols: 1fr 1fr;
-                            gap: 50px;
-                            margin-top: 80px;
+                            gap: 40px;
+                            margin-top: 50px;
                             page-break-inside: avoid;
                         }
+                        
                         .signature-block {
                             text-align: center;
                         }
+                        
                         .signature-line {
-                            border-top: 1px solid #cbd5e1;
+                            border-top: 1.5px dashed #64748b;
                             margin-bottom: 8px;
+                            width: 80%;
+                            margin-left: auto;
+                            margin-right: auto;
                         }
+                        
                         .signature-title {
-                            font-size: 11px;
-                            font-weight: 800;
+                            font-size: 10px;
+                            font-weight: 700;
                             color: #1e293b;
                         }
+                        
                         .signature-subtitle {
-                            font-size: 9px;
+                            font-size: 8.5px;
                             color: #64748b;
                             margin-top: 2px;
                             font-weight: 600;
-                        }
-                        @media print {
-                            body {
-                                padding: 0;
-                            }
-                            @page {
-                                margin: 2cm;
-                            }
                         }
                     </style>
                 </head>
                 <body>
-                    <div class="header">
-                        <div class="header-logo">
-                            <svg viewBox="0 0 100 100" width="80" height="80">
-                                <circle cx="50" cy="50" r="45" fill="none" stroke="#0f766e" stroke-width="6"/>
-                                <path d="M30 45 L50 25 L70 45 M50 25 L50 75" fill="none" stroke="#0f766e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-                                <circle cx="50" cy="50" r="10" fill="#0f766e"/>
-                            </svg>
+                    <div class='top-strip'></div>
+                    
+                    <div class='header'>
+                        <div class='header-logo'>
+                            <img src='${logoUrl}' alt='Universidad de Pamplona' />
+                            <div class='header-title-container'>
+                                <h1 class='header-title-main'>Universidad de Pamplona</h1>
+                                <p class='header-title-sub'>Sistema Automatizado de Registro de Asistencia (SARA)</p>
+                            </div>
                         </div>
-                        <div class="header-text">
-                            <h1>Universidad de Pamplona</h1>
-                            <p>Sistema Integrado de Gestión Académica (SIGA)</p>
-                            <p>Reporte Oficial de Asistencia de Clase</p>
-                        </div>
-                    </div>
-
-                    <div class="title-section">
-                        <h2>Planilla Oficial de Control de Asistencia</h2>
-                        <p>${dateStr.toUpperCase()}</p>
-                    </div>
-
-                    <div class="meta-grid">
-                        <div class="meta-card">
-                            <h3>Información del Curso</h3>
-                            <p><span>Asignatura:</span> ${grupoData.codAsig || ""} — ${grupoData.asignatura || ""}</p>
-                            <p><span>Grupo:</span> ${grupoData.grupo || ""}</p>
-                            <p><span>Aula:</span> ${sesionData.aula_sesion || grupoData.aula || "Sin Aula"}</p>
-                        </div>
-                        <div class="meta-card">
-                            <h3>Información del Docente</h3>
-                            <p><span>Docente:</span> ${grupoData.docente || ""}</p>
-                            <p><span>Documento:</span> ${sesionData.docente_num_doc || "—"}</p>
-                            <p><span>Método Verificación:</span> ${sesionData.docente_metodo_verificacion || "N/A"}</p>
+                        <div class='header-meta'>
+                            <h2 class='header-meta-doc'>Reporte Oficial de Asistencia</h2>
+                            <p class='header-meta-date'>Generado el ${generationDateStr}</p>
                         </div>
                     </div>
 
-                    <div class="stats-row">
-                        <div class="stat-box">
-                            <div class="stat-value">${sPresentes}</div>
-                            <div class="stat-label">Estudiantes Presentes</div>
-                        </div>
-                        <div class="stat-box ausentes">
-                            <div class="stat-value">${sTotal - sPresentes}</div>
-                            <div class="stat-label">Estudiantes Ausentes</div>
-                        </div>
-                        <div class="stat-box porcentaje">
-                            <div class="stat-value">${sPct}%</div>
-                            <div class="stat-label">Porcentaje de Asistencia</div>
-                        </div>
-                    </div>
-
-                    <div class="table-title">Registros de Asistencia de Estudiantes</div>
-                    <table>
+                    <div class='section-title'>Información del Curso</div>
+                    <table class='horizontal-table'>
                         <thead>
                             <tr>
-                                <th style="width: 50%;">Estudiante</th>
-                                <th style="width: 15%; text-align: center;">Entrada</th>
-                                <th style="width: 15%; text-align: center;">Salida</th>
-                                <th style="width: 20%; text-align: center;">Estado</th>
+                                <th style='width: 20%;'>Asignatura</th>
+                                <th style='text-align: center; width: 8%;'>Grupo</th>
+                                <th style='text-align: center; width: 8%;'>Aula</th>
+                                <th style='width: 27%;'>Facultad</th>
+                                <th style='width: 20%;'>Programa Académico</th>
+                                <th style='text-align: center; width: 17%;'>Fecha de Sesión</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style='font-weight: 700; color: #1e293b;'>${grupoData.asignatura || 'Sin Asignatura'} ${grupoData.codAsig ? `(${grupoData.codAsig})` : ''}</td>
+                                <td style='text-align: center; font-weight: 700;'>${grupoData.grupo || ''}</td>
+                                <td style='text-align: center; font-weight: 700;'>${sesionData.aula_sesion || 'Sin Aula'}</td>
+                                <td>${facName || ''}</td>
+                                <td>${progName || ''}</td>
+                                <td style='text-align: center;'>
+                                    <div style='font-weight: 700; color: #1e293b; font-size: 10px;'>${capitalizedWeekday}</div>
+                                    <div style='font-size: 11.5px; color: #1e293b; margin-top: 2px; font-weight: 800; letter-spacing: 0.25px;'>${dateYMD}</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class='section-title'>Información del Docente</div>
+                    <table class='horizontal-table'>
+                        <thead>
+                            <tr>
+                                <th style='width: 30%;'>Nombre Completo</th>
+                                <th style='text-align: center; width: 20%;'>Documento</th>
+                                <th style='text-align: center; width: 18%;'>Método de Verificación</th>
+                                <th style='text-align: center; width: 11%;'>Hora Entrada</th>
+                                <th style='text-align: center; width: 11%;'>Hora Salida</th>
+                                <th style='text-align: center; width: 10%;'>Estado de Asistencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style='font-weight: 700; color: #1e293b;'>${grupoData.docente || ''}</td>
+                                <td style='text-align: center;'>${sesionData.docente_tipo_doc || 'CC'}. ${sesionData.docente_num_doc || '—'}</td>
+                                <td style='text-align: center;'>
+                                    <span class='badge ${sesionData.docente_metodo_verificacion === 'Biometría' ? 'badge-biometria' : sesionData.docente_metodo_verificacion === 'Supervisado' ? 'badge-supervisado' : 'badge-sara'}'>
+                                        ${sesionData.docente_metodo_verificacion || 'N/A'}
+                                    </span>
+                                </td>
+                                <td style='text-align: center; white-space: nowrap;'>
+                                    ${sesionData.docente_hora_entrada ? new Date(sesionData.docente_hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                </td>
+                                <td style='text-align: center; white-space: nowrap;'>
+                                    ${sesionData.docente_hora_salida ? new Date(sesionData.docente_hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                </td>
+                                <td style='text-align: center;'>
+                                    <span class='status-badge ${
+                                        sesionData.docente_estado_asistencia === 'asistencia' ? 'status-presente' :
+                                        sesionData.docente_estado_asistencia === 'asistencia con retraso' ? 'status-tarde' : 'status-ausente'
+                                    }'>
+                                        ${sesionData.docente_estado_asistencia === 'asistencia' ? 'Presente' :
+                                          sesionData.docente_estado_asistencia === 'asistencia con retraso' ? 'Tarde' : 'Ausente'}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class='section-title'>Registro de Asistencia de Estudiantes</div>
+
+                    <div class='stats-grid'>
+                        <div class='stat-card presentes'>
+                            <p class='stat-val'>${sPresentes}</p>
+                            <p class='stat-lbl'>Estudiantes Presentes</p>
+                        </div>
+                        <div class='stat-card ausentes'>
+                            <p class='stat-val'>${sTotal - sPresentes}</p>
+                            <p class='stat-lbl'>Estudiantes Ausentes</p>
+                        </div>
+                        <div class='stat-card porcentaje'>
+                            <p class='stat-val'>${sPct}%</p>
+                            <p class='stat-lbl'>Porcentaje de Asistencia</p>
+                        </div>
+                    </div>
+
+                    <table class='horizontal-table'>
+                        <thead>
+                            <tr>
+                                <th style='width: 25%;'>Nombre Completo</th>
+                                <th style='width: 16%; text-align: center;'>Documento</th>
+                                <th style='width: 15%;'>Programa Académico</th>
+                                <th style='width: 14%; text-align: center;'>Método de verificación</th>
+                                <th style='width: 10%; text-align: center;'>Hora entrada</th>
+                                <th style='width: 10%; text-align: center;'>Hora salida</th>
+                                <th style='width: 10%; text-align: center;'>Estado de asistencia</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${sesionData.records.map((a: any) => `
                                 <tr>
-                                    <td>
-                                        <div class="student-name">${a.nombre_estudiante} ${a.apellido_estudiante}</div>
-                                        <div class="student-doc">Documento: ${a.num_doc}</div>
+                                    <td style='font-weight: 700; color: #1e293b;'>${a.nombre_estudiante || ''} ${a.apellido_estudiante || ''}</td>
+                                    <td style='text-align: center; white-space: nowrap;'>${a.tipo_doc || 'CC'}. ${a.num_doc || '—'}</td>
+                                    <td>${a.programa || progName || ''}</td>
+                                    <td style='text-align: center;'>
+                                        <span class='badge ${a.metodo_verificacion === 'Biometría' ? 'badge-biometria' : a.metodo_verificacion === 'Supervisado' ? 'badge-supervisado' : 'badge-sara'}'>
+                                            ${a.metodo_verificacion || 'N/A'}
+                                        </span>
                                     </td>
-                                    <td style="text-align: center;">
+                                    <td style='text-align: center; white-space: nowrap;'>
                                         ${a.hora_entrada ? new Date(a.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                                     </td>
-                                    <td style="text-align: center;">
+                                    <td style='text-align: center; white-space: nowrap;'>
                                         ${a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                                     </td>
-                                    <td style="text-align: center;">
-                                        <span class="status-badge ${
-                                            a.estado === "asistencia" ? "status-presente" : a.estado === "asistencia con retraso" ? "status-tarde" : "status-ausente"
-                                        }">
-                                            ${a.estado === "asistencia" ? "Presente" : a.estado === "asistencia con retraso" ? "Tarde" : "Ausente"}
+                                    <td style='text-align: center;'>
+                                        <span class='status-badge ${
+                                            a.estado === 'asistencia' ? 'status-presente' : a.estado === 'asistencia con retraso' ? 'status-tarde' : 'status-ausente'
+                                        }'>
+                                            ${a.estado === 'asistencia' ? 'Presente' : a.estado === 'asistencia con retraso' ? 'Tarde' : 'Ausente'}
                                         </span>
                                     </td>
                                 </tr>
-                            `).join("")}
+                            `).join('')}
                         </tbody>
                     </table>
 
-                    <div class="signatures">
-                        <div class="signature-block">
-                            <div class="signature-line"></div>
-                            <div class="signature-title">${grupoData.docente}</div>
-                            <div class="signature-subtitle">Docente de la Materia</div>
-                            <div class="signature-subtitle">C.C. ${sesionData.docente_num_doc || "__________________"}</div>
+                    <div class='signatures'>
+                        <div class='signature-block'>
+                            <div class='signature-line'></div>
+                            <div class='signature-title'>${grupoData.docente}</div>
+                            <div class='signature-subtitle'>Docente de la Materia</div>
+                            <div class='signature-subtitle'>${sesionData.docente_tipo_doc || 'C.C'}. ${sesionData.docente_num_doc || '__________________'}</div>
                         </div>
-                        <div class="signature-block">
-                            <div class="signature-line"></div>
-                            <div class="signature-title">Firma Institucional</div>
-                            <div class="signature-subtitle">Universidad de Pamplona</div>
-                            <div class="signature-subtitle">Representante SIGA / Control Académico</div>
+                        <div class='signature-block'>
+                            <div class='signature-line'></div>
+                            <div class='signature-title'>Firma Institucional</div>
+                            <div class='signature-subtitle'>Universidad de Pamplona</div>
+                            <div class='signature-subtitle'>Representante SARA / Control Académico</div>
                         </div>
                     </div>
-
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            setTimeout(function() { window.close(); }, 500);
-                        };
-                    </script>
                 </body>
             </html>
         `;
 
-        printWindow.document.open();
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-    };
+        // Print using a hidden iframe to prevent about:blank from appearing as the URL footer
+        let iframe = document.getElementById('print-iframe') as HTMLIFrameElement;
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-iframe';
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            document.body.appendChild(iframe);
+        }
 
+        const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
+        if (!iframeDoc) return;
+
+        iframeDoc.open();
+        iframeDoc.write(htmlContent);
+        iframeDoc.close();
+
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+            
+            // Ask user for confirmation to solve the native browser print/cancel detection limitation
+            const guardado = confirm("¿Confirmar que el archivo fue guardado?");
+            if (guardado) {
+                alert("Registro guardado");
+            }
+        }, 300);
+    };
     if (loading) return <div className="p-10 text-center animate-pulse font-bold text-gray-400">Cargando módulo de asistencias...</div>;
 
     return (
@@ -546,7 +672,7 @@ export default function AsistenciasPage() {
                     <h1 className="text-3xl font-black text-sidebar-bg">Gestión de Asistencias</h1>
                     <p className="text-gray-400 font-medium">Panel de control y seguimiento académico</p>
                 </div>
-                {sesion.rol === "Estudiante" && (
+                {/* Ocultado temporalmente */ false && sesion.rol === "Estudiante" && (
                     <button onClick={() => setModal(true)} className="px-6 py-3 bg-sara-red text-white rounded-2xl font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-lg shadow-sara-red/20">
                         <Send size={18} /> Nueva Justificación
                     </button>
@@ -558,9 +684,11 @@ export default function AsistenciasPage() {
                 <button onClick={() => setActiveTab("asistencias")} className={`pb-4 text-sm font-black uppercase tracking-wider transition-colors ${activeTab === "asistencias" ? "text-sara-red border-b-2 border-sara-red" : "text-gray-400 hover:text-gray-600"}`}>
                     Asistencias
                 </button>
+                {/* Ocultado temporalmente */ false && (
                 <button onClick={() => setActiveTab("contingencias")} className={`pb-4 text-sm font-black uppercase tracking-wider transition-colors ${activeTab === "contingencias" ? "text-sara-red border-b-2 border-sara-red" : "text-gray-400 hover:text-gray-600"}`}>
                     Contingencias {contingencias.length > 0 && <span className="ml-1 bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full text-[10px]">{contingencias.length}</span>}
                 </button>
+                )}
             </div>
 
             {activeTab === "asistencias" && (
@@ -610,7 +738,9 @@ export default function AsistenciasPage() {
                                     docente: `${a.nombre_docente} ${a.apellido_docente}`,
                                     horarios: [],
                                     sesiones: {},
-                                    codAsig: a.cod_asignatura
+                                    codAsig: a.cod_asignatura,
+                                    asignatura: asig,
+                                    grupo: grup
                                 };
                             }
 
@@ -633,6 +763,7 @@ export default function AsistenciasPage() {
                                     docente_asistio: a.docente_asistio,
                                     semana: a.semana,
                                     docente_num_doc: a.docente_num_doc,
+                                    docente_tipo_doc: a.docente_tipo_doc,
                                     docente_hora_entrada: a.docente_hora_entrada,
                                     docente_hora_salida: a.docente_hora_salida,
                                     docente_metodo_verificacion: a.docente_metodo_verificacion,
@@ -646,12 +777,14 @@ export default function AsistenciasPage() {
                                 allGroups[fac][prog][asig][grup].sesiones[sesionKey].records.push({
                                     id: a.id,
                                     num_doc: a.num_doc,
+                                    tipo_doc: a.tipo_doc,
                                     nombre: a.nombre_estudiante,
                                     apellido: a.apellido_estudiante,
                                     nombre_estudiante: a.nombre_estudiante,
                                     apellido_estudiante: a.apellido_estudiante,
                                     estado: a.estado,
                                     metodo_verificacion: a.metodo_verificacion,
+                                    programa: a.programa || prog,
                                     hora_entrada: a.hora_entrada,
                                     hora_salida: a.hora_salida,
                                     cod_asignatura: a.cod_asignatura
@@ -849,7 +982,7 @@ export default function AsistenciasPage() {
                                                 {filtAMetodo && <button type="button" onClick={() => setFiltAMetodo("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
                                                 {showAMetodoSugg && (
                                                     <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
-                                                        {["Biometría", "Firma Electrónica"].map(m => (
+                                                        {["Biometría", "Firma Electrónica", "Supervisado"].map(m => (
                                                             <button key={m} type="button" onMouseDown={() => { setFiltAMetodo(m); setShowAMetodoSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{m}</button>
                                                         ))}
                                                     </div>
@@ -1129,7 +1262,7 @@ export default function AsistenciasPage() {
                                                                                                                                                   <button
                                                                                                                                                       onClick={(e) => {
                                                                                                                                                           e.stopPropagation();
-                                                                                                                                                          handleExportarPDF(grupoData, sesionData);
+                                                                                                                                                          handleExportarPDF(grupoData, sesionData, programa, facultad);
                                                                                                                                                       }}
                                                                                                                                                       title="Exportar Reporte de Asistencia a PDF"
                                                                                                                                                       className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 hover:bg-emerald-100 border border-emerald-200 flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
@@ -1282,7 +1415,7 @@ export default function AsistenciasPage() {
                                                                                                                                   <div className="flex flex-col items-start min-w-[90px]">
                                                                                                                                       <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Método</span>
                                                                                                                                       <span className={`mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                                                                                                                          sesionData.docente_metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"
+                                                                                                                                          sesionData.docente_metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : sesionData.docente_metodo_verificacion === "Supervisado" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
                                                                                                                                       }`}>
                                                                                                                                           {sesionData.docente_metodo_verificacion || 'N/A'}
                                                                                                                                       </span>
@@ -1332,7 +1465,7 @@ export default function AsistenciasPage() {
                                                                                                                                                       {a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                                                                                                                                                   </td>
                                                                                                                                                   <td className="px-4 py-2 text-center">
-                                                                                                                                                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${a.metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"}`}>
+                                                                                                                                                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${a.metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : a.metodo_verificacion === "Supervisado" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"}`}>
                                                                                                                                                           {a.metodo_verificacion}
                                                                                                                                                       </span>
                                                                                                                                                   </td>

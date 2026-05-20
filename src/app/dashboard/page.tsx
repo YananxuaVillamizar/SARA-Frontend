@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Users, TrendingUp, AlertTriangle, UserCheck, ShieldAlert, Calendar } from "lucide-react";
+import { Users, TrendingUp, AlertTriangle, UserCheck, ShieldAlert, Calendar, Construction } from "lucide-react";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
     Legend, ResponsiveContainer, LineChart, Line, Area, AreaChart
@@ -62,6 +62,7 @@ function AccesoDenegadoBanner() {
 }
 
 export default function DashboardPage() {
+    const EN_CONSTRUCCION = true; // Activar para ocultar el panel general temporalmente
     const [sesion, setSesion] = useState({ id: "", num_doc: "", rol: "", nombre: "" });
     const [horarios, setHorarios] = useState<Horario[]>([]);
 
@@ -128,6 +129,23 @@ export default function DashboardPage() {
             trendColor: "#22C55E",
         },
     ];
+
+    if (EN_CONSTRUCCION) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[70vh] bg-white rounded-3xl border border-gray-100 p-8 text-center space-y-6" style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.04)" }}>
+                <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 animate-pulse">
+                    <Construction size={40} />
+                </div>
+                <div className="max-w-md space-y-2">
+                    <h2 className="text-2xl font-extrabold text-sidebar-bg" style={{ color: "#1A1A2E" }}>Panel General en Desarrollo</h2>
+                    <p className="text-sm text-gray-500">Estamos diseñando un panel interactivo con estadísticas avanzadas y análisis de rendimiento en tiempo real para el SARA.</p>
+                </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-sara-red/10 text-sara-red rounded-full text-xs font-black uppercase tracking-wider" style={{ background: "rgba(139, 26, 26, 0.08)", color: "#8B1A1A" }}>
+                    🚧 Próximamente
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

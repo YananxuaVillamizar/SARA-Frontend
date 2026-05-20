@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import {
     ClipboardCheck, AlertCircle, CheckCircle2, XCircle,
-    Clock, Calendar, FileText, Send, User, BookOpen, School, GraduationCap
+    Clock, Calendar, FileText, Send, User, BookOpen, School, GraduationCap, Printer
 } from "lucide-react";
 import { getSesion } from "@/services/auth";
 import { obtenerReporteEstudiante, obtenerReporteDocente, listarAsistencias, actualizarAsistencia } from "@/services/asistencias";
@@ -49,9 +49,22 @@ export default function AsistenciasPage() {
     // Edición de estado
     const [editingEstadoId, setEditingEstadoId] = useState<string | null>(null);
 
+    const normalizarEstados = (lista: any[]) => {
+        return (lista || []).map((a: any) => {
+            let estadoNormalizado = a.estado;
+            if (a.estado === "presente") estadoNormalizado = "asistencia";
+            if (a.estado === "tarde") estadoNormalizado = "asistencia con retraso";
+            return { ...a, estado: estadoNormalizado };
+        });
+    };
+
     const handleCambiarEstado = async (asistenciaId: string, nuevoEstado: string) => {
         try {
-            await actualizarAsistencia(asistenciaId, { estado: nuevoEstado });
+            let dbEstado = nuevoEstado;
+            if (nuevoEstado === "asistencia") dbEstado = "presente";
+            if (nuevoEstado === "asistencia con retraso") dbEstado = "tarde";
+            
+            await actualizarAsistencia(asistenciaId, { estado: dbEstado });
             setAsistenciasRaw(prev => prev.map(a => a.id === asistenciaId ? { ...a, estado: nuevoEstado } : a));
             setEditingEstadoId(null);
         } catch (error) {
@@ -108,7 +121,7 @@ export default function AsistenciasPage() {
                     ]);
                     setReporte(Array.isArray(rep) ? rep : []);
                     setContingencias(cont);
-                    setAsistenciasRaw(asis);
+                    setAsistenciasRaw(normalizarEstados(asis));
                 } else if (s.rol === "Docente") {
                     const [rep, pend, hor, asis] = await Promise.all([
                         obtenerReporteDocente(s.num_doc!),
@@ -120,7 +133,7 @@ export default function AsistenciasPage() {
                     setContingencias(pend);
                     // Solo horarios de este docente
                     setHorarios(hor.filter(h => h.docente_id === s.id));
-                    setAsistenciasRaw(asis);
+                    setAsistenciasRaw(normalizarEstados(asis));
                 } else {
                     // Admin
                     const [cont, ses, asis] = await Promise.all([
@@ -130,7 +143,7 @@ export default function AsistenciasPage() {
                     ]);
                     setContingencias(cont);
                     setReporte(ses); // Reutilizamos el estado reporte para sesiones en Admin
-                    setAsistenciasRaw(asis);
+                    setAsistenciasRaw(normalizarEstados(asis));
                 }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
@@ -156,6 +169,372 @@ export default function AsistenciasPage() {
     };
 
 
+
+        const handleExportarPDF = (grupoData: any, sesionData: any) => {
+        const sTotal = sesionData.records.length;
+        const sPresentes = sesionData.records.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
+        const sPct = sTotal > 0 ? Math.round((sPresentes / sTotal) * 100) : 0;
+        const dateObj = sesionData.fecha ? (() => {
+            const [y, m, d] = sesionData.fecha.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        })() : null;
+        const dateStr = dateObj ? dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : "Sin Fecha";
+
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) return;
+
+        const htmlContent = `
+            <html>
+                <head>
+                    <title>Reporte de Asistencia - Universidad de Pamplona</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+                        body {
+                            font-family: 'Inter', sans-serif;
+                            color: #1e293b;
+                            margin: 0;
+                            padding: 40px;
+                            background: #ffffff;
+                        }
+                        .header {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            border-bottom: 3px solid #0f766e;
+                            padding-bottom: 20px;
+                            margin-bottom: 30px;
+                        }
+                        .header-logo {
+                            width: 80px;
+                            height: 80px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .header-text {
+                            text-align: right;
+                        }
+                        .header-text h1 {
+                            font-size: 20px;
+                            font-weight: 900;
+                            margin: 0;
+                            color: #0f766e;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                        }
+                        .header-text p {
+                            font-size: 11px;
+                            color: #64748b;
+                            margin: 4px 0 0 0;
+                            font-weight: 600;
+                        }
+                        .title-section {
+                            margin-bottom: 30px;
+                            text-align: center;
+                        }
+                        .title-section h2 {
+                            font-size: 16px;
+                            font-weight: 800;
+                            color: #1e293b;
+                            margin: 0;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+                        .title-section p {
+                            font-size: 12px;
+                            color: #0f766e;
+                            margin: 6px 0 0 0;
+                            font-weight: 700;
+                        }
+                        .meta-grid {
+                            display: grid;
+                            grid-template-cols: 1fr 1fr;
+                            gap: 15px;
+                            margin-bottom: 35px;
+                        }
+                        .meta-card {
+                            background: #f8fafc;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 12px;
+                            padding: 15px;
+                        }
+                        .meta-card h3 {
+                            font-size: 10px;
+                            font-weight: 900;
+                            color: #0f766e;
+                            margin: 0 0 8px 0;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                        }
+                        .meta-card p {
+                            font-size: 12px;
+                            font-weight: 700;
+                            margin: 0 0 6px 0;
+                            color: #334155;
+                        }
+                        .meta-card p:last-child {
+                            margin-bottom: 0;
+                        }
+                        .meta-card span {
+                            font-weight: 500;
+                            color: #64748b;
+                        }
+                        .stats-row {
+                            display: flex;
+                            gap: 15px;
+                            margin-bottom: 35px;
+                        }
+                        .stat-box {
+                            flex: 1;
+                            background: #f0fdf4;
+                            border: 1px solid #bbf7d0;
+                            border-radius: 12px;
+                            padding: 15px;
+                            text-align: center;
+                        }
+                        .stat-box.ausentes {
+                            background: #fef2f2;
+                            border: 1px solid #fecaca;
+                        }
+                        .stat-box.porcentaje {
+                            background: #f0fdfa;
+                            border: 1px solid #99f6e4;
+                        }
+                        .stat-value {
+                            font-size: 20px;
+                            font-weight: 900;
+                            color: #166534;
+                            margin-bottom: 4px;
+                        }
+                        .stat-box.ausentes .stat-value {
+                            color: #991b1b;
+                        }
+                        .stat-box.porcentaje .stat-value {
+                            color: #0f766e;
+                        }
+                        .stat-label {
+                            font-size: 9px;
+                            font-weight: 800;
+                            color: #64748b;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+                        .table-title {
+                            font-size: 11px;
+                            font-weight: 900;
+                            color: #0f766e;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            margin-bottom: 12px;
+                            border-left: 3px solid #0f766e;
+                            padding-left: 8px;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 45px;
+                        }
+                        th {
+                            background: #f8fafc;
+                            color: #475569;
+                            font-size: 10px;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            padding: 10px 12px;
+                            border-bottom: 2px solid #e2e8f0;
+                            text-align: left;
+                        }
+                        td {
+                            padding: 10px 12px;
+                            font-size: 11px;
+                            color: #334155;
+                            border-bottom: 1px solid #f1f5f9;
+                            font-weight: 600;
+                        }
+                        tr:last-child td {
+                            border-bottom: 2px solid #e2e8f0;
+                        }
+                        .student-name {
+                            font-weight: 700;
+                            color: #1e293b;
+                        }
+                        .student-doc {
+                            font-size: 9px;
+                            color: #94a3b8;
+                            font-family: monospace;
+                            margin-top: 2px;
+                        }
+                        .status-badge {
+                            display: inline-block;
+                            padding: 3px 8px;
+                            border-radius: 9999px;
+                            font-size: 9px;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                        }
+                        .status-presente {
+                            background: #dcfce7;
+                            color: #15803d;
+                        }
+                        .status-tarde {
+                            background: #fef3c7;
+                            color: #b45309;
+                        }
+                        .status-ausente {
+                            background: #fee2e2;
+                            color: #b91c1c;
+                        }
+                        .signatures {
+                            display: grid;
+                            grid-template-cols: 1fr 1fr;
+                            gap: 50px;
+                            margin-top: 80px;
+                            page-break-inside: avoid;
+                        }
+                        .signature-block {
+                            text-align: center;
+                        }
+                        .signature-line {
+                            border-top: 1px solid #cbd5e1;
+                            margin-bottom: 8px;
+                        }
+                        .signature-title {
+                            font-size: 11px;
+                            font-weight: 800;
+                            color: #1e293b;
+                        }
+                        .signature-subtitle {
+                            font-size: 9px;
+                            color: #64748b;
+                            margin-top: 2px;
+                            font-weight: 600;
+                        }
+                        @media print {
+                            body {
+                                padding: 0;
+                            }
+                            @page {
+                                margin: 2cm;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="header-logo">
+                            <svg viewBox="0 0 100 100" width="80" height="80">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="#0f766e" stroke-width="6"/>
+                                <path d="M30 45 L50 25 L70 45 M50 25 L50 75" fill="none" stroke="#0f766e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="50" cy="50" r="10" fill="#0f766e"/>
+                            </svg>
+                        </div>
+                        <div class="header-text">
+                            <h1>Universidad de Pamplona</h1>
+                            <p>Sistema Integrado de Gestión Académica (SIGA)</p>
+                            <p>Reporte Oficial de Asistencia de Clase</p>
+                        </div>
+                    </div>
+
+                    <div class="title-section">
+                        <h2>Planilla Oficial de Control de Asistencia</h2>
+                        <p>${dateStr.toUpperCase()}</p>
+                    </div>
+
+                    <div class="meta-grid">
+                        <div class="meta-card">
+                            <h3>Información del Curso</h3>
+                            <p><span>Asignatura:</span> ${grupoData.codAsig || ""} — ${grupoData.asignatura || ""}</p>
+                            <p><span>Grupo:</span> ${grupoData.grupo || ""}</p>
+                            <p><span>Aula:</span> ${sesionData.aula_sesion || grupoData.aula || "Sin Aula"}</p>
+                        </div>
+                        <div class="meta-card">
+                            <h3>Información del Docente</h3>
+                            <p><span>Docente:</span> ${grupoData.docente || ""}</p>
+                            <p><span>Documento:</span> ${sesionData.docente_num_doc || "—"}</p>
+                            <p><span>Método Verificación:</span> ${sesionData.docente_metodo_verificacion || "N/A"}</p>
+                        </div>
+                    </div>
+
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="stat-value">${sPresentes}</div>
+                            <div class="stat-label">Estudiantes Presentes</div>
+                        </div>
+                        <div class="stat-box ausentes">
+                            <div class="stat-value">${sTotal - sPresentes}</div>
+                            <div class="stat-label">Estudiantes Ausentes</div>
+                        </div>
+                        <div class="stat-box porcentaje">
+                            <div class="stat-value">${sPct}%</div>
+                            <div class="stat-label">Porcentaje de Asistencia</div>
+                        </div>
+                    </div>
+
+                    <div class="table-title">Registros de Asistencia de Estudiantes</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 50%;">Estudiante</th>
+                                <th style="width: 15%; text-align: center;">Entrada</th>
+                                <th style="width: 15%; text-align: center;">Salida</th>
+                                <th style="width: 20%; text-align: center;">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sesionData.records.map((a: any) => `
+                                <tr>
+                                    <td>
+                                        <div class="student-name">${a.nombre_estudiante} ${a.apellido_estudiante}</div>
+                                        <div class="student-doc">Documento: ${a.num_doc}</div>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        ${a.hora_entrada ? new Date(a.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                    </td>
+                                    <td style="text-align: center;">
+                                        ${a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <span class="status-badge ${
+                                            a.estado === "asistencia" ? "status-presente" : a.estado === "asistencia con retraso" ? "status-tarde" : "status-ausente"
+                                        }">
+                                            ${a.estado === "asistencia" ? "Presente" : a.estado === "asistencia con retraso" ? "Tarde" : "Ausente"}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `).join("")}
+                        </tbody>
+                    </table>
+
+                    <div class="signatures">
+                        <div class="signature-block">
+                            <div class="signature-line"></div>
+                            <div class="signature-title">${grupoData.docente}</div>
+                            <div class="signature-subtitle">Docente de la Materia</div>
+                            <div class="signature-subtitle">C.C. ${sesionData.docente_num_doc || "__________________"}</div>
+                        </div>
+                        <div class="signature-block">
+                            <div class="signature-line"></div>
+                            <div class="signature-title">Firma Institucional</div>
+                            <div class="signature-subtitle">Universidad de Pamplona</div>
+                            <div class="signature-subtitle">Representante SIGA / Control Académico</div>
+                        </div>
+                    </div>
+
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 500);
+                        };
+                    </script>
+                </body>
+            </html>
+        `;
+
+        printWindow.document.open();
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+    };
 
     if (loading) return <div className="p-10 text-center animate-pulse font-bold text-gray-400">Cargando módulo de asistencias...</div>;
 
@@ -242,12 +621,23 @@ export default function AsistenciasPage() {
                             }
 
                             if (!allGroups[fac][prog][asig][grup].sesiones[sesionKey]) {
+                                const docEstado = a.docente_estado_asistencia === 'presente' ? 'asistencia' :
+                                                  a.docente_estado_asistencia === 'tarde' ? 'asistencia con retraso' :
+                                                  a.docente_estado_asistencia === 'inasistencia' ? 'inasistencia' :
+                                                  (a.docente_asistio ? 'asistencia' : 'inasistencia');
+                                
                                 allGroups[fac][prog][asig][grup].sesiones[sesionKey] = {
                                     sesion_id: a.sesion_id,
                                     fecha: a.fecha,
                                     aula_sesion: a.aula_sesion || a.aula,
                                     docente_asistio: a.docente_asistio,
                                     semana: a.semana,
+                                    docente_num_doc: a.docente_num_doc,
+                                    docente_hora_entrada: a.docente_hora_entrada,
+                                    docente_hora_salida: a.docente_hora_salida,
+                                    docente_metodo_verificacion: a.docente_metodo_verificacion,
+                                    docente_estado_asistencia: docEstado,
+                                    estado_sesion: a.estado_sesion,
                                     records: []
                                 };
                             }
@@ -256,8 +646,10 @@ export default function AsistenciasPage() {
                                 allGroups[fac][prog][asig][grup].sesiones[sesionKey].records.push({
                                     id: a.id,
                                     num_doc: a.num_doc,
-                                    nombre: a.nombre,
-                                    apellido: a.apellido,
+                                    nombre: a.nombre_estudiante,
+                                    apellido: a.apellido_estudiante,
+                                    nombre_estudiante: a.nombre_estudiante,
+                                    apellido_estudiante: a.apellido_estudiante,
                                     estado: a.estado,
                                     metodo_verificacion: a.metodo_verificacion,
                                     hora_entrada: a.hora_entrada,
@@ -266,6 +658,15 @@ export default function AsistenciasPage() {
                                 });
                             }
                         });
+
+                        // Helper to get Spanish weekday name from YYYY-MM-DD
+                        const getDiaDeLaSemana = (fechaStr: string) => {
+                            if (!fechaStr) return "";
+                            const [y, m, d] = fechaStr.split('-').map(Number);
+                            const date = new Date(y, m - 1, d);
+                            const dias = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+                            return dias[date.getDay()];
+                        };
 
                         // 2. Filtrar grupos
                         const filteredFaculties: any = {};
@@ -277,18 +678,21 @@ export default function AsistenciasPage() {
                                     for (const grup in allGroups[fac][prog][asig]) {
                                         const grupoData = allGroups[fac][prog][asig][grup];
 
-                                        // Filtro de día: Verifica si el grupo tiene al menos una sesión en ese día
-                                        const matchDia = !filtADia || grupoData.horarios.some((h: any) => h.dia && h.dia.toLowerCase().includes(filtADia.toLowerCase()));
+                                        // Filtro de día: Verifica si el grupo tiene al menos una sesión en ese día o está en su horario
+                                        const matchDia = !filtADia || 
+                                            grupoData.horarios.some((h: any) => h.dia.toLowerCase() === filtADia.toLowerCase()) ||
+                                            Object.values(grupoData.sesiones).some((sData: any) => {
+                                                return sData.fecha && getDiaDeLaSemana(sData.fecha).toLowerCase() === filtADia.toLowerCase();
+                                            });
                                         const matchFac = !filtAFacultad || fac === filtAFacultad;
                                         const matchProg = !filtAPrograma || prog === filtAPrograma;
                                         const matchAsig = !filtAAsignatura || asig === filtAAsignatura;
                                         const matchAula = !filtAAula || grupoData.aula === filtAAula || Object.values(grupoData.sesiones).some((s: any) => s.aula_sesion === filtAAula);
+                                         const matchFechaGroup = !filtAFecha || Object.values(grupoData.sesiones).some((sData: any) => {
+                                             return sData.fecha && sData.fecha.includes(filtAFecha);
+                                         });
 
-                                        if (matchDia && matchFac && matchProg && matchAsig && matchAula) {
-                                            if (!filteredFaculties[fac]) filteredFaculties[fac] = {};
-                                            if (!filteredFaculties[fac][prog]) filteredFaculties[fac][prog] = {};
-                                            if (!filteredFaculties[fac][prog][asig]) filteredFaculties[fac][prog][asig] = {};
-
+                                        if (matchDia && matchFac && matchProg && matchAsig && matchAula && matchFechaGroup) {
                                             // Filtrar sesiones y registros
                                             const filteredSessions: any = {};
                                             for (const sKey in grupoData.sesiones) {
@@ -296,14 +700,19 @@ export default function AsistenciasPage() {
 
                                                 const matchSemana = !filtASemana || sData.semana?.toString() === filtASemana;
                                                 // Handle date match (sData.fecha might be ISO or YYYY-MM-DD)
-                                                const matchFecha = !filtAFecha || (sData.fecha && sData.fecha.includes(filtAFecha));
+                                                const matchFecha = true; // Desactivado para mostrar todas las sesiones al filtrar por fecha
+                                                // Filtrar sesión por día real (desactivado para mostrar todas las sesiones del grupo al filtrar por día)
+                                                const matchDiaSesion = true;
 
                                                 const filteredRecords = sData.records.filter((r: any) => {
                                                     const matchEst = !filtAEstudiante || normalizar(`${r.nombre} ${r.apellido} ${r.num_doc}`).includes(normalizar(filtAEstudiante));
-                                                    return matchEst;
+                                                    const matchMetodo = !filtAMetodo || (r.metodo_verificacion && r.metodo_verificacion.toLowerCase() === filtAMetodo.toLowerCase());
+                                                    const matchEstado = !filtAEstado || (r.estado && r.estado.toLowerCase() === filtAEstado.toLowerCase());
+                                                    return matchEst && matchMetodo && matchEstado;
                                                 });
 
-                                                if (matchSemana && matchFecha && (filteredRecords.length > 0 || !filtAEstudiante)) {
+                                                const hasStudentFilters = filtAEstudiante || filtAMetodo || filtAEstado;
+                                                if (matchSemana && matchFecha && matchDiaSesion && (filteredRecords.length > 0 || !hasStudentFilters)) {
                                                     filteredSessions[sKey] = { ...sData, records: filteredRecords };
                                                     // Only count records if the session matches!
                                                     filteredCount += filteredRecords.length;
@@ -318,6 +727,7 @@ export default function AsistenciasPage() {
                                                 const weekNum = parseInt(filtASemana);
 
                                                 grupoData.horarios.forEach((h: any) => {
+                                                    if (filtADia && h.dia.toLowerCase() !== filtADia.toLowerCase()) return;
                                                     const sKey = `virtual-${filtASemana}-${h.dia}`;
                                                     let reason = "";
                                                     if (weekNum < currentWeek) {
@@ -362,6 +772,9 @@ export default function AsistenciasPage() {
                                             }
 
                                             if (Object.keys(filteredSessions).length > 0) {
+                                                if (!filteredFaculties[fac]) filteredFaculties[fac] = {};
+                                                if (!filteredFaculties[fac][prog]) filteredFaculties[fac][prog] = {};
+                                                if (!filteredFaculties[fac][prog][asig]) filteredFaculties[fac][prog][asig] = {};
                                                 filteredFaculties[fac][prog][asig][grup] = { ...grupoData, sesiones: filteredSessions };
                                             }
                                         }
@@ -620,7 +1033,7 @@ export default function AsistenciasPage() {
                                                                                                                 <div className="relative w-9 h-9 shrink-0">
                                                                                                                     <svg className="w-full h-full -rotate-90" viewBox="0 0 32 32">
                                                                                                                         <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="2.5" fill="transparent" className="text-gray-100" />
-                                                                                                                        <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="2.5" fill="transparent" strokeDasharray={81.68} strokeDashoffset={81.68 - (81.68 * pct) / 100} className={pct >= 80 ? "text-green-500" : pct >= 60 ? "text-amber-400" : "text-sara-red"} />
+                                                                                                                        <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="2.5" fill="transparent" strokeDasharray={81.68} strokeDashoffset={81.68 - (81.68 * pct) / 100} className="text-emerald-500 transition-all duration-500" />
                                                                                                                     </svg>
                                                                                                                     <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-gray-700">{pct}%</span>
                                                                                                                 </div>
@@ -643,196 +1056,314 @@ export default function AsistenciasPage() {
                                                                                                     {Object.entries(grupoData.sesiones).sort(([, valA]: [string, any], [, valB]: [string, any]) => (valA.fecha || "").localeCompare(valB.fecha || "")).map(([sesionKey, sesionData]: [string, any]) => {
                                                                                                         if (sesionKey === 'sin-sesion') return null;
                                                                                                         const isSessionOpen = expandedSessions.has(sesionKey);
+                                                                                                        const isSessionCompleta = sesionData.docente_asistio && sesionData.estado_sesion !== "abierta";
+                                                                                                        const isSessionAbierta = sesionData.estado_sesion === "abierta";
                                                                                                         return (
-                                                                                                            <div key={sesionKey} className="space-y-2">
-                                                                                                                {(() => {
-                                                                                                                    const sTotal = sesionData.records.length;
-                                                                                                                    const sPresentes = sesionData.records.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
-                                                                                                                    const sPct = sTotal > 0 ? Math.round((sPresentes / sTotal) * 100) : 0;
-                                                                                                                    return (
-                                                                                                                        <div onClick={() => !isEstudiante && sesionData.docente_asistio && toggleSession(sesionKey)} className={`flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-100 p-2 rounded-lg gap-2 ${(!isEstudiante && sesionData.docente_asistio) ? 'cursor-pointer hover:bg-gray-200 transition-colors' : ''}`}>
-                                                                                                                            <div className="flex items-center gap-3">
-                                                                                                                                {isEstudiante ? (
-                                                                                                                                    (() => {
-                                                                                                                                        const myRecord = sesionData.records[0];
-                                                                                                                                        const estado = myRecord ? myRecord.estado : "inasistencia";
-                                                                                                                                        if (!sesionData.docente_asistio) {
-                                                                                                                                            return (
-                                                                                                                                                <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-red-50 rounded-full text-sara-red">
-                                                                                                                                                    <XCircle size={14} />
-                                                                                                                                                </div>
-                                                                                                                                            );
-                                                                                                                                        }
-                                                                                                                                        if (estado === "asistencia") {
-                                                                                                                                            return (
-                                                                                                                                                <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-green-50 rounded-full text-green-600">
-                                                                                                                                                    <CheckCircle2 size={14} />
-                                                                                                                                                </div>
-                                                                                                                                            );
-                                                                                                                                        } else if (estado === "asistencia con retraso") {
-                                                                                                                                            return (
-                                                                                                                                                <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-amber-50 rounded-full text-amber-500">
-                                                                                                                                                    <Clock size={14} />
-                                                                                                                                                </div>
-                                                                                                                                            );
-                                                                                                                                        } else {
-                                                                                                                                            return (
-                                                                                                                                                <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-red-50 rounded-full text-sara-red">
-                                                                                                                                                    <XCircle size={14} />
-                                                                                                                                                </div>
-                                                                                                                                            );
-                                                                                                                                        }
-                                                                                                                                    })()
-                                                                                                                                ) : (
-                                                                                                                                    sesionData.docente_asistio ? (
-                                                                                                                                        <div className="relative w-8 h-8 shrink-0">
-                                                                                                                                            <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
-                                                                                                                                                <circle cx="22" cy="22" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-gray-100" />
-                                                                                                                                                <circle cx="22" cy="22" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={113.1} strokeDashoffset={113.1 - (113.1 * sPct) / 100} className={sPct >= 80 ? "text-green-500" : sPct >= 60 ? "text-amber-400" : "text-sara-red"} />
-                                                                                                                                            </svg>
-                                                                                                                                            <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-gray-600">{sPct}%</span>
-                                                                                                                                        </div>
-                                                                                                                                    ) : (
-                                                                                                                                        <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-red-50 rounded-full text-sara-red">
-                                                                                                                                            <XCircle size={14} />
-                                                                                                                                        </div>
-                                                                                                                                    )
-                                                                                                                                )}
-                                                                                                                                <div>
-                                                                                                                                    <span className="text-xs font-black text-sidebar-bg block">
-                                                                                                                                        {(() => {
-                                                                                                                                            const dateObj = sesionData.fecha ? (() => {
-                                                                                                                                                const [y, m, d] = sesionData.fecha.split('-').map(Number);
-                                                                                                                                                return new Date(y, m - 1, d);
-                                                                                                                                            })() : null;
-                                                                                                                                            const dateStr = dateObj ? dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : "Sin Fecha";
-                                                                                                                                            const parts = dateStr.split(' ');
-                                                                                                                                            if (parts.length >= 4) {
-                                                                                                                                                parts[0] = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-                                                                                                                                                parts[3] = parts[3].charAt(0).toUpperCase() + parts[3].slice(1);
-                                                                                                                                            }
-                                                                                                                                            const formattedDate = parts.join(' ');
-
-                                                                                                                                            return sesionData.docente_asistio ? (
-                                                                                                                                                <>
-                                                                                                                                                    Sesión Completada: {formattedDate} (Semana {sesionData.semana})
-                                                                                                                                                    <br />
-                                                                                                                                                    <span className="text-gray-500 font-medium">Aula: {sesionData.aula_sesion || "Sin Aula"}</span>
-                                                                                                                                                </>
-                                                                                                                                            ) : (
-                                                                                                                                                <>
-                                                                                                                                                    Sesión No Completada: {formattedDate} (Semana {sesionData.semana})
-                                                                                                                                                    <br />
-                                                                                                                                                    <span className="text-gray-500">Motivo: {sesionData.isVirtual ? sesionData.reason : "Docente no asistió"}</span>
-                                                                                                                                                </>
-                                                                                                                                            );
-                                                                                                                                        })()}
-                                                                                                                                    </span>
-                                                                                                                                    <span className="text-[10px] text-gray-500 font-bold">
-                                                                                                                                        {isEstudiante ? (
-                                                                                                                                            (() => {
-                                                                                                                                                const myRecord = sesionData.records[0];
-                                                                                                                                                const estado = myRecord ? myRecord.estado : "inasistencia";
-                                                                                                                                                if (!sesionData.docente_asistio) {
-                                                                                                                                                    return sesionData.isVirtual && sesionData.reason === "No completada por fecha" ? "Sesión programada" : "Clase cancelada por ausencia del docente";
-                                                                                                                                                }
-                                                                                                                                                if (estado === "asistencia") return "Asististe a tiempo";
-                                                                                                                                                if (estado === "asistencia con retraso") return `Registrado con retraso (${myRecord.hora_entrada ? new Date(myRecord.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''})`;
-                                                                                                                                                return "Inasistencia registrada";
-                                                                                                                                            })()
-                                                                                                                                        ) : (
-                                                                                                                                            sesionData.isVirtual
-                                                                                                                                                ? sesionData.reason === "No completada por fecha" ? "Sesión futura" : "Sesión no completada por ausencia"
-                                                                                                                                                : sesionData.docente_asistio
-                                                                                                                                                    ? `${sPresentes} presentes, ${sTotal - sPresentes} ausentes (${sPct}%)`
-                                                                                                                                                    : `Sesión no completada por ausencia del docente`
-                                                                                                                                        )}
-                                                                                                                                    </span>
-                                                                                                                                </div>
-                                                                                                                            </div>
-                                                                                                                            <div className="flex items-center gap-2">
-                                                                                                                                {isEstudiante ? (
-                                                                                                                                    (() => {
-                                                                                                                                        const myRecord = sesionData.records[0];
-                                                                                                                                        const estado = myRecord ? myRecord.estado : "inasistencia";
-                                                                                                                                        if (!sesionData.docente_asistio) {
-                                                                                                                                            return (
-                                                                                                                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full text-center ${sesionData.isVirtual && sesionData.reason === "No completada por fecha" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
-                                                                                                                                                    {sesionData.isVirtual && sesionData.reason === "No completada por fecha" ? "Pendiente" : "Clase Cancelada"}
-                                                                                                                                                </span>
-                                                                                                                                            );
-                                                                                                                                        }
-                                                                                                                                        return (
-                                                                                                                                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${estado === "asistencia" ? "bg-green-50 text-green-700" : estado === "asistencia con retraso" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
-                                                                                                                                                {estado === "asistencia" ? "Presente" : estado === "asistencia con retraso" ? "Tarde" : "Ausente"}
-                                                                                                                                            </span>
-                                                                                                                                        );
-                                                                                                                                    })()
-                                                                                                                                ) : (
-                                                                                                                                    <>
-                                                                                                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full text-center flex flex-col items-center justify-center ${sesionData.isVirtual ? (sesionData.reason === "No completada por fecha" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700") : sesionData.docente_asistio ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-                                                                                                                                            {sesionData.isVirtual ? (sesionData.reason === "No completada por fecha" ? "Pendiente" : "Clase Cancelada") : sesionData.docente_asistio ? "Docente Asistió" : "Clase Cancelada"}
-                                                                                                                                        </span>
-                                                                                                                                        {sesionData.docente_asistio && (
-                                                                                                                                            <svg className={`w-3 h-3 text-gray-400 transition-transform ${isSessionOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                                                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                                                                                                                            </svg>
-                                                                                                                                        )}
-                                                                                                                                    </>
-                                                                                                                                )}
-                                                                                                                            </div>
-                                                                                                                        </div>
-                                                                                                                    );
-                                                                                                                })()}
-                                                                                                                {!isEstudiante && sesionData.docente_asistio && isSessionOpen && (
-                                                                                                                    <div className="bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm mt-1">
-                                                                                                                        <table className="w-full text-sm">
-                                                                                                                            <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-black">
-                                                                                                                                <tr>
-                                                                                                                                    <th className="px-3 py-1.5 text-left">Estudiante</th>
-                                                                                                                                    <th className="px-3 py-1.5 text-center">Entrada</th>
-                                                                                                                                    <th className="px-3 py-1.5 text-center">Salida</th>
-                                                                                                                                    <th className="px-3 py-1.5">Método</th>
-                                                                                                                                    <th className="px-3 py-1.5 text-center">Estado</th>
-                                                                                                                                </tr>
-                                                                                                                            </thead>
-                                                                                                                            <tbody className="divide-y divide-gray-50">
-                                                                                                                                {sesionData.records.map((a: any) => (
-                                                                                                                                    <tr key={a.num_doc} className="hover:bg-gray-50/40 transition-colors">
-                                                                                                                                        <td className="px-3 py-2">
-                                                                                                                                            <p className="font-bold text-gray-800 text-[11px]">{a.nombre_estudiante} {a.apellido_estudiante}</p>
-                                                                                                                                            <p className="text-[9px] text-gray-400 font-mono">{a.num_doc}</p>
-                                                                                                                                        </td>
-                                                                                                                                        <td className="px-3 py-2 text-[10px] text-gray-600 text-center">
-                                                                                                                                            {a.hora_entrada ? new Date(a.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                                                                                                                        </td>
-                                                                                                                                        <td className="px-3 py-2 text-[10px] text-gray-600 text-center">
-                                                                                                                                            {a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                                                                                                                        </td>
-                                                                                                                                        <td className="px-3 py-2 text-center">
-                                                                                                                                            <Badge color={a.metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"}>
-                                                                                                                                                {a.metodo_verificacion}
-                                                                                                                                            </Badge>
-                                                                                                                                        </td>
-                                                                                                                                        <td className="px-3 py-2 text-center">
-                                                                                                                                            {editingEstadoId === a.id ? (
-                                                                                                                                                <select value={a.estado} onChange={e => handleCambiarEstado(a.id, e.target.value)} onBlur={() => setEditingEstadoId(null)} autoFocus className="text-[10px] font-bold p-1 bg-white border border-gray-200 rounded-lg">
-                                                                                                                                                    {["asistencia", "asistencia con retraso", "inasistencia"].map(e => <option key={e} value={e}>{e}</option>)}
-                                                                                                                                                </select>
-                                                                                                                                            ) : (
-                                                                                                                                                <button onClick={() => setEditingEstadoId(a.id)} className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${a.estado === "asistencia" ? "bg-green-50 text-green-700" : a.estado === "asistencia con retraso" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
-                                                                                                                                                    {a.estado}
-                                                                                                                                                </button>
-                                                                                                                                            )}
-                                                                                                                                        </td>
-                                                                                                                                    </tr>
-                                                                                                                                ))}
-                                                                                                                            </tbody>
-                                                                                                                        </table>
-                                                                                                                    </div>
-                                                                                                                )}
-                                                                                                            </div>
-                                                                                                        );
+                                                                                                             <div key={sesionKey} className="space-y-2">
+                                                                                                                 {(() => {
+                                                                                                                     const sTotal = sesionData.records.length;
+                                                                                                                     const sPresentes = sesionData.records.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
+                                                                                                                     const sPct = sTotal > 0 ? Math.round((sPresentes / sTotal) * 100) : 0;
+                                                                                                                     
+                                                                                                                     return (
+                                                                                                                         <div 
+                                                                                                                             onClick={() => !isEstudiante && (isSessionCompleta || isSessionAbierta) && toggleSession(sesionKey)} 
+                                                                                                                             className={`flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-100 p-2 rounded-xl gap-2 ${(!isEstudiante && (isSessionCompleta || isSessionAbierta)) ? 'cursor-pointer hover:bg-gray-200 transition-colors' : ''}`}
+                                                                                                                         >
+                                                                                                                              <div className="flex items-center gap-3">
+                                                                                                                                  {isEstudiante ? (
+                                                                                                                                      (() => {
+                                                                                                                                          const myRecord = sesionData.records[0];
+                                                                                                                                          const estado = myRecord ? myRecord.estado : "inasistencia";
+                                                                                                                                          if (isSessionAbierta) {
+                                                                                                                                              return (
+                                                                                                                                                  <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-blue-50 rounded-full text-blue-600 animate-pulse relative">
+                                                                                                                                                      <Clock size={14} />
+                                                                                                                                                      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
+                                                                                                                                                  </div>
+                                                                                                                                              );
+                                                                                                                                          }
+                                                                                                                                          if (!isSessionCompleta) {
+                                                                                                                                              return (
+                                                                                                                                                  <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-red-50 rounded-full text-sara-red">
+                                                                                                                                                      <XCircle size={14} />
+                                                                                                                                                  </div>
+                                                                                                                                              );
+                                                                                                                                          }
+                                                                                                                                          if (estado === "asistencia") {
+                                                                                                                                              return (
+                                                                                                                                                  <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-green-50 rounded-full text-green-600">
+                                                                                                                                                      <CheckCircle2 size={14} />
+                                                                                                                                                  </div>
+                                                                                                                                              );
+                                                                                                                                          } else if (estado === "asistencia con retraso") {
+                                                                                                                                              return (
+                                                                                                                                                  <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-amber-50 rounded-full text-amber-500">
+                                                                                                                                                      <Clock size={14} />
+                                                                                                                                                  </div>
+                                                                                                                                              );
+                                                                                                                                          } else {
+                                                                                                                                              return (
+                                                                                                                                                  <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-red-50 rounded-full text-sara-red">
+                                                                                                                                                      <XCircle size={14} />
+                                                                                                                                                  </div>
+                                                                                                                                              );
+                                                                                                                                          }
+                                                                                                                                      })()
+                                                                                                                                  ) : (
+                                                                                                                                      isSessionAbierta ? (
+                                                                                                                                          <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-blue-50 rounded-full text-blue-600 animate-pulse relative">
+                                                                                                                                              <Clock size={14} />
+                                                                                                                                              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
+                                                                                                                                          </div>
+                                                                                                                                      ) : isSessionCompleta ? (
+                                                                                                                                          <div className="flex flex-col items-center gap-1 shrink-0">
+                                                                                                                                              <div className="relative w-8 h-8 shrink-0">
+                                                                                                                                                  <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
+                                                                                                                                                      <circle cx="22" cy="22" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-gray-100" />
+                                                                                                                                                      <circle cx="22" cy="22" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={113.1} strokeDashoffset={113.1 - (113.1 * sPct) / 100} className="text-emerald-500 transition-all duration-500" />
+                                                                                                                                                  </svg>
+                                                                                                                                                  <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-gray-600">{sPct}%</span>
+                                                                                                                                              </div>
+                                                                                                                                              {!isEstudiante && (
+                                                                                                                                                  <button
+                                                                                                                                                      onClick={(e) => {
+                                                                                                                                                          e.stopPropagation();
+                                                                                                                                                          handleExportarPDF(grupoData, sesionData);
+                                                                                                                                                      }}
+                                                                                                                                                      title="Exportar Reporte de Asistencia a PDF"
+                                                                                                                                                      className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 hover:bg-emerald-100 border border-emerald-200 flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
+                                                                                                                                                  >
+                                                                                                                                                      <Printer size={10} strokeWidth={2.5} />
+                                                                                                                                                  </button>
+                                                                                                                                              )}
+                                                                                                                                          </div>
+                                                                                                                                      ) : (
+                                                                                                                                          <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-red-50 rounded-full text-sara-red">
+                                                                                                                                              <XCircle size={14} />
+                                                                                                                                          </div>
+                                                                                                                                      )
+                                                                                                                                  )}
+                                                                                                                                  <div>
+                                                                                                                                      <span className="text-xs font-black text-sidebar-bg block">
+                                                                                                                                          {(() => {
+                                                                                                                                              const dateObj = sesionData.fecha ? (() => {
+                                                                                                                                                  const [y, m, d] = sesionData.fecha.split('-').map(Number);
+                                                                                                                                                  return new Date(y, m - 1, d);
+                                                                                                                                              })() : null;
+                                                                                                                                              const dateStr = dateObj ? dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : "Sin Fecha";
+                                                                                                                                              const parts = dateStr.split(' ');
+                                                                                                                                              if (parts.length >= 4) {
+                                                                                                                                                  parts[0] = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+                                                                                                                                                  parts[3] = parts[3].charAt(0).toUpperCase() + parts[3].slice(1);
+                                                                                                                                              }
+                                                                                                                                              const formattedDate = parts.join(' ');
+ 
+                                                                                                                                              if (isSessionAbierta) {
+                                                                                                                                                  return (
+                                                                                                                                                      <>
+                                                                                                                                                          Sesión Abierta: {formattedDate} (Semana {sesionData.semana})
+                                                                                                                                                          <br />
+                                                                                                                                                          <span className="text-blue-500 font-bold">Aula: {sesionData.aula_sesion || "Sin Aula"}</span>
+                                                                                                                                                      </>
+                                                                                                                                                  );
+                                                                                                                                              }
+ 
+                                                                                                                                              return isSessionCompleta ? (
+                                                                                                                                                  <>
+                                                                                                                                                      Sesión Completada: {formattedDate} (Semana {sesionData.semana})
+                                                                                                                                                      <br />
+                                                                                                                                                      <span className="text-gray-500 font-medium">Aula: {sesionData.aula_sesion || "Sin Aula"}</span>
+                                                                                                                                                  </>
+                                                                                                                                              ) : (
+                                                                                                                                                  <>
+                                                                                                                                                      Sesión No Completada: {formattedDate} (Semana {sesionData.semana})
+                                                                                                                                                      <br />
+                                                                                                                                                      <span className="text-gray-500">Motivo: {sesionData.isVirtual ? sesionData.reason : "Docente no asistió"}</span>
+                                                                                                                                                  </>
+                                                                                                                                              );
+                                                                                                                                          })()}
+                                                                                                                                      </span>
+                                                                                                                                      <span className="text-[10px] text-gray-500 font-bold">
+                                                                                                                                          {isEstudiante ? (
+                                                                                                                                              (() => {
+                                                                                                                                                  const myRecord = sesionData.records[0];
+                                                                                                                                                  const estado = myRecord ? myRecord.estado : "inasistencia";
+                                                                                                                                                  if (isSessionAbierta) {
+                                                                                                                                                      return "Sesión abierta: Clase actualmente en curso";
+                                                                                                                                                  }
+                                                                                                                                                  if (!isSessionCompleta) {
+                                                                                                                                                      return sesionData.isVirtual && sesionData.reason === "No completada por fecha" ? "Sesión programada" : "Clase cancelada por ausencia del docente";
+                                                                                                                                                  }
+                                                                                                                                                  if (estado === "asistencia") return "Asististe a tiempo";
+                                                                                                                                                  if (estado === "asistencia con retraso") return `Registrado con retraso (${myRecord.hora_entrada ? new Date(myRecord.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''})`;
+                                                                                                                                                  return "Inasistencia registrada";
+                                                                                                                                              })()
+                                                                                                                                          ) : (
+                                                                                                                                              isSessionAbierta
+                                                                                                                                                  ? "Sesión abierta: Clase activa con docente en aula"
+                                                                                                                                                  : sesionData.isVirtual
+                                                                                                                                                      ? sesionData.reason === "No completada por fecha" ? "Sesión futura" : "Sesión no completada por ausencia"
+                                                                                                                                                      : isSessionCompleta
+                                                                                                                                                          ? `${sPresentes} presentes, ${sTotal - sPresentes} ausentes (${sPct}%)`
+                                                                                                                                                          : `Sesión no completada por ausencia del docente`
+                                                                                                                                          )}
+                                                                                                                                      </span>
+                                                                                                                                  </div>
+                                                                                                                              </div>
+                                                                                                                              <div className="flex items-center gap-2">
+                                                                                                                                  {isEstudiante ? (
+                                                                                                                                      (() => {
+                                                                                                                                          const myRecord = sesionData.records[0];
+                                                                                                                                          const estado = myRecord ? myRecord.estado : "inasistencia";
+                                                                                                                                          if (isSessionAbierta) {
+                                                                                                                                              return (
+                                                                                                                                                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 animate-pulse">
+                                                                                                                                                      En Curso
+                                                                                                                                                  </span>
+                                                                                                                                              );
+                                                                                                                                          }
+                                                                                                                                          if (!isSessionCompleta) {
+                                                                                                                                              return (
+                                                                                                                                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full text-center ${sesionData.isVirtual && sesionData.reason === "No completada por fecha" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
+                                                                                                                                                      {sesionData.isVirtual && sesionData.reason === "No completada por fecha" ? "Pendiente" : "Clase Cancelada"}
+                                                                                                                                                  </span>
+                                                                                                                                              );
+                                                                                                                                          }
+                                                                                                                                          return (
+                                                                                                                                              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${estado === "asistencia" ? "bg-green-50 text-green-700" : estado === "asistencia con retraso" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
+                                                                                                                                                  {estado === "asistencia" ? "Presente" : estado === "asistencia con retraso" ? "Tarde" : "Ausente"}
+                                                                                                                                              </span>
+                                                                                                                                          );
+                                                                                                                                      })()
+                                                                                                                                  ) : (
+                                                                                                                                      <>
+                                                                                                                                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full text-center flex flex-col items-center justify-center ${isSessionAbierta ? "bg-blue-50 text-blue-700 border border-blue-200 animate-pulse" : sesionData.isVirtual ? (sesionData.reason === "No completada por fecha" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700") : isSessionCompleta ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                                                                                                                                              {isSessionAbierta ? "En Curso" : sesionData.isVirtual ? (sesionData.reason === "No completada por fecha" ? "Pendiente" : "Clase Cancelada") : isSessionCompleta ? "Docente Asistió" : "Clase Cancelada"}
+                                                                                                                                          </span>
+                                                                                                                                          {(isSessionCompleta || isSessionAbierta) && (
+                                                                                                                                              <svg className={`w-3 h-3 text-gray-400 transition-transform ${isSessionOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                                                                                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                                                                                                              </svg>
+                                                                                                                                          )}
+                                                                                                                                      </>
+                                                                                                                                  )}
+                                                                                                                              </div>
+                                                                                                                          </div>
+                                                                                                                      );
+                                                                                                                  })()}
+                                                                                                                  
+                                                                                                                  {!isEstudiante && (isSessionCompleta || isSessionAbierta) && isSessionOpen && (
+                                                                                                                      <div className="space-y-3 mt-1">
+                                                                                                                          {/* PANEL PREMIUM DE DOCENTE */}
+                                                                                                                          <div className="bg-[#fafaf7] border border-[#f3efe7] shadow-sm rounded-2xl p-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                                                                                                              <div className="flex items-center gap-3">
+                                                                                                                                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 text-amber-700 font-black text-xs shrink-0 border border-amber-100 shadow-sm">
+                                                                                                                                      DO
+                                                                                                                                  </div>
+                                                                                                                                  <div>
+                                                                                                                                      <h4 className="text-xs font-black text-gray-800 leading-snug">{grupoData.docente}</h4>
+                                                                                                                                      <p className="text-[10px] text-gray-500 font-bold mt-0.5">C.C. {sesionData.docente_num_doc || "—"}</p>
+                                                                                                                                  </div>
+                                                                                                                              </div>
+                                                                                                                              <div className="flex flex-wrap items-center gap-6 text-[10px] text-gray-500 font-medium">
+                                                                                                                                  <div className="flex flex-col items-start min-w-[65px]">
+                                                                                                                                      <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Entrada</span>
+                                                                                                                                      <span className="font-bold text-gray-800 mt-0.5">
+                                                                                                                                          {sesionData.docente_hora_entrada ? new Date(sesionData.docente_hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                                                                                                      </span>
+                                                                                                                                  </div>
+                                                                                                                                  <div className="flex flex-col items-start min-w-[65px]">
+                                                                                                                                      <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Salida</span>
+                                                                                                                                      <span className="font-bold text-gray-800 mt-0.5">
+                                                                                                                                          {sesionData.docente_hora_salida ? new Date(sesionData.docente_hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                                                                                                      </span>
+                                                                                                                                  </div>
+                                                                                                                                  <div className="flex flex-col items-start min-w-[90px]">
+                                                                                                                                      <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Método</span>
+                                                                                                                                      <span className={`mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                                                                                                                          sesionData.docente_metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"
+                                                                                                                                      }`}>
+                                                                                                                                          {sesionData.docente_metodo_verificacion || 'N/A'}
+                                                                                                                                      </span>
+                                                                                                                                  </div>
+                                                                                                                                  <div className="flex flex-col items-start min-w-[80px]">
+                                                                                                                                      <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Asistencia</span>
+                                                                                                                                      <span className={`mt-0.5 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full transition-all ${
+                                                                                                                                          sesionData.docente_estado_asistencia === "asistencia" ? "bg-green-50 text-green-700" :
+                                                                                                                                          sesionData.docente_estado_asistencia === "asistencia con retraso" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
+                                                                                                                                      }`}>
+                                                                                                                                          {sesionData.docente_estado_asistencia === "asistencia" ? "Presente" :
+                                                                                                                                           sesionData.docente_estado_asistencia === "asistencia con retraso" ? "Tarde" : "Ausente"}
+                                                                                                                                      </span>
+                                                                                                                                  </div>
+                                                                                                                              </div>
+                                                                                                                          </div>                                              
+ 
+                                                                                                                          {/* LISTA DE ESTUDIANTES (Solo si no es sesión abierta/en curso) */}
+                                                                                                                          {!isSessionAbierta ? (
+                                                                                                                              <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                                                                                                                                  <table className="w-full text-sm">
+                                                                                                                                      <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-black tracking-wider">
+                                                                                                                                          <tr>
+                                                                                                                                              <th className="px-4 py-2 text-left">Estudiante</th>
+                                                                                                                                              <th className="px-4 py-2 text-center">Entrada</th>
+                                                                                                                                              <th className="px-4 py-2 text-center">Salida</th>
+                                                                                                                                              <th className="px-4 py-2 text-center">Método</th>
+                                                                                                                                              <th className="px-4 py-2 text-center">Estado</th>
+                                                                                                                                          </tr>
+                                                                                                                                      </thead>
+                                                                                                                                      <tbody className="divide-y divide-gray-50">
+                                                                                                                                          {sesionData.records.map((a: any) => (
+                                                                                                                                              <tr key={a.num_doc} className="hover:bg-gray-50/40 transition-colors">
+                                                                                                                      <td className="px-4 py-2 flex items-center gap-3">
+                                                                                                                          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-700 font-black text-[10px] shrink-0 border border-blue-100 shadow-sm">
+                                                                                                                              ES
+                                                                                                                          </div>
+                                                                                                                          <div>
+                                                                                                                              <h4 className="text-xs font-black text-gray-800 leading-snug">{a.nombre_estudiante} {a.apellido_estudiante}</h4>
+                                                                                                                              <p className="text-[10px] text-gray-500 font-bold mt-0.5">C.C. {a.num_doc}</p>
+                                                                                                                          </div>
+                                                                                                                      </td>
+                                                                                                                                                  <td className="px-4 py-2 text-[10px] text-gray-800 text-center font-bold">
+                                                                                                                                                      {a.hora_entrada ? new Date(a.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                                                                                                                  </td>
+                                                                                                                                                  <td className="px-4 py-2 text-[10px] text-gray-800 text-center font-bold">
+                                                                                                                                                      {a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                                                                                                                  </td>
+                                                                                                                                                  <td className="px-4 py-2 text-center">
+                                                                                                                                                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${a.metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"}`}>
+                                                                                                                                                          {a.metodo_verificacion}
+                                                                                                                                                      </span>
+                                                                                                                                                  </td>
+                                                                                                                                                  <td className="px-4 py-2 text-center">
+                                                                                                                                                      {editingEstadoId === a.id ? (
+                                                                                                                                                          <select value={a.estado} onChange={e => handleCambiarEstado(a.id, e.target.value)} onBlur={() => setEditingEstadoId(null)} autoFocus className="text-[10px] font-bold p-1 bg-white border border-gray-200 rounded-lg">
+                                                                                                                                                              {["asistencia", "asistencia con retraso", "inasistencia"].map(e => <option key={e} value={e}>{e}</option>)}
+                                                                                                                                                          </select>
+                                                                                                                                                      ) : (
+                                                                                                                                                          <button onClick={() => setEditingEstadoId(a.id)} className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full transition-all ${a.estado === "asistencia" ? "bg-green-50 text-green-700 hover:bg-green-100" : a.estado === "asistencia con retraso" ? "bg-amber-50 text-amber-700 hover:bg-amber-100" : "bg-red-50 text-red-700 hover:bg-red-100"}`}>
+                                                                                                                                                              {a.estado === "asistencia" ? "Presente" : a.estado === "asistencia con retraso" ? "Tarde" : "Ausente"}
+                                                                                                                                                          </button>
+                                                                                                                                                      )}
+                                                                                                                                                  </td>
+                                                                                                                                              </tr>
+                                                                                                                                          ))}
+                                                                                                                                      </tbody>
+                                                                                                                                  </table>
+                                                                                                                              </div>
+                                                                                                                          ) : (
+                                                                                                                              <div className="bg-blue-50/50 rounded-2xl p-6 border border-dashed border-blue-100 text-center">
+                                                                                                                                  <p className="text-xs font-extrabold text-blue-800 uppercase tracking-widest flex items-center justify-center gap-2">
+                                                                                                                                      <Clock className="animate-spin text-blue-500" size={14} /> Sesión en Curso
+                                                                                                                                  </p>
+                                                                                                                                  <p className="text-[11px] text-gray-500 font-medium mt-1">Los registros de asistencia de los estudiantes se visualizarán una vez el docente complete y cierre la sesión de clase.</p>
+                                                                                                                              </div>
+                                                                                                                          )}
+                                                                                                                      </div>
+                                                                                                                  )}
+                                                                                                              </div>
+                                                                                                          );
                                                                                                     })}
                                                                                                 </div>
                                                                                             )}

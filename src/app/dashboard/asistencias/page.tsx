@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
     ClipboardCheck, AlertCircle, CheckCircle2, XCircle,
     Clock, Calendar, FileText, Send, User, BookOpen, School, GraduationCap, Printer
@@ -167,6 +167,293 @@ export default function AsistenciasPage() {
             setContingencias(await listarContingenciasPendientes());
         } catch (e: any) { alert(e.message); }
     };
+    // --- OPTIMIZACIONES DE RENDIMIENTO (useMemo) PARA PREVENIR CRASHES Y EXCESO DE MEMORIA ---
+    const normalizar = (s: string) => s ? s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") : "";
+
+    const currentWeek = useMemo(() => {
+        return asistenciasRaw.reduce((max, a) => {
+            const sem = typeof a.semana === 'string' ? parseInt(a.semana) : a.semana;
+            return sem > max ? sem : max;
+        }, 0) || 14;
+    }, [asistenciasRaw]);
+
+    const allGroups = useMemo(() => {
+        const groups: any = {};
+        asistenciasRaw.forEach(a => {
+            const fac = a.facultad || "Sin Facultad";
+            const prog = a.programa || "Sin Programa";
+            const asig = a.asignatura || "Sin Asignatura";
+            const grup = a.grupo || "Sin Grupo";
+            const sesionKey = a.sesion_id || a.fecha || "sin-sesion";
+
+            if (!groups[fac]) groups[fac] = {};
+            if (!groups[fac][prog]) groups[fac][prog] = {};
+            if (!groups[fac][prog][asig]) groups[fac][prog][asig] = {};
+            if (!groups[fac][prog][asig][grup]) {
+                groups[fac][prog][asig][grup] = {
+                    aula: a.aula,
+                    docente: `${a.nombre_docente} ${a.apellido_docente}`,
+                    horarios: [],
+                    sesiones: {},
+                    codAsig: a.cod_asignatura,
+                    asignatura: asig,
+                    grupo: grup
+                };
+            }
+
+            const horObj = { dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
+            const exists = groups[fac][prog][asig][grup].horarios.some((h: any) => h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula);
+            if (a.dia_semana && !exists) {
+                groups[fac][prog][asig][grup].horarios.push(horObj);
+            }
+
+            if (!groups[fac][prog][asig][grup].sesiones[sesionKey]) {
+                const docEstado = a.docente_estado_asistencia === 'presente' ? 'asistencia' :
+                                  a.docente_estado_asistencia === 'tarde' ? 'asistencia con retraso' :
+                                  a.docente_estado_asistencia === 'inasistencia' ? 'inasistencia' :
+                                  (a.docente_asistio ? 'asistencia' : 'inasistencia');
+                
+                groups[fac][prog][asig][grup].sesiones[sesionKey] = {
+                    sesion_id: a.sesion_id,
+                    fecha: a.fecha,
+                    aula_sesion: a.aula_sesion || a.aula,
+                    docente_asistio: a.docente_asistio,
+                    semana: a.semana,
+                    docente_num_doc: a.docente_num_doc,
+                    docente_tipo_doc: a.docente_tipo_doc,
+                    docente_hora_entrada: a.docente_hora_entrada,
+                    docente_hora_salida: a.docente_hora_salida,
+                    docente_metodo_verificacion: a.docente_metodo_verificacion,
+                    docente_estado_asistencia: docEstado,
+                    estado_sesion: a.estado_sesion,
+                    records: []
+                };
+            }
+
+            if (a.num_doc) {
+                groups[fac][prog][asig][grup].sesiones[sesionKey].records.push({
+                    id: a.id,
+                    num_doc: a.num_doc,
+                    tipo_doc: a.tipo_doc,
+                    nombre: a.nombre_estudiante,
+                    apellido: a.apellido_estudiante,
+                    nombre_estudiante: a.nombre_estudiante,
+                    apellido_estudiante: a.apellido_estudiante,
+                    estado: a.estado,
+                    metodo_verificacion: a.metodo_verificacion,
+                    programa: a.programa || prog,
+                    hora_entrada: a.hora_entrada,
+                    hora_salida: a.hora_salida,
+                    cod_asignatura: a.cod_asignatura
+                });
+            }
+        });
+        return groups;
+    }, [asistenciasRaw]);
+
+    const facultades = useMemo(() => {
+        return Array.from(new Set(asistenciasRaw.map(a => a.facultad).filter(Boolean)));
+    }, [asistenciasRaw]);
+
+    const programas = useMemo(() => {
+        return Array.from(new Set(
+            asistenciasRaw
+                .filter(a => !filtAFacultad || a.facultad === filtAFacultad)
+                .map(a => a.programa)
+                .filter(Boolean)
+        ));
+    }, [asistenciasRaw, filtAFacultad]);
+
+    const asignaturas = useMemo(() => {
+        return Array.from(new Set(
+            asistenciasRaw
+                .filter(a => (!filtAFacultad || a.facultad === filtAFacultad) && (!filtAPrograma || a.programa === filtAPrograma))
+                .map(a => a.asignatura)
+                .filter(Boolean)
+        ));
+    }, [asistenciasRaw, filtAFacultad, filtAPrograma]);
+
+    const aulas = useMemo(() => {
+        return Array.from(new Set(
+            asistenciasRaw
+                .filter(a => (!filtAFacultad || a.facultad === filtAFacultad) && (!filtAPrograma || a.programa === filtAPrograma) && (!filtAAsignatura || a.asignatura === filtAAsignatura))
+                .map(a => a.aula_sesion || a.aula)
+                .filter(Boolean)
+        ));
+    }, [asistenciasRaw, filtAFacultad, filtAPrograma, filtAAsignatura]);
+
+    const getDiaDeLaSemana = (fechaStr: string) => {
+        if (!fechaStr) return "";
+        const [y, m, d] = fechaStr.split('-').map(Number);
+        const date = new Date(y, m - 1, d);
+        const dias = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+        return dias[date.getDay()];
+    };
+
+    const getWeekFromFecha = (fechaStr: string) => {
+        if (!fechaStr || !fechaInicioSemestre) return null;
+        try {
+            const [sy, sm, sd] = fechaInicioSemestre.split('-').map(Number);
+            const startObj = new Date(sy, sm - 1, sd);
+            
+            const [fy, fm, fd] = fechaStr.split('-').map(Number);
+            const targetObj = new Date(fy, fm - 1, fd);
+            
+            const diff = targetObj.getTime() - startObj.getTime();
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            if (days < 0) return 1;
+            const week = Math.floor(days / 7) + 1;
+            return Math.min(Math.max(week, 1), semanasSemestre);
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const normalizeDia = (dia: string) => {
+        return dia ? dia.toLowerCase()
+                        .normalize("NFD")
+                        .replace(/[̀-ͯ]/g, "")
+                        .replace("miercoles", "miercoles")
+                        .replace("sabado", "sabado") : "";
+    };
+
+    const { filteredFaculties, filteredCount } = useMemo(() => {
+        const filteredFacs: any = {};
+        let count = 0;
+
+        for (const fac in allGroups) {
+            for (const prog in allGroups[fac]) {
+                for (const asig in allGroups[fac][prog]) {
+                    for (const grup in allGroups[fac][prog][asig]) {
+                        const grupoData = allGroups[fac][prog][asig][grup];
+
+                        const fechaDiaName = filtAFecha ? getDiaDeLaSemana(filtAFecha) : "";
+                        const normalizedFechaDia = normalizeDia(fechaDiaName);
+
+                        const matchDia = !filtADia || 
+                            grupoData.horarios.some((h: any) => normalizeDia(h.dia) === normalizeDia(filtADia)) ||
+                            Object.values(grupoData.sesiones).some((sData: any) => {
+                                return sData.fecha && normalizeDia(getDiaDeLaSemana(sData.fecha)) === normalizeDia(filtADia);
+                            });
+                        const matchFac = !filtAFacultad || fac === filtAFacultad;
+                        const matchProg = !filtAPrograma || prog === filtAPrograma;
+                        const matchAsig = !filtAAsignatura || asig === filtAAsignatura;
+                        const matchAula = !filtAAula || grupoData.aula === filtAAula || Object.values(grupoData.sesiones).some((s: any) => s.aula_sesion === filtAAula);
+                        
+                        const matchFechaGroup = !filtAFecha || 
+                            Object.values(grupoData.sesiones).some((sData: any) => sData.fecha && sData.fecha === filtAFecha) ||
+                            grupoData.horarios.some((h: any) => normalizeDia(h.dia) === normalizedFechaDia);
+
+                        if (matchDia && matchFac && matchProg && matchAsig && matchAula && matchFechaGroup) {
+                            const filteredSessions: any = {};
+                            const weekFromFecha = filtAFecha ? getWeekFromFecha(filtAFecha) : null;
+                            const targetWeekStr = filtASemana || weekFromFecha?.toString() || currentWeek.toString();
+
+                            for (const sKey in grupoData.sesiones) {
+                                const sData = grupoData.sesiones[sKey];
+
+                                const matchSemana = sData.semana?.toString() === targetWeekStr;
+                                const matchFecha = !filtAFecha || (sData.fecha && sData.fecha === filtAFecha);
+                                const matchDiaSesion = true;
+
+                                const filteredRecords = sData.records.filter((r: any) => {
+                                    const matchEst = !filtAEstudiante || normalizar(`${r.nombre} ${r.apellido} ${r.num_doc}`).includes(normalizar(filtAEstudiante));
+                                    const matchMetodo = !filtAMetodo || (r.metodo_verificacion && r.metodo_verificacion.toLowerCase() === filtAMetodo.toLowerCase());
+                                    const matchEstado = !filtAEstado || (r.estado && r.estado.toLowerCase() === filtAEstado.toLowerCase());
+                                    return matchEst && matchMetodo && matchEstado;
+                                });
+
+                                const hasStudentFilters = filtAEstudiante || filtAMetodo || filtAEstado;
+                                if (matchSemana && matchFecha && matchDiaSesion && (filteredRecords.length > 0 || !hasStudentFilters)) {
+                                    filteredSessions[sKey] = { ...sData, records: filteredRecords };
+                                    count += filteredRecords.length;
+                                }
+                            }
+
+                            if (!filtAEstudiante) {
+                                const weekNum = parseInt(targetWeekStr);
+
+                                grupoData.horarios.forEach((h: any) => {
+                                    if (filtADia && normalizeDia(h.dia) !== normalizeDia(filtADia)) return;
+                                    if (filtAFecha && normalizeDia(h.dia) !== normalizedFechaDia) return;
+
+                                    // Check if there is already a completed/opened session for this specific day/horario
+                                    const alreadyCompleted = Object.values(filteredSessions).some((sData: any) => {
+                                        return !sData.isVirtual && sData.fecha && normalizeDia(getDiaDeLaSemana(sData.fecha)) === normalizeDia(h.dia);
+                                    });
+                                    if (alreadyCompleted) return;
+
+                                    const sKey = `virtual-${targetWeekStr}-${h.dia}`;
+                                    let reason = "";
+
+                                    let calculatedFecha = filtAFecha || `2026-01-01`;
+                                    if (!filtAFecha && fechaInicioSemestre) {
+                                        const [sy, sm, sd] = fechaInicioSemestre.split('-').map(Number);
+                                        const startObj = new Date(sy, sm - 1, sd);
+                                        const getJSMap = (day: number) => (day === 0 ? 6 : day - 1);
+                                        const dStart = getJSMap(startObj.getDay());
+
+                                        const days = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+                                        const dTarget = days.indexOf(normalizeDia(h.dia));
+                                        const offset = (dTarget - dStart + 7) % 7;
+                                        const diasToAdd = (weekNum - 1) * 7 + offset;
+
+                                        const targetDate = new Date(startObj);
+                                        targetDate.setDate(startObj.getDate() + diasToAdd);
+
+                                        const yyyy = targetDate.getFullYear();
+                                        const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+                                        const dd = String(targetDate.getDate()).padStart(2, '0');
+                                        calculatedFecha = `${yyyy}-${mm}-${dd}`;
+                                    }
+
+                                    // Get today's day index (Monday = 0, Sunday = 6) and compare using academic week and day index to be 100% hydration & timezone proof
+                                    const days = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+                                    const dTarget = days.indexOf(normalizeDia(h.dia));
+                                    const dToday = new Date();
+                                    const getJSMap = (day: number) => (day === 0 ? 6 : day - 1);
+                                    const dTodayIndex = getJSMap(dToday.getDay());
+
+                                    if (weekNum < currentWeek) {
+                                        reason = "Docente no asistió";
+                                    } else if (weekNum > currentWeek) {
+                                        reason = "No completada por fecha";
+                                    } else {
+                                        // Same week: compare day index
+                                        if (dTarget > dTodayIndex) {
+                                            reason = "No completada por fecha";
+                                        } else {
+                                            reason = "Docente no asistió";
+                                        }
+                                    }
+
+                                    filteredSessions[sKey] = {
+                                        fecha: calculatedFecha,
+                                        dia_virtual: h.dia,
+                                        semana: weekNum,
+                                        docente_asistio: false,
+                                        isVirtual: true,
+                                        reason: reason,
+                                        records: []
+                                    };
+                                });
+                            }
+
+                            if (Object.keys(filteredSessions).length > 0) {
+                                if (!filteredFacs[fac]) filteredFacs[fac] = {};
+                                if (!filteredFacs[fac][prog]) filteredFacs[fac][prog] = {};
+                                if (!filteredFacs[fac][prog][asig]) filteredFacs[fac][prog][asig] = {};
+                                filteredFacs[fac][prog][asig][grup] = { ...grupoData, sesiones: filteredSessions };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return { filteredFaculties: filteredFacs, filteredCount: count };
+    }, [allGroups, filtADia, filtAFacultad, filtAPrograma, filtAAsignatura, filtAAula, filtAFecha, filtASemana, filtAEstudiante, filtAMetodo, filtAEstado, currentWeek, fechaInicioSemestre]);
+
 
 
 
@@ -696,225 +983,6 @@ export default function AsistenciasPage() {
                     {/* SECCIÓN REGISTROS DE ASISTENCIA */}
                     {(sesion.rol === "Administrativo" || sesion.rol === "Docente" || sesion.rol === "Estudiante") && (() => {
                         const isEstudiante = sesion.rol === "Estudiante";
-                        const normalizar = (s: string) => s ? s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-                        const currentWeek = asistenciasRaw.reduce((max, a) => {
-                            const sem = typeof a.semana === 'string' ? parseInt(a.semana) : a.semana;
-                            return sem > max ? sem : max;
-                        }, 0) || 14;
-                        const facultades = Array.from(new Set(asistenciasRaw.map(a => a.facultad).filter(Boolean)));
-                        const programas = Array.from(new Set(
-                            asistenciasRaw
-                                .filter(a => !filtAFacultad || a.facultad === filtAFacultad)
-                                .map(a => a.programa)
-                                .filter(Boolean)
-                        ));
-                        const asignaturas = Array.from(new Set(
-                            asistenciasRaw
-                                .filter(a => (!filtAFacultad || a.facultad === filtAFacultad) && (!filtAPrograma || a.programa === filtAPrograma))
-                                .map(a => a.asignatura)
-                                .filter(Boolean)
-                        ));
-                        const aulas = Array.from(new Set(
-                            asistenciasRaw
-                                .filter(a => (!filtAFacultad || a.facultad === filtAFacultad) && (!filtAPrograma || a.programa === filtAPrograma) && (!filtAAsignatura || a.asignatura === filtAAsignatura))
-                                .map(a => a.aula_sesion || a.aula)
-                                .filter(Boolean)
-                        ));
-                        // 1. Agrupar TODO primero
-                        const allGroups: any = {};
-                        asistenciasRaw.forEach(a => {
-                            const fac = a.facultad || "Sin Facultad";
-                            const prog = a.programa || "Sin Programa";
-                            const asig = a.asignatura || "Sin Asignatura";
-                            const grup = a.grupo || "Sin Grupo";
-                            const sesionKey = a.sesion_id || a.fecha || "sin-sesion";
-
-                            if (!allGroups[fac]) allGroups[fac] = {};
-                            if (!allGroups[fac][prog]) allGroups[fac][prog] = {};
-                            if (!allGroups[fac][prog][asig]) allGroups[fac][prog][asig] = {};
-                            if (!allGroups[fac][prog][asig][grup]) {
-                                allGroups[fac][prog][asig][grup] = {
-                                    aula: a.aula,
-                                    docente: `${a.nombre_docente} ${a.apellido_docente}`,
-                                    horarios: [],
-                                    sesiones: {},
-                                    codAsig: a.cod_asignatura,
-                                    asignatura: asig,
-                                    grupo: grup
-                                };
-                            }
-
-                            const horObj = { dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
-                            const exists = allGroups[fac][prog][asig][grup].horarios.some((h: any) => h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula);
-                            if (a.dia_semana && !exists) {
-                                allGroups[fac][prog][asig][grup].horarios.push(horObj);
-                            }
-
-                            if (!allGroups[fac][prog][asig][grup].sesiones[sesionKey]) {
-                                const docEstado = a.docente_estado_asistencia === 'presente' ? 'asistencia' :
-                                                  a.docente_estado_asistencia === 'tarde' ? 'asistencia con retraso' :
-                                                  a.docente_estado_asistencia === 'inasistencia' ? 'inasistencia' :
-                                                  (a.docente_asistio ? 'asistencia' : 'inasistencia');
-                                
-                                allGroups[fac][prog][asig][grup].sesiones[sesionKey] = {
-                                    sesion_id: a.sesion_id,
-                                    fecha: a.fecha,
-                                    aula_sesion: a.aula_sesion || a.aula,
-                                    docente_asistio: a.docente_asistio,
-                                    semana: a.semana,
-                                    docente_num_doc: a.docente_num_doc,
-                                    docente_tipo_doc: a.docente_tipo_doc,
-                                    docente_hora_entrada: a.docente_hora_entrada,
-                                    docente_hora_salida: a.docente_hora_salida,
-                                    docente_metodo_verificacion: a.docente_metodo_verificacion,
-                                    docente_estado_asistencia: docEstado,
-                                    estado_sesion: a.estado_sesion,
-                                    records: []
-                                };
-                            }
-
-                            if (a.num_doc) {
-                                allGroups[fac][prog][asig][grup].sesiones[sesionKey].records.push({
-                                    id: a.id,
-                                    num_doc: a.num_doc,
-                                    tipo_doc: a.tipo_doc,
-                                    nombre: a.nombre_estudiante,
-                                    apellido: a.apellido_estudiante,
-                                    nombre_estudiante: a.nombre_estudiante,
-                                    apellido_estudiante: a.apellido_estudiante,
-                                    estado: a.estado,
-                                    metodo_verificacion: a.metodo_verificacion,
-                                    programa: a.programa || prog,
-                                    hora_entrada: a.hora_entrada,
-                                    hora_salida: a.hora_salida,
-                                    cod_asignatura: a.cod_asignatura
-                                });
-                            }
-                        });
-
-                        // Helper to get Spanish weekday name from YYYY-MM-DD
-                        const getDiaDeLaSemana = (fechaStr: string) => {
-                            if (!fechaStr) return "";
-                            const [y, m, d] = fechaStr.split('-').map(Number);
-                            const date = new Date(y, m - 1, d);
-                            const dias = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
-                            return dias[date.getDay()];
-                        };
-
-                        // 2. Filtrar grupos
-                        const filteredFaculties: any = {};
-                        let filteredCount = 0;
-
-                        for (const fac in allGroups) {
-                            for (const prog in allGroups[fac]) {
-                                for (const asig in allGroups[fac][prog]) {
-                                    for (const grup in allGroups[fac][prog][asig]) {
-                                        const grupoData = allGroups[fac][prog][asig][grup];
-
-                                        // Filtro de día: Verifica si el grupo tiene al menos una sesión en ese día o está en su horario
-                                        const matchDia = !filtADia || 
-                                            grupoData.horarios.some((h: any) => h.dia.toLowerCase() === filtADia.toLowerCase()) ||
-                                            Object.values(grupoData.sesiones).some((sData: any) => {
-                                                return sData.fecha && getDiaDeLaSemana(sData.fecha).toLowerCase() === filtADia.toLowerCase();
-                                            });
-                                        const matchFac = !filtAFacultad || fac === filtAFacultad;
-                                        const matchProg = !filtAPrograma || prog === filtAPrograma;
-                                        const matchAsig = !filtAAsignatura || asig === filtAAsignatura;
-                                        const matchAula = !filtAAula || grupoData.aula === filtAAula || Object.values(grupoData.sesiones).some((s: any) => s.aula_sesion === filtAAula);
-                                         const matchFechaGroup = !filtAFecha || Object.values(grupoData.sesiones).some((sData: any) => {
-                                             return sData.fecha && sData.fecha.includes(filtAFecha);
-                                         });
-
-                                        if (matchDia && matchFac && matchProg && matchAsig && matchAula && matchFechaGroup) {
-                                            // Filtrar sesiones y registros
-                                            const filteredSessions: any = {};
-                                            for (const sKey in grupoData.sesiones) {
-                                                const sData = grupoData.sesiones[sKey];
-
-                                                const matchSemana = !filtASemana || sData.semana?.toString() === filtASemana;
-                                                // Handle date match (sData.fecha might be ISO or YYYY-MM-DD)
-                                                const matchFecha = true; // Desactivado para mostrar todas las sesiones al filtrar por fecha
-                                                // Filtrar sesión por día real (desactivado para mostrar todas las sesiones del grupo al filtrar por día)
-                                                const matchDiaSesion = true;
-
-                                                const filteredRecords = sData.records.filter((r: any) => {
-                                                    const matchEst = !filtAEstudiante || normalizar(`${r.nombre} ${r.apellido} ${r.num_doc}`).includes(normalizar(filtAEstudiante));
-                                                    const matchMetodo = !filtAMetodo || (r.metodo_verificacion && r.metodo_verificacion.toLowerCase() === filtAMetodo.toLowerCase());
-                                                    const matchEstado = !filtAEstado || (r.estado && r.estado.toLowerCase() === filtAEstado.toLowerCase());
-                                                    return matchEst && matchMetodo && matchEstado;
-                                                });
-
-                                                const hasStudentFilters = filtAEstudiante || filtAMetodo || filtAEstado;
-                                                if (matchSemana && matchFecha && matchDiaSesion && (filteredRecords.length > 0 || !hasStudentFilters)) {
-                                                    filteredSessions[sKey] = { ...sData, records: filteredRecords };
-                                                    // Only count records if the session matches!
-                                                    filteredCount += filteredRecords.length;
-                                                }
-                                            }
-                                            console.log(`Grupo ${grup}, filtASemana=${filtASemana}, filteredSessions keys=${Object.keys(filteredSessions)}`);
-
-                                            // Generate virtual sessions if filtering by week and no sessions found
-                                            // Generate virtual sessions if filtering by week and no sessions found
-                                            const validSessions = Object.keys(filteredSessions).filter(k => k !== 'sin-sesion');
-                                            if (filtASemana && validSessions.length === 0 && !filtAEstudiante) {
-                                                const weekNum = parseInt(filtASemana);
-
-                                                grupoData.horarios.forEach((h: any) => {
-                                                    if (filtADia && h.dia.toLowerCase() !== filtADia.toLowerCase()) return;
-                                                    const sKey = `virtual-${filtASemana}-${h.dia}`;
-                                                    let reason = "";
-                                                    if (weekNum < currentWeek) {
-                                                        reason = "Docente no asistió";
-                                                    } else if (weekNum > currentWeek) {
-                                                        reason = "No completada por fecha";
-                                                    } else {
-                                                        reason = "Docente no asistió"; // Fallback for current week if missing
-                                                    }
-
-                                                    let calculatedFecha = `2026-01-01`; // Fallback
-                                                    if (fechaInicioSemestre) {
-                                                        const [sy, sm, sd] = fechaInicioSemestre.split('-').map(Number);
-                                                        const startObj = new Date(sy, sm - 1, sd);
-                                                        const getJSMap = (day: number) => (day === 0 ? 6 : day - 1);
-                                                        const dStart = getJSMap(startObj.getDay());
-
-                                                        const days = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
-                                                        const dTarget = days.indexOf(h.dia.toLowerCase());
-                                                        const offset = (dTarget - dStart + 7) % 7;
-                                                        const diasToAdd = (weekNum - 1) * 7 + offset;
-
-                                                        const targetDate = new Date(startObj);
-                                                        targetDate.setDate(startObj.getDate() + diasToAdd);
-
-                                                        const yyyy = targetDate.getFullYear();
-                                                        const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
-                                                        const dd = String(targetDate.getDate()).padStart(2, '0');
-                                                        calculatedFecha = `${yyyy}-${mm}-${dd}`;
-                                                    }
-
-                                                    filteredSessions[sKey] = {
-                                                        fecha: calculatedFecha,
-                                                        dia_virtual: h.dia,
-                                                        semana: weekNum,
-                                                        docente_asistio: false,
-                                                        isVirtual: true,
-                                                        reason: reason,
-                                                        records: []
-                                                    };
-                                                });
-                                            }
-
-                                            if (Object.keys(filteredSessions).length > 0) {
-                                                if (!filteredFaculties[fac]) filteredFaculties[fac] = {};
-                                                if (!filteredFaculties[fac][prog]) filteredFaculties[fac][prog] = {};
-                                                if (!filteredFaculties[fac][prog][asig]) filteredFaculties[fac][prog][asig] = {};
-                                                filteredFaculties[fac][prog][asig][grup] = { ...grupoData, sesiones: filteredSessions };
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         return (
                             <div className="space-y-4">
                                 <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
@@ -1087,7 +1155,8 @@ export default function AsistenciasPage() {
                                                                     return (
                                                                         <div key={asignatura} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-fit">
                                                                             {(() => {
-                                                                                const allGrupRecords = Object.values(grupos).flatMap((g: any) => Object.values(g.sesiones).flatMap((s: any) => s.docente_asistio ? s.records : []));
+                                                                                const originalGrupos = allGroups[facultad]?.[programa]?.[asignatura] || {};
+                                                                                const allGrupRecords = Object.values(originalGrupos).flatMap((g: any) => Object.values(g.sesiones).flatMap((s: any) => s.docente_asistio ? s.records : []));
                                                                                 const totalAsig = allGrupRecords.length;
                                                                                 const presAsig = allGrupRecords.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
                                                                                 const pctAsig = totalAsig > 0 ? Math.round((presAsig / totalAsig) * 100) : 0;
@@ -1107,7 +1176,8 @@ export default function AsistenciasPage() {
 
                                                                             <div className="divide-y divide-gray-50">
                                                                                 {Object.entries(grupos).map(([grupoName, grupoData]: [string, any]) => {
-                                                                                    const recordsArray = Object.values(grupoData.sesiones).flatMap((s: any) => s.docente_asistio ? s.records : []);
+                                                                                    const originalGrupoData = allGroups[facultad]?.[programa]?.[asignatura]?.[grupoName] || grupoData;
+                                                                                    const recordsArray = Object.values(originalGrupoData.sesiones).flatMap((s: any) => s.docente_asistio ? s.records : []);
                                                                                     const total = recordsArray.length;
                                                                                     const presentes = recordsArray.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
                                                                                     const pct = total > 0 ? Math.round((presentes / total) * 100) : 0;
@@ -1141,8 +1211,8 @@ export default function AsistenciasPage() {
                                                                                                             {/* Card 1: Progreso de Sesiones */}
                                                                                                             {(() => {
                                                                                                                 const totalSemana = semanasSemestre;
-                                                                                                                const totalProgramadas = grupoData.horarios.length * totalSemana;
-                                                                                                                const sesionesDictadas = Object.values(grupoData.sesiones).filter((s: any) => s.docente_asistio && !s.isVirtual).length;
+                                                                                                                const totalProgramadas = originalGrupoData.horarios.length * totalSemana;
+                                                                                                                const sesionesDictadas = Object.values(originalGrupoData.sesiones).filter((s: any) => s.docente_asistio && !s.isVirtual).length;
                                                                                                                 const progresoSesiones = totalProgramadas > 0 ? Math.round((sesionesDictadas / totalProgramadas) * 100) : 0;
 
                                                                                                                 return (
@@ -1387,103 +1457,133 @@ export default function AsistenciasPage() {
                                                                                                                   })()}
                                                                                                                   
                                                                                                                   {!isEstudiante && (isSessionCompleta || isSessionAbierta) && isSessionOpen && (
-                                                                                                                      <div className="space-y-3 mt-1">
-                                                                                                                          {/* PANEL PREMIUM DE DOCENTE */}
-                                                                                                                          <div className="bg-[#fafaf7] border border-[#f3efe7] shadow-sm rounded-2xl p-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                                                                                                              <div className="flex items-center gap-3">
+                                                                                                                       <div className="space-y-3 mt-1">
+                                                                                                                           {/* PANEL PREMIUM DE DOCENTE */}
+                                                                                                                           <div className="bg-[#fafaf7] border border-[#f3efe7] shadow-sm rounded-2xl p-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                                                                                                                              <div className="md:col-span-4 flex items-center gap-3">
                                                                                                                                   <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 text-amber-700 font-black text-xs shrink-0 border border-amber-100 shadow-sm">
                                                                                                                                       DO
                                                                                                                                   </div>
                                                                                                                                   <div>
                                                                                                                                       <h4 className="text-xs font-black text-gray-800 leading-snug">{grupoData.docente}</h4>
-                                                                                                                                      <p className="text-[10px] text-gray-500 font-bold mt-0.5">C.C. {sesionData.docente_num_doc || "—"}</p>
+                                                                                                                                      <p className="text-[10px] text-gray-500 font-bold mt-0.5 whitespace-nowrap">C.C. {sesionData.docente_num_doc || "—"}</p>
                                                                                                                                   </div>
                                                                                                                               </div>
-                                                                                                                              <div className="flex flex-wrap items-center gap-6 text-[10px] text-gray-500 font-medium">
-                                                                                                                                  <div className="flex flex-col items-start min-w-[65px]">
-                                                                                                                                      <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Entrada</span>
-                                                                                                                                      <span className="font-bold text-gray-800 mt-0.5">
-                                                                                                                                          {sesionData.docente_hora_entrada ? new Date(sesionData.docente_hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                                                                                                                      </span>
+                                                                                                                              <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Entrada</span>
+                                                                                                                                  <span className="font-bold text-gray-800 text-[10px] mt-0.5 whitespace-nowrap">
+                                                                                                                                      {sesionData.docente_hora_entrada ? new Date(sesionData.docente_hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                                                                                                  </span>
+                                                                                                                              </div>
+                                                                                                                              <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Salida</span>
+                                                                                                                                  <span className="font-bold text-gray-800 text-[10px] mt-0.5 whitespace-nowrap">
+                                                                                                                                      {sesionData.docente_hora_salida ? new Date(sesionData.docente_hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                                                                                                  </span>
+                                                                                                                              </div>
+                                                                                                                              <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Método</span>
+                                                                                                                                  <div className="mt-0.5 whitespace-nowrap">
+                                                                                                                                      {!sesionData.docente_metodo_verificacion || sesionData.docente_metodo_verificacion === "N/A" || sesionData.docente_metodo_verificacion === "None" || sesionData.docente_metodo_verificacion.trim() === "" ? (
+                                                                                                                                           "—"
+                                                                                                                                      ) : (
+                                                                                                                                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                                                                                                                              sesionData.docente_metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" :
+                                                                                                                                              sesionData.docente_metodo_verificacion === "Supervisado" ? "bg-blue-50 text-blue-600" :
+                                                                                                                                              "bg-emerald-50 text-emerald-600"
+                                                                                                                                          }`}>
+                                                                                                                                              {sesionData.docente_metodo_verificacion}
+                                                                                                                                          </span>
+                                                                                                                                      )}
                                                                                                                                   </div>
-                                                                                                                                  <div className="flex flex-col items-start min-w-[65px]">
-                                                                                                                                      <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Salida</span>
-                                                                                                                                      <span className="font-bold text-gray-800 mt-0.5">
-                                                                                                                                          {sesionData.docente_hora_salida ? new Date(sesionData.docente_hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                                                                                                                      </span>
-                                                                                                                                  </div>
-                                                                                                                                  <div className="flex flex-col items-start min-w-[90px]">
-                                                                                                                                      <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Método</span>
-                                                                                                                                      <span className={`mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                                                                                                                          sesionData.docente_metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : sesionData.docente_metodo_verificacion === "Supervisado" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
-                                                                                                                                      }`}>
-                                                                                                                                          {sesionData.docente_metodo_verificacion || 'N/A'}
-                                                                                                                                      </span>
-                                                                                                                                  </div>
-                                                                                                                                  <div className="flex flex-col items-start min-w-[80px]">
-                                                                                                                                      <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Asistencia</span>
-                                                                                                                                      <span className={`mt-0.5 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full transition-all ${
-                                                                                                                                          sesionData.docente_estado_asistencia === "asistencia" ? "bg-green-50 text-green-700" :
-                                                                                                                                          sesionData.docente_estado_asistencia === "asistencia con retraso" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
-                                                                                                                                      }`}>
-                                                                                                                                          {sesionData.docente_estado_asistencia === "asistencia" ? "Presente" :
-                                                                                                                                           sesionData.docente_estado_asistencia === "asistencia con retraso" ? "Tarde" : "Ausente"}
-                                                                                                                                      </span>
-                                                                                                                                  </div>
+                                                                                                                              </div>
+                                                                                                                              <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Estado</span>
+                                                                                                                                  <span className={`mt-0.5 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full transition-all whitespace-nowrap ${
+                                                                                                                                      sesionData.docente_estado_asistencia === "asistencia" ? "bg-green-50 text-green-700" :
+                                                                                                                                      sesionData.docente_estado_asistencia === "asistencia con retraso" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
+                                                                                                                                  }`}>
+                                                                                                                                      {sesionData.docente_estado_asistencia === "asistencia" ? "Presente" :
+                                                                                                                                       sesionData.docente_estado_asistencia === "asistencia con retraso" ? "Tarde" : "Ausente"}
+                                                                                                                                  </span>
                                                                                                                               </div>
                                                                                                                           </div>                                              
- 
+  
                                                                                                                           {/* LISTA DE ESTUDIANTES (Solo si no es sesión abierta/en curso) */}
                                                                                                                           {!isSessionAbierta ? (
                                                                                                                               <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-                                                                                                                                  <table className="w-full text-sm">
-                                                                                                                                      <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-black tracking-wider">
-                                                                                                                                          <tr>
-                                                                                                                                              <th className="px-4 py-2 text-left">Estudiante</th>
-                                                                                                                                              <th className="px-4 py-2 text-center">Entrada</th>
-                                                                                                                                              <th className="px-4 py-2 text-center">Salida</th>
-                                                                                                                                              <th className="px-4 py-2 text-center">Método</th>
-                                                                                                                                              <th className="px-4 py-2 text-center">Estado</th>
-                                                                                                                                          </tr>
-                                                                                                                                      </thead>
-                                                                                                                                      <tbody className="divide-y divide-gray-50">
-                                                                                                                                          {sesionData.records.map((a: any) => (
-                                                                                                                                              <tr key={a.num_doc} className="hover:bg-gray-50/40 transition-colors">
-                                                                                                                      <td className="px-4 py-2 flex items-center gap-3">
-                                                                                                                          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-700 font-black text-[10px] shrink-0 border border-blue-100 shadow-sm">
-                                                                                                                              ES
-                                                                                                                          </div>
-                                                                                                                          <div>
-                                                                                                                              <h4 className="text-xs font-black text-gray-800 leading-snug">{a.nombre_estudiante} {a.apellido_estudiante}</h4>
-                                                                                                                              <p className="text-[10px] text-gray-500 font-bold mt-0.5">C.C. {a.num_doc}</p>
-                                                                                                                          </div>
-                                                                                                                      </td>
-                                                                                                                                                  <td className="px-4 py-2 text-[10px] text-gray-800 text-center font-bold">
-                                                                                                                                                      {a.hora_entrada ? new Date(a.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                                                                                                                                  </td>
-                                                                                                                                                  <td className="px-4 py-2 text-[10px] text-gray-800 text-center font-bold">
-                                                                                                                                                      {a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                                                                                                                                  </td>
-                                                                                                                                                  <td className="px-4 py-2 text-center">
-                                                                                                                                                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${a.metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" : a.metodo_verificacion === "Supervisado" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"}`}>
-                                                                                                                                                          {a.metodo_verificacion}
-                                                                                                                                                      </span>
-                                                                                                                                                  </td>
-                                                                                                                                                  <td className="px-4 py-2 text-center">
+                                                                                                                                  {/* Header Row */}
+                                                                                                                                  <div className="bg-gray-50 text-gray-400 text-[10px] uppercase font-black tracking-wider px-4 py-2.5 hidden md:grid grid-cols-12 gap-4 items-center border-b border-gray-100">
+                                                                                                                                      <div className="col-span-4 text-left">Estudiante</div>
+                                                                                                                                      <div className="col-span-2 text-center">Entrada</div>
+                                                                                                                                      <div className="col-span-2 text-center">Salida</div>
+                                                                                                                                      <div className="col-span-2 text-center">Método</div>
+                                                                                                                                      <div className="col-span-2 text-center">Estado</div>
+                                                                                                                                  </div>
+                                                                                                                                  
+                                                                                                                                  {/* Body Rows */}
+                                                                                                                                  <div className="divide-y divide-gray-50">
+                                                                                                                                      {sesionData.records.map((a: any) => (
+                                                                                                                                          <div key={a.num_doc} className="px-4 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-center hover:bg-gray-50/40 transition-colors">
+                                                                                                                                              {/* Estudiante */}
+                                                                                                                                              <div className="md:col-span-4 flex items-center gap-3">
+                                                                                                                                                  <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-700 font-black text-[10px] shrink-0 border border-blue-100 shadow-sm">
+                                                                                                                                                      ES
+                                                                                                                                                  </div>
+                                                                                                                                                  <div>
+                                                                                                                                                      <h4 className="text-xs font-black text-gray-800 leading-snug">{a.nombre_estudiante} {a.apellido_estudiante}</h4>
+                                                                                                                                                      <p className="text-[10px] text-gray-500 font-bold mt-0.5 whitespace-nowrap">C.C. {a.num_doc}</p>
+                                                                                                                                                  </div>
+                                                                                                                                              </div>
+                                                                                                                                              
+                                                                                                                                              {/* Entrada */}
+                                                                                                                                              <div className="md:col-span-2 text-center text-[10px] text-gray-800 font-bold flex justify-between md:justify-center items-center">
+                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden">Entrada</span>
+                                                                                                                                                  <span className="whitespace-nowrap">{a.hora_entrada ? new Date(a.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                                                                                                                                              </div>
+                                                                                                                                              
+                                                                                                                                              {/* Salida */}
+                                                                                                                                              <div className="md:col-span-2 text-center text-[10px] text-gray-800 font-bold flex justify-between md:justify-center items-center">
+                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden">Salida</span>
+                                                                                                                                                  <span className="whitespace-nowrap">{a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                                                                                                                                              </div>
+                                                                                                                                              
+                                                                                                                                              {/* Método */}
+                                                                                                                                              <div className="md:col-span-2 text-center flex justify-between md:justify-center items-center">
+                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden">Método</span>
+                                                                                                                                                  <div className="whitespace-nowrap">
+                                                                                                                                                      {!a.metodo_verificacion || a.metodo_verificacion === "N/A" || a.metodo_verificacion === "None" || a.metodo_verificacion.trim() === "" ? (
+                                                                                                                                                           "—"
+                                                                                                                                                      ) : (
+                                                                                                                                                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                                                                                                                                               a.metodo_verificacion === "Biometría" ? "bg-purple-50 text-purple-600" :
+                                                                                                                                                               a.metodo_verificacion === "Supervisado" ? "bg-blue-50 text-blue-600" :
+                                                                                                                                                               "bg-emerald-50 text-emerald-600"
+                                                                                                                                                           }`}>
+                                                                                                                                                               {a.metodo_verificacion}
+                                                                                                                                                           </span>
+                                                                                                                                                      )}
+                                                                                                                                                  </div>
+                                                                                                                                              </div>
+                                                                                                                                              
+                                                                                                                                              {/* Estado */}
+                                                                                                                                              <div className="md:col-span-2 text-center flex justify-between md:justify-center items-center">
+                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden">Estado</span>
+                                                                                                                                                  <div className="whitespace-nowrap">
                                                                                                                                                       {editingEstadoId === a.id ? (
                                                                                                                                                           <select value={a.estado} onChange={e => handleCambiarEstado(a.id, e.target.value)} onBlur={() => setEditingEstadoId(null)} autoFocus className="text-[10px] font-bold p-1 bg-white border border-gray-200 rounded-lg">
                                                                                                                                                               {["asistencia", "asistencia con retraso", "inasistencia"].map(e => <option key={e} value={e}>{e}</option>)}
                                                                                                                                                           </select>
                                                                                                                                                       ) : (
-                                                                                                                                                          <button onClick={() => setEditingEstadoId(a.id)} className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full transition-all ${a.estado === "asistencia" ? "bg-green-50 text-green-700 hover:bg-green-100" : a.estado === "asistencia con retraso" ? "bg-amber-50 text-amber-700 hover:bg-amber-100" : "bg-red-50 text-red-700 hover:bg-red-100"}`}>
+                                                                                                                                                          <button onClick={() => setEditingEstadoId(a.id)} className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full transition-all whitespace-nowrap ${a.estado === "asistencia" ? "bg-green-50 text-green-700 hover:bg-green-100" : a.estado === "asistencia con retraso" ? "bg-amber-50 text-amber-700 hover:bg-amber-100" : "bg-red-50 text-red-700 hover:bg-red-100"}`}>
                                                                                                                                                               {a.estado === "asistencia" ? "Presente" : a.estado === "asistencia con retraso" ? "Tarde" : "Ausente"}
                                                                                                                                                           </button>
                                                                                                                                                       )}
-                                                                                                                                                  </td>
-                                                                                                                                              </tr>
-                                                                                                                                          ))}
-                                                                                                                                      </tbody>
-                                                                                                                                  </table>
+                                                                                                                                                  </div>
+                                                                                                                                              </div>
+                                                                                                                                          </div>
+                                                                                                                                      ))}
+                                                                                                                                                                </div>
                                                                                                                               </div>
                                                                                                                           ) : (
                                                                                                                               <div className="bg-blue-50/50 rounded-2xl p-6 border border-dashed border-blue-100 text-center">

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff } from "lucide-react";
-import { listarUsuarios, crearUsuario, actualizarUsuario, Usuario } from "@/services/usuarios";
+import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw } from "lucide-react";
+import { listarUsuarios, crearUsuario, actualizarUsuario, obtenerUsuario, generarPinSeguro, Usuario } from "@/services/usuarios";
 import { listarRoles, Rol } from "@/services/admin";
 
 // ── Helpers visuales ──────────────────────────────────────────
@@ -52,12 +52,15 @@ export default function UsuariosPage() {
     const [editUsuario, setEditUsuario] = useState<Usuario | null>(null);
     const [formEdit, setFormEdit] = useState({
         nombres: "", apellidos: "", tipo_doc: "CC", num_doc: "", email: "", password: "",
-        activo: true, autoriza_biometria: false
+        activo: true, autoriza_biometria: false, pin: ""
     });
 
     const [showPassword, setShowPassword] = useState(false);
     const [showEditPassword, setShowEditPassword] = useState(false);
     const [editConfirmWarning, setEditConfirmWarning] = useState("");
+    const [showPin, setShowPin] = useState(false);
+    const [confirmingPinRegen, setConfirmingPinRegen] = useState(false);
+    const [isGeneratingPin, setIsGeneratingPin] = useState(false);
 
     // Cargar usuarios al montar
     useEffect(() => {
@@ -92,12 +95,16 @@ export default function UsuariosPage() {
         setGuardando(true);
         setErrorForm("");
         try {
-            await crearUsuario({ ...form, autoriza_biometria: form.autoriza_biometria });
-            setExitoMsg("✅ Usuario creado correctamente.");
+            const res = await crearUsuario({ ...form, autoriza_biometria: form.autoriza_biometria });
+            if (res.pin) {
+                setExitoMsg(`✅ Usuario creado correctamente. El PIN de acceso asignado es: ${res.pin}. Compártelo de forma segura.`);
+            } else {
+                setExitoMsg("✅ Usuario creado correctamente.");
+            }
             setForm(FORM_INICIAL);
             setMostrarForm(false);
             cargarUsuarios(); // Recargar tabla
-            setTimeout(() => setExitoMsg(""), 4000);
+            setTimeout(() => setExitoMsg(""), 7000);
         } catch (err: any) {
             setErrorForm(err?.response?.data?.detail || "Error al crear el usuario.");
         } finally {
@@ -140,6 +147,9 @@ export default function UsuariosPage() {
             if (formEdit.password && formEdit.password.trim() !== "") {
                 payload.password = formEdit.password;
             }
+            if (editUsuario.rol === "Docente" || editUsuario.rol === "Administrativo") {
+                payload.pin = formEdit.pin;
+            }
             await actualizarUsuario(editUsuario.num_doc, payload);
             setExitoMsg("✅ Usuario actualizado correctamente.");
             setEditConfirmWarning("");
@@ -153,7 +163,7 @@ export default function UsuariosPage() {
         }
     }
 
-    function openEditModal(u: Usuario) {
+    async function openEditModal(u: Usuario) {
         setEditUsuario(u);
         setFormEdit({
             nombres: u.nombres,
@@ -163,11 +173,39 @@ export default function UsuariosPage() {
             email: u.email,
             password: "",
             activo: u.activo,
-            autoriza_biometria: u.autoriza_biometria
+            autoriza_biometria: u.autoriza_biometria,
+            pin: u.rol === "Docente" || u.rol === "Administrativo" ? "Cargando..." : ""
         });
         setErrorForm("");
         setEditConfirmWarning("");
+        setShowPin(false);
+        setConfirmingPinRegen(false);
         setMostrarFormEdit(true);
+
+        if (u.rol === "Docente" || u.rol === "Administrativo") {
+            try {
+                const fullUser = await obtenerUsuario(u.num_doc);
+                setFormEdit(f => ({ ...f, pin: fullUser.pin || "Sin PIN asignado" }));
+            } catch (err) {
+                console.error("Error al obtener PIN del usuario", err);
+                setFormEdit(f => ({ ...f, pin: "Error al cargar PIN" }));
+            }
+        }
+    }
+
+    async function handleRegenerarPin() {
+        setIsGeneratingPin(true);
+        try {
+            const res = await generarPinSeguro();
+            setFormEdit(f => ({ ...f, pin: res.pin }));
+            setShowPin(true);
+            setConfirmingPinRegen(false);
+        } catch (err) {
+            console.error("Error al generar PIN libre", err);
+            setErrorForm("No se pudo generar un PIN seguro. Inténtalo de nuevo.");
+        } finally {
+            setIsGeneratingPin(false);
+        }
     }
 
     const inputClass = "w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all";
@@ -474,6 +512,74 @@ export default function UsuariosPage() {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* PIN de Acceso Rápido (Solo Docente o Administrativo) */}
+                            {(editUsuario.rol === "Docente" || editUsuario.rol === "Administrativo") && (
+                                <div className="p-4 rounded-xl border border-amber-100 bg-amber-50/50 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Key size={16} className="text-amber-700" />
+                                            <span className="text-xs font-black text-amber-900 uppercase tracking-wider">PIN de Acceso Rápido</span>
+                                        </div>
+                                        <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                                            4 Dígitos
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type={showPin ? "text" : "password"}
+                                                readOnly
+                                                value={formEdit.pin}
+                                                className="w-full pl-3 pr-10 py-2 rounded-xl border border-amber-200 bg-white text-sm font-mono font-bold tracking-widest text-amber-900 outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPin(!showPin)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-600 hover:text-amber-800"
+                                            >
+                                                {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
+
+                                        {!confirmingPinRegen ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfirmingPinRegen(true)}
+                                                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all"
+                                            >
+                                                <RefreshCw size={13} className={isGeneratingPin ? "animate-spin" : ""} />
+                                                Regenerar
+                                            </button>
+                                        ) : (
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRegenerarPin}
+                                                    disabled={isGeneratingPin}
+                                                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-all animate-pulse"
+                                                >
+                                                    {isGeneratingPin ? "..." : "Sí"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfirmingPinRegen(false)}
+                                                    className="px-2 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-xs font-bold transition-all"
+                                                >
+                                                    No
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {confirmingPinRegen && (
+                                        <p className="text-[10px] text-amber-800 font-bold">
+                                            ⚠️ ¿Estás seguro? Se pre-generará un PIN aleatorio libre que solo se guardará al presionar "Guardar Cambios".
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="p-3 bg-gray-50 rounded-xl space-y-4 border border-gray-100">
                                 <div>

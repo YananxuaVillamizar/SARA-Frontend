@@ -10,6 +10,7 @@ export interface Usuario {
     activo: boolean;
     autoriza_biometria: boolean;
     rol: string;
+    pin?: string;
 }
 
 export interface UsuarioCrear {
@@ -38,5 +39,22 @@ export async function obtenerUsuario(num_doc: string): Promise<Usuario> {
     return res.data;
 }
 
-export const actualizarUsuario = async (num_doc: string, datos: { activo?: boolean; nombres?: string; apellidos?: string; email?: string; autoriza_biometria?: boolean; tipo_doc?: string; num_doc?: string; password?: string }) =>
-    (await api.put(`/usuarios/${num_doc}`, datos)).data;
+export async function generarPinSeguro(): Promise<{ pin: string }> {
+    const res = await api.get("/usuarios/generar-pin-seguro");
+    return res.data;
+}
+
+export const actualizarUsuario = async (
+    num_doc: string,
+    datos: {
+        activo?: boolean;
+        nombres?: string;
+        apellidos?: string;
+        email?: string;
+        autoriza_biometria?: boolean;
+        tipo_doc?: string;
+        num_doc?: string;
+        password?: string;
+        pin?: string;
+    }
+) => (await api.put(`/usuarios/${num_doc}`, datos)).data;

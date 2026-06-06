@@ -41,6 +41,7 @@ export default function AsistenciasPage() {
 
     // Filtros tabla asistencias
     const [filtAEstudiante, setFiltAEstudiante] = useState("");
+    const [estudianteSearch, setEstudianteSearch] = useState("");
     const [filtAAsignatura, setFiltAAsignatura] = useState("");
     const [filtAMetodo, setFiltAMetodo] = useState("");
     const [filtAEstado, setFiltAEstado] = useState("");
@@ -151,6 +152,13 @@ export default function AsistenciasPage() {
         init();
     }, []);
 
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setFiltAEstudiante(estudianteSearch);
+        }, 400);
+        return () => clearTimeout(handler);
+    }, [estudianteSearch]);
+
     const handleCrearContingencia = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -201,7 +209,7 @@ export default function AsistenciasPage() {
                 };
             }
 
-            const horObj = { dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
+            const horObj = { id: a.horario_id, dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
             const exists = groups[fac][prog][asig][grup].horarios.some((h: any) => h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula);
             if (a.dia_semana && !exists) {
                 groups[fac][prog][asig][grup].horarios.push(horObj);
@@ -215,6 +223,7 @@ export default function AsistenciasPage() {
                 
                 groups[fac][prog][asig][grup].sesiones[sesionKey] = {
                     sesion_id: a.sesion_id,
+                    horario_id: a.horario_id,
                     fecha: a.fecha,
                     aula_sesion: a.aula_sesion || a.aula,
                     docente_asistio: a.docente_asistio,
@@ -226,6 +235,7 @@ export default function AsistenciasPage() {
                     docente_metodo_verificacion: a.docente_metodo_verificacion,
                     docente_estado_asistencia: docEstado,
                     estado_sesion: a.estado_sesion,
+                    tipo_sesion: a.tipo_sesion,
                     records: []
                 };
             }
@@ -248,8 +258,89 @@ export default function AsistenciasPage() {
                 });
             }
         });
+
+        // Precalcular estadísticas y ordenar colecciones para evitar recalculaciones en el render path
+        const daysOrder = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+        
+        for (const fac in groups) {
+            for (const prog in groups[fac]) {
+                for (const asig in groups[fac][prog]) {
+                    const asigGrupos = groups[fac][prog][asig];
+                    const asigRecords: any[] = [];
+                    
+                    for (const grup in asigGrupos) {
+                        const grupoData = asigGrupos[grup];
+                        
+                        // 1. Ordenar horarios
+                        grupoData.horariosSorted = [...grupoData.horarios].sort((a: any, b: any) => {
+                            return daysOrder.indexOf(a.dia.toLowerCase()) - daysOrder.indexOf(b.dia.toLowerCase());
+                        });
+                        
+                        // 2. Extraer todos los records del grupo
+                        const grupoRecords = Object.values(grupoData.sesiones).flatMap((s: any) => 
+                            s.docente_asistio ? s.records : []
+                        );
+                        
+                        asigRecords.push(...grupoRecords);
+                        
+                        // 3. Estadísticas del grupo
+                        const totalRecords = grupoRecords.length;
+                        const presentesRecords = grupoRecords.filter((r: any) => 
+                            r.estado === "asistencia" || r.estado === "asistencia con retraso"
+                        ).length;
+                        grupoData.stats = {
+                            totalRecords,
+                            presentesRecords,
+                            attendancePercentage: totalRecords > 0 ? Math.round((presentesRecords / totalRecords) * 100) : 0
+                        };
+                        
+                        // 4. Progreso de sesiones
+                        const totalSemana = semanasSemestre || 16;
+                        const totalProgramadas = grupoData.horarios.length * totalSemana;
+                        const sesionesDictadas = Object.values(grupoData.sesiones).filter((s: any) => 
+                            s.docente_asistio && !s.isVirtual
+                        ).length;
+                        grupoData.sessionProgress = {
+                            totalProgramadas,
+                            sesionesDictadas,
+                            percentage: totalProgramadas > 0 ? Math.round((sesionesDictadas / totalProgramadas) * 100) : 0
+                        };
+                        
+                        // 5. Sesiones ordenadas por fecha con sus propias estadísticas precalculadas
+                        const sessionsEntries = Object.entries(grupoData.sesiones).filter(([key]) => key !== 'sin-sesion');
+                        sessionsEntries.forEach(([, sData]: [string, any]) => {
+                            const sTotal = sData.records.length;
+                            const sPresentes = sData.records.filter((r: any) => 
+                                r.estado === "asistencia" || r.estado === "asistencia con retraso"
+                            ).length;
+                            sData.stats = {
+                                total: sTotal,
+                                presentes: sPresentes,
+                                percentage: sTotal > 0 ? Math.round((sPresentes / sTotal) * 100) : 0
+                            };
+                        });
+                        
+                        grupoData.sesionesSorted = sessionsEntries.sort(([, valA]: [string, any], [, valB]: [string, any]) => 
+                            (valA.fecha || "").localeCompare(valB.fecha || "")
+                        );
+                    }
+                    
+                    // Estadísticas de la asignatura
+                    const totalAsig = asigRecords.length;
+                    const presAsig = asigRecords.filter((r: any) => 
+                        r.estado === "asistencia" || r.estado === "asistencia con retraso"
+                    ).length;
+                    const pctAsig = totalAsig > 0 ? Math.round((presAsig / totalAsig) * 100) : 0;
+                    
+                    for (const grup in asigGrupos) {
+                        asigGrupos[grup].asigPercentage = pctAsig;
+                    }
+                }
+            }
+        }
+
         return groups;
-    }, [asistenciasRaw]);
+    }, [asistenciasRaw, semanasSemestre]);
 
     const facultades = useMemo(() => {
         return Array.from(new Set(asistenciasRaw.map(a => a.facultad).filter(Boolean)));
@@ -352,6 +443,14 @@ export default function AsistenciasPage() {
                             for (const sKey in grupoData.sesiones) {
                                 const sData = grupoData.sesiones[sKey];
 
+                                // Skip uncompleted sessions whose day of week doesn't match the current schedule days
+                                const isUncompleted = sData.estado_sesion === 'no_completada';
+                                const sessionDia = sData.fecha ? normalizeDia(getDiaDeLaSemana(sData.fecha)) : "";
+                                const dayMatchesSchedule = grupoData.horarios.some((h: any) => normalizeDia(h.dia) === sessionDia);
+                                if (isUncompleted && !dayMatchesSchedule) {
+                                    continue;
+                                }
+
                                 const matchSemana = sData.semana?.toString() === targetWeekStr;
                                 const matchFecha = !filtAFecha || (sData.fecha && sData.fecha === filtAFecha);
                                 const matchDiaSesion = true;
@@ -365,19 +464,27 @@ export default function AsistenciasPage() {
 
                                 const hasStudentFilters = filtAEstudiante || filtAMetodo || filtAEstado;
                                 if (matchSemana && matchFecha && matchDiaSesion && (filteredRecords.length > 0 || !hasStudentFilters)) {
-                                    filteredSessions[sKey] = { ...sData, records: filteredRecords };
+                                    const sTotal = filteredRecords.length;
+                                    const sPresentes = filteredRecords.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
+                                    const sPct = sTotal > 0 ? Math.round((sPresentes / sTotal) * 100) : 0;
+
+                                    filteredSessions[sKey] = { 
+                                        ...sData, 
+                                        records: filteredRecords,
+                                        filteredStats: { total: sTotal, presentes: sPresentes, percentage: sPct }
+                                    };
                                     count += filteredRecords.length;
                                 }
                             }
 
-                            if (!filtAEstudiante) {
+                            if (!filtAEstudiante && !filtAMetodo && !filtAEstado) {
                                 const weekNum = parseInt(targetWeekStr);
 
                                 grupoData.horarios.forEach((h: any) => {
                                     if (filtADia && normalizeDia(h.dia) !== normalizeDia(filtADia)) return;
                                     if (filtAFecha && normalizeDia(h.dia) !== normalizedFechaDia) return;
 
-                                    // Check if there is already a completed/opened session for this specific day/horario
+                                    // Check if there is already a completed/opened session for this specific day of the week
                                     const alreadyCompleted = Object.values(filteredSessions).some((sData: any) => {
                                         return !sData.isVirtual && sData.fecha && normalizeDia(getDiaDeLaSemana(sData.fecha)) === normalizeDia(h.dia);
                                     });
@@ -434,7 +541,8 @@ export default function AsistenciasPage() {
                                         docente_asistio: false,
                                         isVirtual: true,
                                         reason: reason,
-                                        records: []
+                                        records: [],
+                                        filteredStats: { total: 0, presentes: 0, percentage: 0 }
                                     };
                                 });
                             }
@@ -443,7 +551,15 @@ export default function AsistenciasPage() {
                                 if (!filteredFacs[fac]) filteredFacs[fac] = {};
                                 if (!filteredFacs[fac][prog]) filteredFacs[fac][prog] = {};
                                 if (!filteredFacs[fac][prog][asig]) filteredFacs[fac][prog][asig] = {};
-                                filteredFacs[fac][prog][asig][grup] = { ...grupoData, sesiones: filteredSessions };
+                                filteredFacs[fac][prog][asig][grup] = { 
+                                    ...grupoData, 
+                                    sesiones: filteredSessions,
+                                    sesionesSorted: Object.entries(filteredSessions)
+                                        .filter(([key]) => key !== 'sin-sesion')
+                                        .sort(([, valA]: [string, any], [, valB]: [string, any]) => 
+                                            (valA.fecha || "").localeCompare(valB.fecha || "")
+                                        )
+                                };
                             }
                         }
                     }
@@ -1041,8 +1157,8 @@ export default function AsistenciasPage() {
                                                 )}
                                             </div>
                                             <div className="relative">
-                                                <input type="text" placeholder="Estudiante..." value={filtAEstudiante} onChange={e => setFiltAEstudiante(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all" />
-                                                {filtAEstudiante && <button type="button" onClick={() => setFiltAEstudiante("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                                <input type="text" placeholder="Estudiante..." value={estudianteSearch} onChange={e => setEstudianteSearch(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all" />
+                                                {estudianteSearch && <button type="button" onClick={() => { setEstudianteSearch(""); setFiltAEstudiante(""); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
                                             </div>
 
                                             <div className="relative">
@@ -1155,11 +1271,8 @@ export default function AsistenciasPage() {
                                                                     return (
                                                                         <div key={asignatura} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-fit">
                                                                             {(() => {
-                                                                                const originalGrupos = allGroups[facultad]?.[programa]?.[asignatura] || {};
-                                                                                const allGrupRecords = Object.values(originalGrupos).flatMap((g: any) => Object.values(g.sesiones).flatMap((s: any) => s.docente_asistio ? s.records : []));
-                                                                                const totalAsig = allGrupRecords.length;
-                                                                                const presAsig = allGrupRecords.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
-                                                                                const pctAsig = totalAsig > 0 ? Math.round((presAsig / totalAsig) * 100) : 0;
+                                                                                const firstGrupo = Object.values(grupos)[0] as any;
+                                                                                const pctAsig = firstGrupo?.asigPercentage || 0;
                                                                                 return (
                                                                                     <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
                                                                                         <p className="font-black text-sidebar-bg text-sm">
@@ -1177,10 +1290,9 @@ export default function AsistenciasPage() {
                                                                             <div className="divide-y divide-gray-50">
                                                                                 {Object.entries(grupos).map(([grupoName, grupoData]: [string, any]) => {
                                                                                     const originalGrupoData = allGroups[facultad]?.[programa]?.[asignatura]?.[grupoName] || grupoData;
-                                                                                    const recordsArray = Object.values(originalGrupoData.sesiones).flatMap((s: any) => s.docente_asistio ? s.records : []);
-                                                                                    const total = recordsArray.length;
-                                                                                    const presentes = recordsArray.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
-                                                                                    const pct = total > 0 ? Math.round((presentes / total) * 100) : 0;
+                                                                                    const total = originalGrupoData.stats?.totalRecords || 0;
+                                                                                    const presentes = originalGrupoData.stats?.presentesRecords || 0;
+                                                                                    const pct = originalGrupoData.stats?.attendancePercentage || 0;
                                                                                     const key = `${asignatura}||${grupoName}`;
                                                                                     const isOpen = expandedGroups.has(key);
 
@@ -1194,10 +1306,7 @@ export default function AsistenciasPage() {
                                                                                                     </div>
                                                                                                     <div className="flex flex-col lg:flex-row lg:items-center gap-4 mt-1.5 justify-between">
                                                                                                         <div className="space-y-1">
-                                                                                                            {grupoData.horarios.sort((a: any, b: any) => {
-                                                                                                                const days = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
-                                                                                                                return days.indexOf(a.dia.toLowerCase()) - days.indexOf(b.dia.toLowerCase());
-                                                                                                            }).map((h: any, idx: number) => (
+                                                                                                            {(grupoData.horariosSorted || []).map((h: any, idx: number) => (
                                                                                                                 <div key={idx} className="flex items-center gap-3 text-[10px] text-gray-400">
                                                                                                                     <span className="font-bold text-gray-600 w-16">{h.dia.charAt(0).toUpperCase() + h.dia.slice(1)}</span>
                                                                                                                     <span className="w-24">{h.horas}</span>
@@ -1210,10 +1319,9 @@ export default function AsistenciasPage() {
                                                                                                         <div className="flex flex-col sm:flex-row gap-2 shrink-0 items-center">
                                                                                                             {/* Card 1: Progreso de Sesiones */}
                                                                                                             {(() => {
-                                                                                                                const totalSemana = semanasSemestre;
-                                                                                                                const totalProgramadas = originalGrupoData.horarios.length * totalSemana;
-                                                                                                                const sesionesDictadas = Object.values(originalGrupoData.sesiones).filter((s: any) => s.docente_asistio && !s.isVirtual).length;
-                                                                                                                const progresoSesiones = totalProgramadas > 0 ? Math.round((sesionesDictadas / totalProgramadas) * 100) : 0;
+                                                                                                                const totalProgramadas = originalGrupoData.sessionProgress?.totalProgramadas || 0;
+                                                                                                                const sesionesDictadas = originalGrupoData.sessionProgress?.sesionesDictadas || 0;
+                                                                                                                const progresoSesiones = originalGrupoData.sessionProgress?.percentage || 0;
 
                                                                                                                 return (
                                                                                                                     <div className="flex flex-col items-center justify-center bg-gray-50/80 px-2 py-1.5 rounded-xl border border-gray-100 min-w-[85px] shadow-sm text-center">
@@ -1256,7 +1364,7 @@ export default function AsistenciasPage() {
 
                                                                                             {isOpen && (
                                                                                                 <div className="border-t border-gray-100 bg-gray-50/30 p-4 space-y-4">
-                                                                                                    {Object.entries(grupoData.sesiones).sort(([, valA]: [string, any], [, valB]: [string, any]) => (valA.fecha || "").localeCompare(valB.fecha || "")).map(([sesionKey, sesionData]: [string, any]) => {
+                                                                                                    {(grupoData.sesionesSorted || []).map(([sesionKey, sesionData]: [string, any]) => {
                                                                                                         if (sesionKey === 'sin-sesion') return null;
                                                                                                         const isSessionOpen = expandedSessions.has(sesionKey);
                                                                                                         const isSessionCompleta = sesionData.docente_asistio && sesionData.estado_sesion !== "abierta";
@@ -1264,9 +1372,9 @@ export default function AsistenciasPage() {
                                                                                                         return (
                                                                                                              <div key={sesionKey} className="space-y-2">
                                                                                                                  {(() => {
-                                                                                                                     const sTotal = sesionData.records.length;
-                                                                                                                     const sPresentes = sesionData.records.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
-                                                                                                                     const sPct = sTotal > 0 ? Math.round((sPresentes / sTotal) * 100) : 0;
+                                                                                                                     const sTotal = sesionData.filteredStats?.total || 0;
+                                                                                                                     const sPresentes = sesionData.filteredStats?.presentes || 0;
+                                                                                                                     const sPct = sesionData.filteredStats?.percentage || 0;
                                                                                                                      
                                                                                                                      return (
                                                                                                                          <div 
@@ -1366,6 +1474,11 @@ export default function AsistenciasPage() {
                                                                                                                                                   return (
                                                                                                                                                       <>
                                                                                                                                                           Sesión Abierta: {formattedDate} (Semana {sesionData.semana})
+                                                                                                                                                          {sesionData.tipo_sesion === 'extraordinaria' && (
+                                                                                                                                                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-purple-50 text-purple-700 border border-purple-200 align-middle">
+                                                                                                                                                                  Sesión Extraordinaria
+                                                                                                                                                              </span>
+                                                                                                                                                          )}
                                                                                                                                                           <br />
                                                                                                                                                           <span className="text-blue-500 font-bold">Aula: {sesionData.aula_sesion || "Sin Aula"}</span>
                                                                                                                                                       </>
@@ -1375,6 +1488,11 @@ export default function AsistenciasPage() {
                                                                                                                                               return isSessionCompleta ? (
                                                                                                                                                   <>
                                                                                                                                                       Sesión Completada: {formattedDate} (Semana {sesionData.semana})
+                                                                                                                                                      {sesionData.tipo_sesion === 'extraordinaria' && (
+                                                                                                                                                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-purple-50 text-purple-700 border border-purple-200 align-middle">
+                                                                                                                                                              Sesión Extraordinaria
+                                                                                                                                                          </span>
+                                                                                                                                                      )}
                                                                                                                                                       <br />
                                                                                                                                                       <span className="text-gray-500 font-medium">Aula: {sesionData.aula_sesion || "Sin Aula"}</span>
                                                                                                                                                   </>

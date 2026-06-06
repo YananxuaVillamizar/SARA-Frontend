@@ -101,6 +101,9 @@ export default function ConfigPage() {
     const [errorSesion, setErrorSesion] = useState("");
     const [sesionesAEliminar, setSesionesAEliminar] = useState<string[]>([]);
     const [editandoGrupoNombre, setEditandoGrupoNombre] = useState({ asignatura: "", docente: "" });
+    const [confirmingDeleteGrupo, setConfirmingDeleteGrupo] = useState<string | null>(null);
+    const [editingSesionIndex, setEditingSesionIndex] = useState<number | null>(null);
+    const [confirmingRemoveSesionIndex, setConfirmingRemoveSesionIndex] = useState<number | null>(null);
 
     // Filtros cascada horarios
     const [filtroHorFacultad, setFiltroHorFacultad] = useState("");
@@ -303,6 +306,9 @@ export default function ConfigPage() {
         setNuevaSesion(SESION_VACIA);
         setSesionesAEliminar([]);
         setEditandoId(null);
+        setConfirmingDeleteGrupo(null);
+        setEditingSesionIndex(null);
+        setConfirmingRemoveSesionIndex(null);
         setError("");
         setErrorSesion("");
         setFacShowAll(false);
@@ -914,39 +920,73 @@ export default function ConfigPage() {
                                         <th className="pr-5 pl-0 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
                                     </tr></thead>
                                     <tbody className="divide-y divide-gray-50 font-sans">
-                                        {lista.map((g, i) => (
-                                            <tr key={i} className="hover:bg-gray-50 transition-colors align-top">
-                                                <td className="pl-5 pr-5 py-4 text-sm text-gray-500 max-w-[200px]">{g.facultad}</td>
-                                                <td className="pl-2 pr-1 py-4 text-sm text-gray-600">{g.programa}</td>
-                                                <td className="pl-1 pr-2 py-4 font-semibold text-sm max-w-[180px]" style={{ color: "#1A1A2E" }}>{g.asignatura}</td>
-                                                <td className="px-5 py-4 text-sm font-bold text-red-700 text-center">{g.grupo}</td>
-                                                <td className="px-2 py-4 text-sm text-gray-600 max-w-[150px]">{g.docente} {g.apellido}</td>
-                                                <td className="px-2 py-4 text-center">
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className={`text-sm font-black ${g.matriculados >= g.cupo_maximo ? "text-red-600" : "text-green-600"}`}>{g.matriculados}/{g.cupo_maximo}</span>
-                                                        {g.matriculados >= g.cupo_maximo && <span className="text-[10px] font-bold text-red-400 whitespace-nowrap">CUPO LLENO</span>}
-                                                    </div>
-                                                </td>
-                                                <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
-                                                    {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-xs font-bold px-2 py-1 rounded-full bg-purple-50 text-purple-700 whitespace-nowrap">{DIA_LABEL[s.dia_semana] ?? s.dia_semana}</span></div>)}
-                                                </div></td>
-                                                <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
-                                                    {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{formatHora(s.hora_inicio)}</span></div>)}
-                                                </div></td>
-                                                <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
-                                                    {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{formatHora(s.hora_fin)}</span></div>)}
-                                                </div></td>
-                                                <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
-                                                    {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{s.aula}</span></div>)}
-                                                </div></td>
-                                                <td className="pr-5 pl-0 py-4 text-center">
-                                                    <div className="flex gap-1 justify-center items-center">
-                                                        <button onClick={() => editarGrupo(g)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
-                                                        <button onClick={() => { if (!confirm(`¿Eliminar todas las sesiones de "${g.asignatura}"?`)) return; Promise.all(g.sesiones.map(s => eliminarHorario(s.id))).then(() => listarHorarios().then(setHorarios)); }} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {lista.map((g, i) => {
+                                            const key = `${g.asignatura_id}__${g.docente_id}__${g.grupo}`;
+                                            return (
+                                                <tr key={i} className="hover:bg-gray-50 transition-colors align-top">
+                                                    <td className="pl-5 pr-5 py-4 text-sm text-gray-500 max-w-[200px]">{g.facultad}</td>
+                                                    <td className="pl-2 pr-1 py-4 text-sm text-gray-600">{g.programa}</td>
+                                                    <td className="pl-1 pr-2 py-4 font-semibold text-sm max-w-[180px]" style={{ color: "#1A1A2E" }}>{g.asignatura}</td>
+                                                    <td className="px-5 py-4 text-sm font-bold text-red-700 text-center">{g.grupo}</td>
+                                                    <td className="px-2 py-4 text-sm text-gray-600 max-w-[150px]">{g.docente} {g.apellido}</td>
+                                                    <td className="px-2 py-4 text-center">
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className={`text-sm font-black ${g.matriculados >= g.cupo_maximo ? "text-red-600" : "text-green-600"}`}>{g.matriculados}/{g.cupo_maximo}</span>
+                                                            {g.matriculados >= g.cupo_maximo && <span className="text-[10px] font-bold text-red-400 whitespace-nowrap">CUPO LLENO</span>}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
+                                                        {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-xs font-bold px-2 py-1 rounded-full bg-purple-50 text-purple-700 whitespace-nowrap">{DIA_LABEL[s.dia_semana] ?? s.dia_semana}</span></div>)}
+                                                    </div></td>
+                                                    <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
+                                                        {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{formatHora(s.hora_inicio)}</span></div>)}
+                                                    </div></td>
+                                                    <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
+                                                        {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{formatHora(s.hora_fin)}</span></div>)}
+                                                    </div></td>
+                                                    <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
+                                                        {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{s.aula}</span></div>)}
+                                                    </div></td>
+                                                    <td className="pr-5 pl-0 py-4 text-center">
+                                                        {confirmingDeleteGrupo !== key ? (
+                                                            <div className="flex gap-1 justify-center items-center">
+                                                                <button onClick={() => editarGrupo(g)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
+                                                                <button onClick={() => setConfirmingDeleteGrupo(key)} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center gap-1.5 p-1.5 bg-amber-50 border border-amber-100 rounded-xl animate-pulse">
+                                                                <span className="text-[9px] font-extrabold text-amber-900 text-center leading-normal max-w-[120px]">
+                                                                    ¿Borrar clase? Se eliminarán también las sesiones y asistencias asociadas.
+                                                                </span>
+                                                                <div className="flex gap-1">
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            try {
+                                                                                await Promise.all(g.sesiones.map(s => eliminarHorario(s.id)));
+                                                                                setHorarios(await listarHorarios());
+                                                                            } catch (err: any) {
+                                                                                alert(err.message);
+                                                                            } finally {
+                                                                                setConfirmingDeleteGrupo(null);
+                                                                            }
+                                                                        }}
+                                                                        className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-[10px] font-bold transition-all"
+                                                                    >
+                                                                        Sí
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setConfirmingDeleteGrupo(null)}
+                                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-[10px] font-bold transition-all"
+                                                                    >
+                                                                        No
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>}
                         </div>
@@ -1354,15 +1394,134 @@ export default function ConfigPage() {
                                     {sesiones.length > 0 && (
                                         <div className="space-y-2">
                                             {sesiones.map((s, i) => (
-                                                <div key={i} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl text-sm">
-                                                    <span className="font-bold text-gray-700 w-24">{DIA_LABEL[s.dia_semana]}</span>
-                                                    <span className="text-gray-500 font-mono">{formatHora(s.hora_inicio)}–{formatHora(s.hora_fin)}</span>
-                                                    <span className="text-gray-400 flex-1">{s.aula}</span>
-                                                    <button type="button" onClick={() => quitarSesion(i)} className="text-red-400 hover:text-red-600"><X size={14} /></button>
+                                                <div key={i}>
+                                                    {editingSesionIndex === i ? (
+                                                        <div className="p-3 bg-red-50/30 border border-red-100/50 rounded-xl space-y-2.5">
+                                                             <div className="grid grid-cols-2 gap-2">
+                                                                 <div>
+                                                                     <label className="text-[9px] font-bold text-gray-400 uppercase">Día</label>
+                                                                     <select
+                                                                         className="w-full px-2 py-1 rounded-lg border border-gray-200 text-xs outline-none focus:border-sara-red transition-all"
+                                                                         value={s.dia_semana}
+                                                                         onChange={e => {
+                                                                             const updated = [...sesiones];
+                                                                             updated[i].dia_semana = e.target.value;
+                                                                             setSesiones(updated);
+                                                                         }}
+                                                                     >
+                                                                         {DIAS.filter(d => d.val === s.dia_semana || !sesiones.some((other, idx) => idx !== i && other.dia_semana === d.val)).map(d => (
+                                                                             <option key={d.val} value={d.val}>{d.label}</option>
+                                                                         ))}
+                                                                     </select>
+                                                                 </div>
+                                                                 <div>
+                                                                     <label className="text-[9px] font-bold text-gray-400 uppercase">Aula</label>
+                                                                     <input
+                                                                         className="w-full px-2 py-1 rounded-lg border border-gray-200 text-xs outline-none focus:border-sara-red transition-all"
+                                                                         value={s.aula}
+                                                                         onChange={e => {
+                                                                             const updated = [...sesiones];
+                                                                             updated[i].aula = e.target.value;
+                                                                             setSesiones(updated);
+                                                                         }}
+                                                                     />
+                                                                 </div>
+                                                             </div>
+                                                             <div className="grid grid-cols-2 gap-2">
+                                                                 <div>
+                                                                     <label className="text-[9px] font-bold text-gray-400 uppercase">Inicio</label>
+                                                                     <select
+                                                                         className="w-full px-2 py-1 rounded-lg border border-gray-200 text-xs outline-none focus:border-sara-red transition-all"
+                                                                         value={s.hora_inicio}
+                                                                         onChange={e => {
+                                                                             const updated = [...sesiones];
+                                                                             updated[i].hora_inicio = e.target.value;
+                                                                             const newIniHour = parseInt(e.target.value.split(":")[0]);
+                                                                             const currentFinHour = parseInt(updated[i].hora_fin.split(":")[0]);
+                                                                             if (currentFinHour <= newIniHour || currentFinHour > newIniHour + 4) {
+                                                                                 updated[i].hora_fin = `${(newIniHour + 2).toString().padStart(2, "0")}:00`;
+                                                                             }
+                                                                             setSesiones(updated);
+                                                                         }}
+                                                                     >
+                                                                         {Array.from({ length: 15 }, (_, idx) => {
+                                                                             const h = (idx + 6).toString().padStart(2, "0");
+                                                                             return <option key={h} value={`${h}:00`}>{h}:00</option>;
+                                                                         })}
+                                                                     </select>
+                                                                 </div>
+                                                                 <div>
+                                                                     <label className="text-[9px] font-bold text-gray-400 uppercase">Fin</label>
+                                                                     <select
+                                                                         className="w-full px-2 py-1 rounded-lg border border-gray-200 text-xs outline-none focus:border-sara-red transition-all"
+                                                                         value={s.hora_fin}
+                                                                         onChange={e => {
+                                                                             const updated = [...sesiones];
+                                                                             updated[i].hora_fin = e.target.value;
+                                                                             setSesiones(updated);
+                                                                         }}
+                                                                     >
+                                                                         {Array.from({ length: 17 }, (_, idx) => {
+                                                                             const h = (idx + 6).toString().padStart(2, "0");
+                                                                             const hourVal = `${h}:00`;
+                                                                             if (s.hora_inicio) {
+                                                                                 const iniHour = parseInt(s.hora_inicio.split(":")[0]);
+                                                                                 const curHour = idx + 6;
+                                                                                 if (curHour <= iniHour || curHour > iniHour + 4) return null;
+                                                                             }
+                                                                             return <option key={h} value={hourVal}>{hourVal}</option>;
+                                                                         })}
+                                                                     </select>
+                                                                 </div>
+                                                             </div>
+                                                             <div className="flex justify-end gap-1.5">
+                                                                 <button
+                                                                     type="button"
+                                                                     onClick={() => setEditingSesionIndex(null)}
+                                                                     className="px-3 py-1 bg-red-800 hover:bg-red-900 text-white rounded-lg text-xs font-bold transition-all"
+                                                                 >
+                                                                     Listo
+                                                                 </button>
+                                                             </div>
+                                                         </div>
+                                                    ) : confirmingRemoveSesionIndex === i ? (
+                                                        <div className="flex flex-col items-start gap-1.5 p-2.5 bg-amber-50 border border-amber-100 rounded-xl text-sm animate-pulse w-full">
+                                                            <span className="font-extrabold text-amber-900 text-[10px] leading-tight">
+                                                                ¿Quitar clase del horario? Se eliminarán las sesiones y asistencias asociadas a este día al guardar cambios.
+                                                            </span>
+                                                            <div className="flex gap-1.5 self-end mt-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        quitarSesion(i);
+                                                                        setConfirmingRemoveSesionIndex(null);
+                                                                    }}
+                                                                    className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-[10px] font-bold transition-all"
+                                                                >
+                                                                    Sí
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setConfirmingRemoveSesionIndex(null)}
+                                                                    className="px-2.5 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-[10px] font-bold transition-all"
+                                                                >
+                                                                    No
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl text-sm hover:bg-gray-100/70 transition-colors group">
+                                                            <span className="font-bold text-gray-700 w-24">{DIA_LABEL[s.dia_semana] ?? s.dia_semana}</span>
+                                                            <span className="text-gray-500 font-mono">{formatHora(s.hora_inicio)}–{formatHora(s.hora_fin)}</span>
+                                                            <span className="text-gray-400 flex-1">{s.aula}</span>
+                                                            <button type="button" onClick={() => { setEditingSesionIndex(i); setConfirmingRemoveSesionIndex(null); }} className="text-gray-400 hover:text-blue-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><Pencil size={13} /></button>
+                                                            <button type="button" onClick={() => { setConfirmingRemoveSesionIndex(i); setEditingSesionIndex(null); }} className="text-gray-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={13} /></button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
-                                        </div>
-                                    )}
+                                         </div>
+                                     )}
                                     {sesiones.length < 6 && (
                                         <div className="p-4 rounded-xl border border-dashed border-gray-300 space-y-3 bg-gray-50/50">
                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Nueva Sesión</p>

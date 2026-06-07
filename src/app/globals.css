@@ -54,3 +54,139 @@
 * {
   transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
+
+.only-print {
+  display: none !important;
+}
+
+/* 4. Estilos de Impresión (PDF) */
+@media print {
+  .only-print {
+    display: block !important;
+  }
+
+  /* Ocultar elementos innecesarios */
+  .no-print,
+  aside,
+  header,
+  nav,
+  select,
+  button,
+  .no-print-container {
+    display: none !important;
+  }
+
+  /* Reconfigurar estructura de layout para impresión de página completa */
+  html,
+  body,
+  main,
+  section,
+  div[class*="h-screen"],
+  div[class*="overflow-"] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+    display: block !important;
+  }
+
+  /* Eliminar espaciado y márgenes */
+  main,
+  section,
+  .max-w-7xl,
+  .space-y-6 {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  /* Asegurar que las tarjetas tengan fondo blanco y borde simple */
+  .bg-white {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+  }
+
+  /* Forzar tamaño de gráficos para evitar colapso a 0px */
+  .recharts-responsive-container {
+    width: 100% !important;
+    height: 280px !important;
+    min-height: 280px !important;
+    display: block !important;
+  }
+
+  /* Asegurar que el SVG principal del gráfico sea visible sin deformar las leyendas */
+  .recharts-responsive-container>.recharts-wrapper>.recharts-surface {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .recharts-legend-item .recharts-surface {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  /* Reestructurar layouts de grid para impresión legible (una sola columna o 2 en KPIs) */
+  .grid {
+    display: grid !important;
+    gap: 20px !important;
+  }
+
+  /* KPIs: Mantener en 2 columnas */
+  .grid-cols-1.sm\:grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* KPIs + Alertas: Mantener en 2 columnas */
+  .lg\:grid-cols-\[540px_1fr\] {
+    grid-template-columns: 1.25fr 1fr !important;
+  }
+
+  /* Sección de Tasa de Asistencia: Mantener en 2 columnas de proporción 3:2 */
+  .grid-cols-1.lg\:grid-cols-5 {
+    grid-template-columns: 3fr 2fr !important;
+  }
+
+  .lg\:col-span-3 {
+    grid-column: span 3 / span 3 !important;
+    width: 100% !important;
+  }
+
+  .lg\:col-span-2 {
+    grid-column: span 2 / span 2 !important;
+    width: 100% !important;
+  }
+
+  /* Evitar saltos de página a la mitad de una gráfica o tarjeta */
+  .card,
+  .grid>div,
+  .chart-container,
+  canvas {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 15px !important;
+  }
+
+  /* Estilos de impresión para la tarjeta de bienvenida */
+  .welcome-card {
+    background: #f9fafb !important;
+    color: #1a1a2e !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+  }
+
+  .welcome-card p {
+    color: #4b5563 !important;
+  }
+
+  .welcome-card span {
+    color: #1a1a2e !important;
+  }
+
+  .welcome-card h1 {
+    color: #1a1a2e !important;
+  }
+}

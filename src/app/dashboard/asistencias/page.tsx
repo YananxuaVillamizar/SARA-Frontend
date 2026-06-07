@@ -570,9 +570,6 @@ export default function AsistenciasPage() {
         return { filteredFaculties: filteredFacs, filteredCount: count };
     }, [allGroups, filtADia, filtAFacultad, filtAPrograma, filtAAsignatura, filtAAula, filtAFecha, filtASemana, filtAEstudiante, filtAMetodo, filtAEstado, currentWeek, fechaInicioSemestre]);
 
-
-
-
     const handleExportarPDF = (grupoData: any, sesionData: any, progName?: string, facName?: string) => {
         // Dynamic academic filename
         const cleanAsig = (grupoData.asignatura || 'Curso').replace(/[^a-zA-Z0-9]/g, '_');
@@ -580,22 +577,157 @@ export default function AsistenciasPage() {
         const cleanFecha = (sesionData.fecha || 'SinFecha');
         const filename = `Asistencia_${cleanAsig}_Grupo_${cleanGrupo}_${cleanFecha}`;
 
-        const sTotal = sesionData.records.length;
-        const sPresentes = sesionData.records.filter((r: any) => r.estado === 'asistencia' || r.estado === 'asistencia con retraso').length;
-        const sPct = sTotal > 0 ? Math.round((sPresentes / sTotal) * 100) : 0;
-        const dateObj = sesionData.fecha ? (() => {
-            const [y, m, d] = sesionData.fecha.split('-').map(Number);
-            return new Date(y, m - 1, d);
-        })() : null;
-        const weekdayStr = dateObj ? dateObj.toLocaleDateString('es-ES', { weekday: 'long' }) : 'Sin Fecha';
-        const capitalizedWeekday = weekdayStr.charAt(0).toUpperCase() + weekdayStr.slice(1);
-        const dateYMD = sesionData.fecha || '—';
+        const calculateStudentPermanence = (rec: any) => {
+            if (rec.estado !== "asistencia" && rec.estado !== "asistencia con retraso") {
+                return 0;
+            }
+            if (!rec.hora_entrada || !rec.hora_salida || !sesionData.fecha || !grupoData.horarios || grupoData.horarios.length === 0) {
+                return 0;
+            }
+            
+            const getDiaDeLaSemana = (fechaStr: string) => {
+                if (!fechaStr) return "";
+                const [y, m, d] = fechaStr.split('-').map(Number);
+                const date = new Date(y, m - 1, d);
+                const dias = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+                return dias[date.getDay()];
+            };
+            
+            const normalizeDia = (dia: string) => {
+                return dia ? dia.toLowerCase()
+                                .normalize("NFD")
+                                .replace(/[̀-ͯ]/g, "")
+                                .replace("miercoles", "miercoles")
+                                .replace("sabado", "sabado") : "";
+            };
 
-        const now = new Date();
-        const dateStrPart = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-        const timeStrPart = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
-        const cleanTimeStr = timeStrPart.toLowerCase().replace('am', 'a. m.').replace('pm', 'p. m.');
-        const generationDateStr = `${dateStrPart} a las ${cleanTimeStr}`;
+            const sessionDia = getDiaDeLaSemana(sesionData.fecha);
+            const schedule = grupoData.horarios.find((h: any) => normalizeDia(h.dia) === normalizeDia(sessionDia)) || grupoData.horarios[0];
+
+            if (!schedule || !schedule.horas) return 0;
+            const [horaInicioRaw, horaFinRaw] = schedule.horas.split(/[–-]/);
+            
+            const toDatetime = (val: any) => {
+                if (!val) return null;
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : d;
+            };
+
+            const combineDateTime = (fechaStr: string, timeStr: string) => {
+                if (!fechaStr || !timeStr) return null;
+                const [y, m, d] = fechaStr.split('-').map(Number);
+                const parts = timeStr.trim().split(':');
+                const h = parseInt(parts[0] || '0') % 24;
+                const min = parts.length > 1 ? parseInt(parts[1] || '0') : 0;
+                const sec = parts.length > 2 ? parseInt(parts[2] || '0') : 0;
+                return new Date(y, m - 1, d, h, min, sec);
+            };
+
+            const horaEntrada = toDatetime(rec.hora_entrada);
+            const horaSalida = toDatetime(rec.hora_salida);
+            const horaInicioDt = combineDateTime(sesionData.fecha, horaInicioRaw);
+            const horaFinDt = combineDateTime(sesionData.fecha, horaFinRaw);
+            const docIn = toDatetime(sesionData.docente_hora_entrada);
+            const docOut = toDatetime(sesionData.docente_hora_salida);
+
+            if (!horaEntrada || !horaSalida || !horaInicioDt || !horaFinDt || !docIn) {
+                return 0;
+            }
+
+            const docOutEffective = docOut || horaFinDt;
+            const duracionProgramadaSec = (horaFinDt.getTime() - horaInicioDt.getTime()) / 1000;
+            if (duracionProgramadaSec <= 0) return 0;
+
+            const actStart = docIn;
+            const actEnd = docOutEffective;
+
+            const overlapStart = new Date(Math.max(actStart.getTime(), horaInicioDt.getTime()));
+            const overlapEnd = new Date(Math.min(actEnd.getTime(), horaFinDt.getTime()));
+            const hasOverlap = overlapStart.getTime() < overlapEnd.getTime();
+
+            let pct = 0;
+            if (hasOverlap) {
+                const clampedDocIn = new Date(Math.max(docIn.getTime(), horaInicioDt.getTime()));
+                const clampedDocOut = new Date(Math.min(docOutEffective.getTime(), horaFinDt.getTime()));
+                const dSesionSec = Math.max(0, (clampedDocOut.getTime() - clampedDocIn.getTime()) / 1000);
+
+                const clampedEstIn = new Date(Math.max(horaEntrada.getTime(), clampedDocIn.getTime()));
+                const clampedEstOut = new Date(Math.min(horaSalida.getTime(), clampedDocOut.getTime()));
+                const dEstSec = Math.max(0, (clampedEstOut.getTime() - clampedEstIn.getTime()) / 1000);
+
+                if (dSesionSec > 0) {
+                    pct = (dEstSec / dSesionSec) * 100;
+                }
+            } else {
+                const dSesionSec = (docOutEffective.getTime() - docIn.getTime()) / 1000;
+                if (dSesionSec > 0) {
+                    const estStart = new Date(Math.max(horaEntrada.getTime(), docIn.getTime()));
+                    const estEnd = new Date(Math.min(horaSalida.getTime(), docOutEffective.getTime()));
+                    const dEstSec = Math.max(0, (estEnd.getTime() - estStart.getTime()) / 1000);
+                    pct = (dEstSec / dSesionSec) * 100;
+                }
+            }
+
+            return Math.min(100, Math.max(0, Math.round(pct)));
+        };
+
+        const fechaFormateadaLarga = (() => {
+            if (!sesionData.fecha) return '—';
+            const [y, m, d] = sesionData.fecha.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
+            const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            
+            const dayNum = String(d).padStart(2, '0');
+            
+            const monthName = date.toLocaleDateString('es-ES', { month: 'long' });
+            const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+            
+            return `${capitalizedDay} ${dayNum} de ${capitalizedMonth} de ${y}`;
+        })();
+
+        const generationDateStrFormatted = (() => {
+            const date = new Date();
+            const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
+            const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            
+            const dayNum = String(date.getDate()).padStart(2, '0');
+            
+            const monthName = date.toLocaleDateString('es-ES', { month: 'long' });
+            const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+            
+            const year = date.getFullYear();
+            
+            const hours = date.getHours();
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            const ampm = hours >= 12 ? 'p.m.' : 'a.m.';
+            const displayHours = String(hours % 12 || 12).padStart(2, '0');
+            
+            return `${capitalizedDay} ${dayNum} de ${capitalizedMonth} de ${year}, ${displayHours}:${minutes}:${seconds} ${ampm}`;
+        })();
+
+        const formatMetodoVerificacion = (metodo: string) => {
+            if (!metodo || metodo === 'N/A') return '—';
+            if (metodo.toLowerCase().includes('biometr')) return 'Biométrico';
+            if (metodo.toLowerCase().includes('supervis')) return 'Supervisado';
+            return metodo;
+        };
+
+        const getEstadoText = (rec: any) => {
+            const perm = calculateStudentPermanence(rec);
+            if (rec.estado === 'asistencia con retraso') {
+                return `Tarde.<br/>${perm}% de permanencia`;
+            }
+            return `A tiempo.<br/>${perm}% de permanencia`;
+        };
+
+        const attendedRecords = sesionData.records.filter((r: any) => 
+            r.estado === 'asistencia' || r.estado === 'asistencia con retraso'
+        );
+
+        const tipoSesionFormatted = (sesionData.tipo_sesion || '').toLowerCase() === 'extraordinaria' ? 'Extraordinaria' : 'Ordinaria';
 
         const logoUrl = window.location.origin + '/logo_unipamplona.png';
 
@@ -608,32 +740,26 @@ export default function AsistenciasPage() {
                         
                         @page {
                             size: letter;
-                            margin: 0mm; /* Hides default browser header/footers like about:blank */
+                            margin: 0mm;
                         }
                         
                         body {
                             font-family: 'Inter', sans-serif;
-                            color: #1e293b;
+                            color: #000000;
                             margin: 0;
-                            padding: 1.5cm; /* Restores exact page margin interior */
+                            padding: 1.5cm;
                             background: #ffffff;
-                            font-size: 10px;
+                            font-size: 11px;
                             line-height: 1.4;
-                        }
-                        
-                        .top-strip {
-                            height: 5px;
-                            background: linear-gradient(90deg, #ad3333 0%, #eab308 50%, #003366 100%);
-                            margin-bottom: 20px;
                         }
                         
                         .header {
                             display: flex;
                             align-items: center;
                             justify-content: space-between;
-                            border-bottom: 2px solid #ad3333;
-                            padding-bottom: 15px;
+                            padding-bottom: 12px;
                             margin-bottom: 25px;
+                            border-bottom: 2.5px solid #ad3333;
                         }
                         
                         .header-logo {
@@ -643,7 +769,7 @@ export default function AsistenciasPage() {
                         }
                         
                         .header-logo img {
-                            height: 85px;
+                            height: 75px;
                             width: auto;
                         }
                         
@@ -653,7 +779,7 @@ export default function AsistenciasPage() {
                         }
                         
                         .header-title-main {
-                            font-size: 16px;
+                            font-size: 18px;
                             font-weight: 800;
                             color: #ad3333;
                             text-transform: uppercase;
@@ -662,7 +788,7 @@ export default function AsistenciasPage() {
                         }
                         
                         .header-title-sub {
-                            font-size: 10px;
+                            font-size: 10.5px;
                             font-weight: 600;
                             color: #eab308;
                             text-transform: uppercase;
@@ -675,207 +801,80 @@ export default function AsistenciasPage() {
                         }
                         
                         .header-meta-doc {
-                            font-size: 12px;
+                            font-size: 13px;
                             font-weight: 800;
                             color: #ad3333;
                             text-transform: uppercase;
-                            margin: 0;
+                            margin: 0 0 4px 0;
                         }
                         
                         .header-meta-date {
-                            font-size: 9px;
-                            color: #64748b;
-                            font-weight: 600;
-                            margin: 3px 0 0 0;
+                            font-size: 10px;
+                            color: #000000;
+                            font-weight: 500;
+                            margin: 0 0 8px 0;
                         }
                         
-                        .section-title {
-                            font-size: 11px;
-                            font-weight: 800;
-                            color: #1e293b;
-                            text-transform: uppercase;
-                            letter-spacing: 0.75px;
-                            margin: 25px 0 10px 0;
-                            border-bottom: 1.5px solid #1e293b; /* Matches section title color */
-                            padding-bottom: 4px;
-                            page-break-after: avoid;
+                        .header-meta-by {
+                            font-size: 10px;
+                            color: #000000;
+                            font-weight: 500;
+                            margin: 0;
+                            line-height: 1.3;
+                        }
+                        
+                        .meta-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 25px;
+                        }
+                        
+                        .meta-table td {
+                            border: none !important;
+                            padding: 10px 0 !important;
+                            vertical-align: middle !important;
+                        }
+                        
+                        .underline-text {
+                            border-bottom: 0.75px solid #000000;
+                            padding-bottom: 3px;
+                            display: inline-block;
+                            width: 95%;
+                            font-size: 13px;
+                            color: #000000;
+                            line-height: 1.2;
                         }
                         
                         .horizontal-table {
                             width: 100%;
                             border-collapse: collapse;
-                            margin-bottom: 20px;
+                            margin-bottom: 25px;
                             background: #ffffff;
                         }
                         
                         .horizontal-table th {
-                            background: #f8fafc;
-                            color: #334155;
-                            font-size: 9px;
-                            font-weight: 700;
+                            background: #CCCCCC;
+                            color: #000000;
+                            font-size: 10.5px;
+                            font-weight: 800;
                             text-transform: uppercase;
-                            letter-spacing: 0.5px;
-                            padding: 8px 10px;
-                            border: 1.5px solid #94a3b8; /* Thicker table borders */
-                            text-align: left;
+                            padding: 8px 6px;
+                            border: 0.5px solid #333333;
+                            text-align: center;
                         }
                         
                         .horizontal-table td {
-                            padding: 8px 10px;
-                            font-size: 9.5px;
-                            color: #334155;
-                            border: 1.5px solid #94a3b8; /* Thicker table borders */
-                            font-weight: 500;
-                        }
-                        
-                        .stats-grid {
-                            display: flex;
-                            gap: 15px;
-                            margin: 15px 0 20px 0;
-                        }
-                        
-                        .stat-card {
-                            flex: 1;
-                            border: 1.5px solid #94a3b8; /* Matches thicker table border style */
-                            border-radius: 6px;
-                            padding: 10px 15px;
-                            text-align: center;
-                            background: #f8fafc;
-                        }
-                        
-                        .stat-card.presentes {
-                            border-left: 4px solid #166534;
-                        }
-                        
-                        .stat-card.ausentes {
-                            border-left: 4px solid #ad3333;
-                        }
-                        
-                        .stat-card.porcentaje {
-                            border-left: 4px solid #eab308;
-                        }
-                        
-                        .stat-val {
-                            font-size: 16px;
-                            font-weight: 800;
-                            margin: 0;
-                        }
-                        
-                        .stat-card.presentes .stat-val {
-                            color: #166534;
-                        }
-                        
-                        .stat-card.ausentes .stat-val {
-                            color: #ad3333;
-                        }
-                        
-                        .stat-card.porcentaje .stat-val {
-                            color: #b45309;
-                        }
-                        
-                        .stat-lbl {
-                            font-size: 8.5px;
-                            font-weight: 700;
-                            color: #64748b;
-                            text-transform: uppercase;
-                            letter-spacing: 0.5px;
-                            margin-top: 2px;
-                        }
-                        
-                        .badge {
-                            display: inline-block;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                            font-size: 8px;
-                            font-weight: 700;
-                            text-transform: uppercase;
-                            letter-spacing: 0.25px;
-                        }
-                        
-                        .badge-sara {
-                            background: #eff6ff;
-                            color: #1e40af;
-                            border: 0.5px solid #bfdbfe;
-                        }
-                        
-                        .badge-biometria {
-                            background: #f5f3ff;
-                            color: #5b21b6;
-                            border: 0.5px solid #ddd6fe;
-                        }
-                        
-                        .badge-supervisado {
-                            background: #ecfdf5;
-                            color: #047857;
-                            border: 0.5px solid #a7f3d0;
-                        }
-                        
-                        .status-badge {
-                            display: inline-block;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                            font-size: 8px;
-                            font-weight: 800;
-                            text-transform: uppercase;
-                            letter-spacing: 0.25px;
-                            text-align: center;
-                        }
-                        
-                        .status-presente {
-                            background: #f0fdf4;
-                            color: #166534;
-                            border: 0.5px solid #bbf7d0;
-                        }
-                        
-                        .status-tarde {
-                            background: #fffbeb;
-                            color: #b45309;
-                            border: 0.5px solid #fef3c7;
-                        }
-                        
-                        .status-ausente {
-                            background: #fef2f2;
-                            color: #ad3333;
-                            border: 0.5px solid #fecaca;
-                        }
-                        
-                        .signatures {
-                            display: grid;
-                            grid-template-cols: 1fr 1fr;
-                            gap: 40px;
-                            margin-top: 50px;
-                            page-break-inside: avoid;
-                        }
-                        
-                        .signature-block {
-                            text-align: center;
-                        }
-                        
-                        .signature-line {
-                            border-top: 1.5px dashed #64748b;
-                            margin-bottom: 8px;
-                            width: 80%;
-                            margin-left: auto;
-                            margin-right: auto;
-                        }
-                        
-                        .signature-title {
+                            padding: 8px 6px;
                             font-size: 10px;
-                            font-weight: 700;
-                            color: #1e293b;
-                        }
-                        
-                        .signature-subtitle {
-                            font-size: 8.5px;
-                            color: #64748b;
-                            margin-top: 2px;
-                            font-weight: 600;
+                            color: #000000;
+                            border: 0.5px solid #333333;
+                            font-weight: 500;
+                            text-align: center;
+                            vertical-align: middle;
                         }
                     </style>
                 </head>
                 <body>
-                    <div class='top-strip'></div>
-                    
                     <div class='header'>
                         <div class='header-logo'>
                             <img src='${logoUrl}' alt='Universidad de Pamplona' />
@@ -886,149 +885,62 @@ export default function AsistenciasPage() {
                         </div>
                         <div class='header-meta'>
                             <h2 class='header-meta-doc'>Reporte Oficial de Asistencia</h2>
-                            <p class='header-meta-date'>Generado el ${generationDateStr}</p>
+                            <p class='header-meta-date'>${generationDateStrFormatted}</p>
+                            <p class='header-meta-by'>Generado por:<br/>${sesion.nombre} (${sesion.rol})</p>
                         </div>
                     </div>
-
-                    <div class='section-title'>Información del Curso</div>
-                    <table class='horizontal-table'>
-                        <thead>
-                            <tr>
-                                <th style='width: 20%;'>Asignatura</th>
-                                <th style='text-align: center; width: 8%;'>Grupo</th>
-                                <th style='text-align: center; width: 8%;'>Aula</th>
-                                <th style='width: 27%;'>Facultad</th>
-                                <th style='width: 20%;'>Programa Académico</th>
-                                <th style='text-align: center; width: 17%;'>Fecha de Sesión</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style='font-weight: 700; color: #1e293b;'>${grupoData.asignatura || 'Sin Asignatura'} ${grupoData.codAsig ? `(${grupoData.codAsig})` : ''}</td>
-                                <td style='text-align: center; font-weight: 700;'>${grupoData.grupo || ''}</td>
-                                <td style='text-align: center; font-weight: 700;'>${sesionData.aula_sesion || 'Sin Aula'}</td>
-                                <td>${facName || ''}</td>
-                                <td>${progName || ''}</td>
-                                <td style='text-align: center;'>
-                                    <div style='font-weight: 700; color: #1e293b; font-size: 10px;'>${capitalizedWeekday}</div>
-                                    <div style='font-size: 11.5px; color: #1e293b; margin-top: 2px; font-weight: 800; letter-spacing: 0.25px;'>${dateYMD}</div>
-                                </td>
-                            </tr>
-                        </tbody>
+                    
+                    <table class='meta-table'>
+                        <tr>
+                            <td style="width: 48%; padding-right: 2%;">
+                                <span class="underline-text"><strong>DOCENTE:</strong> ${grupoData.docente || ''}</span>
+                            </td>
+                            <td style="width: 50%;">
+                                <span class="underline-text"><strong>ASIGNATURA:</strong> ${grupoData.asignatura || 'Sin Asignatura'} ${grupoData.codAsig ? `(${grupoData.codAsig})` : ''}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding-right: 2%;">
+                                <span class="underline-text"><strong>FECHA:</strong> ${fechaFormateadaLarga}</span>
+                            </td>
+                            <td>
+                                <span class="underline-text"><strong>GRUPO:</strong> ${grupoData.grupo || ''}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding-right: 2%;">
+                                <span class="underline-text"><strong>TIPO DE SESIÓN:</strong> ${tipoSesionFormatted}</span>
+                            </td>
+                            <td>
+                                <span class="underline-text"><strong>AULA:</strong> ${sesionData.aula_sesion || 'Sin Aula'}</span>
+                            </td>
+                        </tr>
                     </table>
-
-                    <div class='section-title'>Información del Docente</div>
+                    
                     <table class='horizontal-table'>
                         <thead>
                             <tr>
-                                <th style='width: 30%;'>Nombre Completo</th>
-                                <th style='text-align: center; width: 20%;'>Documento</th>
-                                <th style='text-align: center; width: 18%;'>Método de Verificación</th>
-                                <th style='text-align: center; width: 11%;'>Hora Entrada</th>
-                                <th style='text-align: center; width: 11%;'>Hora Salida</th>
-                                <th style='text-align: center; width: 10%;'>Estado de Asistencia</th>
+                                <th style='width: 5%;'>No</th>
+                                <th style='width: 30%;'>Nombre</th>
+                                <th style='width: 12%;'>Documento</th>
+                                <th style='width: 18%;'>Programa</th>
+                                <th style='width: 17%;'>Método Verificación</th>
+                                <th style='width: 18%;'>Estado Asistencia</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td style='font-weight: 700; color: #1e293b;'>${grupoData.docente || ''}</td>
-                                <td style='text-align: center;'>${sesionData.docente_tipo_doc || 'CC'}. ${sesionData.docente_num_doc || '—'}</td>
-                                <td style='text-align: center;'>
-                                    <span class='badge ${sesionData.docente_metodo_verificacion === 'Biometría' ? 'badge-biometria' : sesionData.docente_metodo_verificacion === 'Supervisado' ? 'badge-supervisado' : 'badge-sara'}'>
-                                        ${sesionData.docente_metodo_verificacion || 'N/A'}
-                                    </span>
-                                </td>
-                                <td style='text-align: center; white-space: nowrap;'>
-                                    ${sesionData.docente_hora_entrada ? new Date(sesionData.docente_hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                </td>
-                                <td style='text-align: center; white-space: nowrap;'>
-                                    ${sesionData.docente_hora_salida ? new Date(sesionData.docente_hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                </td>
-                                <td style='text-align: center;'>
-                                    <span class='status-badge ${
-                                        sesionData.docente_estado_asistencia === 'asistencia' ? 'status-presente' :
-                                        sesionData.docente_estado_asistencia === 'asistencia con retraso' ? 'status-tarde' : 'status-ausente'
-                                    }'>
-                                        ${sesionData.docente_estado_asistencia === 'asistencia' ? 'Presente' :
-                                          sesionData.docente_estado_asistencia === 'asistencia con retraso' ? 'Tarde' : 'Ausente'}
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class='section-title'>Registro de Asistencia de Estudiantes</div>
-
-                    <div class='stats-grid'>
-                        <div class='stat-card presentes'>
-                            <p class='stat-val'>${sPresentes}</p>
-                            <p class='stat-lbl'>Estudiantes Presentes</p>
-                        </div>
-                        <div class='stat-card ausentes'>
-                            <p class='stat-val'>${sTotal - sPresentes}</p>
-                            <p class='stat-lbl'>Estudiantes Ausentes</p>
-                        </div>
-                        <div class='stat-card porcentaje'>
-                            <p class='stat-val'>${sPct}%</p>
-                            <p class='stat-lbl'>Porcentaje de Asistencia</p>
-                        </div>
-                    </div>
-
-                    <table class='horizontal-table'>
-                        <thead>
-                            <tr>
-                                <th style='width: 25%;'>Nombre Completo</th>
-                                <th style='width: 16%; text-align: center;'>Documento</th>
-                                <th style='width: 15%;'>Programa Académico</th>
-                                <th style='width: 14%; text-align: center;'>Método de verificación</th>
-                                <th style='width: 10%; text-align: center;'>Hora entrada</th>
-                                <th style='width: 10%; text-align: center;'>Hora salida</th>
-                                <th style='width: 10%; text-align: center;'>Estado de asistencia</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${sesionData.records.map((a: any) => `
+                            ${attendedRecords.map((a: any, idx: number) => `
                                 <tr>
-                                    <td style='font-weight: 700; color: #1e293b;'>${a.nombre_estudiante || ''} ${a.apellido_estudiante || ''}</td>
-                                    <td style='text-align: center; white-space: nowrap;'>${a.tipo_doc || 'CC'}. ${a.num_doc || '—'}</td>
+                                    <td>${idx + 1}</td>
+                                    <td>${a.nombre_estudiante || ''} ${a.apellido_estudiante || ''}</td>
+                                    <td>${a.num_doc || '—'}</td>
                                     <td>${a.programa || progName || ''}</td>
-                                    <td style='text-align: center;'>
-                                        <span class='badge ${a.metodo_verificacion === 'Biometría' ? 'badge-biometria' : a.metodo_verificacion === 'Supervisado' ? 'badge-supervisado' : 'badge-sara'}'>
-                                            ${a.metodo_verificacion || 'N/A'}
-                                        </span>
-                                    </td>
-                                    <td style='text-align: center; white-space: nowrap;'>
-                                        ${a.hora_entrada ? new Date(a.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                    </td>
-                                    <td style='text-align: center; white-space: nowrap;'>
-                                        ${a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                    </td>
-                                    <td style='text-align: center;'>
-                                        <span class='status-badge ${
-                                            a.estado === 'asistencia' ? 'status-presente' : a.estado === 'asistencia con retraso' ? 'status-tarde' : 'status-ausente'
-                                        }'>
-                                            ${a.estado === 'asistencia' ? 'Presente' : a.estado === 'asistencia con retraso' ? 'Tarde' : 'Ausente'}
-                                        </span>
-                                    </td>
+                                    <td>${formatMetodoVerificacion(a.metodo_verificacion)}</td>
+                                    <td style='line-height: 1.3;'>${getEstadoText(a)}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
-
-                    <div class='signatures'>
-                        <div class='signature-block'>
-                            <div class='signature-line'></div>
-                            <div class='signature-title'>${grupoData.docente}</div>
-                            <div class='signature-subtitle'>Docente de la Materia</div>
-                            <div class='signature-subtitle'>${sesionData.docente_tipo_doc || 'C.C'}. ${sesionData.docente_num_doc || '__________________'}</div>
-                        </div>
-                        <div class='signature-block'>
-                            <div class='signature-line'></div>
-                            <div class='signature-title'>Firma Institucional</div>
-                            <div class='signature-subtitle'>Universidad de Pamplona</div>
-                            <div class='signature-subtitle'>Representante SARA / Control Académico</div>
-                        </div>
-                    </div>
                 </body>
             </html>
         `;

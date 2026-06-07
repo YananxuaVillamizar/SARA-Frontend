@@ -2,8 +2,8 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { 
-    Users, TrendingUp, AlertTriangle, UserCheck, ShieldAlert, 
+import {
+    Users, TrendingUp, AlertTriangle, UserCheck, ShieldAlert,
     Calendar, BookOpen, Clock, Award, CheckCircle2, ChevronRight, Activity
 } from "lucide-react";
 import {
@@ -14,10 +14,10 @@ import {
 import { getSesion } from "@/services/auth";
 import { listarHorarios, Horario } from "@/services/admin";
 import { crearSesion } from "@/services/contingencias";
-import { 
+import {
     obtenerAdminStats, obtenerEstudianteStats, AdminStats, EstudianteStats,
     obtenerUsuariosFiltro, obtenerAsignaturasFiltro, obtenerPermanenciaStats,
-    UsuarioFiltro, AsignaturaFiltro, PermanenciaStats 
+    UsuarioFiltro, AsignaturaFiltro, PermanenciaStats
 } from "@/services/dashboard";
 
 // ── Tooltip personalizado para la gráfica de barras ──────────────────────────
@@ -65,7 +65,26 @@ export default function DashboardPage() {
     const [horarios, setHorarios] = useState<Horario[]>([]);
     const [filtroRol, setFiltroRol] = useState<string>("todos");
     const [filtroSemana, setFiltroSemana] = useState<string>("actual");
+    const [fechaImpresion, setFechaImpresion] = useState<string>("");
     const [showCharts, setShowCharts] = useState(false);
+
+    const handlePrint = () => {
+        const now = new Date();
+        const options: Intl.DateTimeFormatOptions = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true 
+        };
+        setFechaImpresion(now.toLocaleDateString('es-ES', options));
+        setTimeout(() => {
+            window.print();
+        }, 150);
+    };
 
     // Estados para la gráfica de permanencia detallada
     const [usuariosFiltro, setUsuariosFiltro] = useState<UsuarioFiltro[]>([]);
@@ -80,7 +99,7 @@ export default function DashboardPage() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const users = await obtenerUsuariosFiltro(selectedRolPerm);
+                const users = await obtenerUsuariosFiltro(selectedRolPerm, sesion.rol === "Docente" ? sesion.id : undefined);
                 setUsuariosFiltro(users);
                 setSelectedUsuarioPerm("todos");
                 setSelectedAsignaturaPerm("todos");
@@ -91,13 +110,17 @@ export default function DashboardPage() {
         if (!loading && (sesion.rol === "Administrativo" || sesion.rol === "Docente")) {
             fetchUsers();
         }
-    }, [selectedRolPerm, loading, sesion.rol]);
+    }, [selectedRolPerm, loading, sesion.rol, sesion.id]);
 
-    // Cargar lista de asignaturas al cambiar el usuario seleccionado
+    // Cargar lista de asignaturas al cambiar el usuario seleccionado o al montar la sesión
     useEffect(() => {
         const fetchAsignaturas = async () => {
             try {
-                const uId = selectedUsuarioPerm === "todos" ? undefined : selectedUsuarioPerm;
+                const uId = sesion.rol === "Estudiante"
+                    ? sesion.id
+                    : (selectedUsuarioPerm === "todos"
+                        ? (sesion.rol === "Docente" ? sesion.id : undefined)
+                        : selectedUsuarioPerm);
                 const subjects = await obtenerAsignaturasFiltro(uId);
                 setAsignaturasFiltro(subjects);
                 setSelectedAsignaturaPerm("todos");
@@ -105,19 +128,22 @@ export default function DashboardPage() {
                 console.error("Error al cargar asignaturas para filtro de permanencia:", err);
             }
         };
-        if (!loading && (sesion.rol === "Administrativo" || sesion.rol === "Docente")) {
+        if (!loading && (sesion.rol === "Administrativo" || sesion.rol === "Docente" || sesion.rol === "Estudiante")) {
             fetchAsignaturas();
         }
-    }, [selectedUsuarioPerm, loading, sesion.rol]);
+    }, [selectedUsuarioPerm, loading, sesion.rol, sesion.id]);
 
     // Cargar estadísticas de permanencia al cambiar cualquiera de los 3 filtros
     useEffect(() => {
         const fetchPermanenciaStats = async () => {
             setLoadingPermanencia(true);
             try {
-                const uId = selectedUsuarioPerm === "todos" ? undefined : selectedUsuarioPerm;
+                const uId = sesion.rol === "Estudiante"
+                    ? sesion.id
+                    : (selectedUsuarioPerm === "todos" ? undefined : selectedUsuarioPerm);
                 const aId = selectedAsignaturaPerm === "todos" ? undefined : selectedAsignaturaPerm;
-                const stats = await obtenerPermanenciaStats(selectedRolPerm, uId, aId);
+                const activeRol = sesion.rol === "Estudiante" ? "estudiante" : selectedRolPerm;
+                const stats = await obtenerPermanenciaStats(activeRol, uId, aId, sesion.id, sesion.rol);
                 setPermanenciaStats(stats);
             } catch (err) {
                 console.error("Error al cargar estadísticas de permanencia:", err);
@@ -125,10 +151,10 @@ export default function DashboardPage() {
                 setLoadingPermanencia(false);
             }
         };
-        if (!loading && (sesion.rol === "Administrativo" || sesion.rol === "Docente")) {
+        if (!loading && (sesion.rol === "Administrativo" || sesion.rol === "Docente" || sesion.rol === "Estudiante")) {
             fetchPermanenciaStats();
         }
-    }, [selectedRolPerm, selectedUsuarioPerm, selectedAsignaturaPerm, loading, sesion.rol]);
+    }, [selectedRolPerm, selectedUsuarioPerm, selectedAsignaturaPerm, loading, sesion.rol, sesion.id]);
 
 
 
@@ -158,7 +184,7 @@ export default function DashboardPage() {
                 setSesion(currentSession);
 
                 if (currentSession.rol === "Administrativo" || currentSession.rol === "Docente") {
-                    const stats = await obtenerAdminStats(filtroRol, filtroSemana);
+                    const stats = await obtenerAdminStats(filtroRol, filtroSemana, currentSession.id, currentSession.rol);
                     setAdminStats(stats);
                     if (currentSession.rol === "Docente") {
                         const hor = await listarHorarios();
@@ -167,6 +193,8 @@ export default function DashboardPage() {
                 } else if (currentSession.rol === "Estudiante") {
                     const stats = await obtenerEstudianteStats(currentSession.id);
                     setEstudianteStats(stats);
+                    const adminStatsForStudent = await obtenerAdminStats("estudiante", filtroSemana, currentSession.id, "Estudiante");
+                    setAdminStats(adminStatsForStudent);
                 }
             } catch (e) {
                 console.error("Error cargando estadísticas del dashboard", e);
@@ -199,17 +227,17 @@ export default function DashboardPage() {
             });
             alert("Sesión registrada con éxito");
             // Refrescar estadísticas
-            const stats = await obtenerAdminStats(filtroRol, filtroSemana);
+            const stats = await obtenerAdminStats(filtroRol, filtroSemana, sesion.id, sesion.rol);
             setAdminStats(stats);
-        } catch (e: any) { 
-            alert("Error: Posiblemente ya registraste esta sesión hoy."); 
+        } catch (e: any) {
+            alert("Error: Posiblemente ya registraste esta sesión hoy.");
         }
     };
 
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-                <div className="w-12 h-12 border-4 border-sara-red border-t-transparent rounded-full animate-spin" style={{ borderColor: "#8B1A1A", borderTopColor: "transparent" }} />
+                <div className="w-12 h-12 border-4 border-[#8B1A1A] border-t-transparent rounded-full animate-spin" />
                 <p className="text-gray-400 text-sm font-medium animate-pulse">Cargando estadísticas en tiempo real...</p>
             </div>
         );
@@ -217,27 +245,29 @@ export default function DashboardPage() {
 
     // ── VISTA ADMINISTRATIVO Y DOCENTE ─────────────────────────────────────────
     if (sesion.rol === "Administrativo" || sesion.rol === "Docente") {
-        const metricasGrid = [
+        const metricasGrid = sesion.rol === "Docente" ? [
             {
-                label: "Estudiantes activos",
-                value: adminStats?.metricas.estudiantes_activos ?? "0 / 0",
-                icon: <Users size={18} />,
+                label: "Estudiantes a cargo",
+                value: adminStats?.metricas.estudiantes_activos.includes("/")
+                    ? adminStats.metricas.estudiantes_activos.split("/")[1].trim()
+                    : (adminStats?.metricas.estudiantes_activos ?? "0"),
+                icon: <Users size={26} />,
                 bg: "#3B82F6",
-                trend: "Semestre en curso",
+                trend: "Alumnos matriculados",
                 trendColor: "#3B82F6",
             },
             {
-                label: "Docentes activos",
-                value: adminStats?.metricas.docentes_activos ?? "0 / 0",
-                icon: <Users size={18} />,
+                label: "Asignaturas a cargo",
+                value: String(new Set(horarios.map(h => h.asignatura)).size),
+                icon: <BookOpen size={26} />,
                 bg: "#C9A84C",
-                trend: "Docentes registrados",
+                trend: "Materias asignadas",
                 trendColor: "#C9A84C",
             },
             {
                 label: "Asistencia promedio",
                 value: adminStats?.metricas.asistencia_promedio ?? "0%",
-                icon: <TrendingUp size={18} />,
+                icon: <TrendingUp size={26} />,
                 bg: "#10B981",
                 trend: "Asistencia general",
                 trendColor: "#10B981",
@@ -245,7 +275,40 @@ export default function DashboardPage() {
             {
                 label: "Cumplimiento Docente",
                 value: adminStats?.metricas.cumplimiento_docente ?? "100%",
-                icon: <UserCheck size={18} />,
+                icon: <UserCheck size={26} />,
+                bg: "#8B1A1A",
+                trend: "Tasa de clases dictadas",
+                trendColor: "#8B1A1A",
+            },
+        ] : [
+            {
+                label: "Estudiantes activos",
+                value: adminStats?.metricas.estudiantes_activos ?? "0 / 0",
+                icon: <Users size={26} />,
+                bg: "#3B82F6",
+                trend: "Semestre en curso",
+                trendColor: "#3B82F6",
+            },
+            {
+                label: "Docentes activos",
+                value: adminStats?.metricas.docentes_activos ?? "0 / 0",
+                icon: <Users size={26} />,
+                bg: "#C9A84C",
+                trend: "Docentes registrados",
+                trendColor: "#C9A84C",
+            },
+            {
+                label: "Asistencia promedio",
+                value: adminStats?.metricas.asistencia_promedio ?? "0%",
+                icon: <TrendingUp size={26} />,
+                bg: "#10B981",
+                trend: "Asistencia general",
+                trendColor: "#10B981",
+            },
+            {
+                label: "Cumplimiento Docente",
+                value: adminStats?.metricas.cumplimiento_docente ?? "100%",
+                icon: <UserCheck size={26} />,
                 bg: "#8B1A1A",
                 trend: "Tasa de clases dictadas",
                 trendColor: "#8B1A1A",
@@ -258,48 +321,85 @@ export default function DashboardPage() {
                     <AccesoDenegadoBanner />
                 </Suspense>
 
+                {/* REPORTE PRINT HEADER */}
+                <div className="only-print w-full bg-white border-b-2 border-sara-red pb-4 mb-6" style={{ borderColor: "#8B1A1A" }}>
+                    <div className="h-1.5 bg-gradient-to-r from-[#8B1A1A] via-[#C9A84C] to-[#003366] mb-6 -mx-6" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <img src="/logo_unipamplona.png" alt="Logo Universidad de Pamplona" className="h-16 w-auto shrink-0" />
+                            <div className="flex flex-col">
+                                <h1 className="text-lg font-extrabold tracking-tight uppercase" style={{ color: "#8B1A1A", fontFamily: "Inter, sans-serif" }}>
+                                    UNIVERSIDAD DE PAMPLONA
+                                </h1>
+                                <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "#C9A84C", fontFamily: "Inter, sans-serif" }}>
+                                    SISTEMA AUTOMATIZADO DE REGISTRO DE ASISTENCIA (SARA)
+                                </p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: "#8B1A1A", fontFamily: "Inter, sans-serif" }}>
+                                REPORTE OFICIAL DE ESTADÍSTICAS Y ASISTENCIA
+                            </h2>
+                            <p className="text-[10px] text-gray-500 font-bold mt-1">
+                                Generado el {fechaImpresion || new Date().toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-gray-500 font-bold mt-0.5">
+                                Generado por: {sesion.nombre} ({sesion.rol})
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+
                 {/* BIENVENIDA */}
-                <div className="bg-gradient-to-r from-sidebar-bg to-black text-white p-6 rounded-3xl relative overflow-hidden shadow-sm" style={{ background: "linear-gradient(135deg, #1e1e30 0%, #11111d 100%)" }}>
+                <div className="welcome-card bg-gradient-to-r from-sidebar-bg to-black text-white p-6 rounded-3xl relative overflow-hidden shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print" style={{ background: "linear-gradient(135deg, #1e1e30 0%, #11111d 100%)" }}>
                     <div className="relative z-10 space-y-1">
                         <span className="text-xs uppercase font-extrabold text-sara-gold tracking-widest" style={{ color: "#C9A84C" }}>Panel Administrativo</span>
                         <h1 className="text-2xl font-black">¡Hola, {sesion.nombre}!</h1>
                         <p className="text-xs text-gray-400 max-w-xl">Supervisa el ausentismo, detecta riesgos de deserción escolar temprana y gestiona las contingencias académicas de SARA.</p>
                     </div>
+                    <button
+                        onClick={handlePrint}
+                        className="no-print px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md active:scale-95 shrink-0 flex items-center gap-2"
+                        style={{ border: "none" }}
+                    >
+                        <Award size={14} /> Guardar Reporte (PDF)
+                    </button>
                     <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-radial-gradient opacity-10 pointer-events-none" />
                 </div>
 
-                {/* FILA DE RESUMEN: KPIs (Matriz 2x2) + ALERTAS DE DESERCIÓN en disposición 50/50 */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    {/* Matriz 2x2 de KPIs (ocupa la mitad izquierda) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* FILA DE RESUMEN: KPIs (Matriz 2x2) + ALERTAS DE DESERCIÓN (con ancho de cuadrícula ajustado) */}
+                <div className="grid grid-cols-1 lg:grid-cols-[540px_1fr] gap-6">
+                    {/* Matriz 2x2 de KPIs (ocupa exactamente 540px de ancho) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                         {metricasGrid.map((stat, i) => (
                             <div
                                 key={i}
-                                className="relative overflow-hidden bg-white p-6 rounded-3xl border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex justify-between items-center h-[140px] group/card"
+                                className="relative overflow-hidden bg-white p-5 rounded-3xl border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex justify-between items-center h-[140px] w-full max-w-[255px] mx-auto group/card"
                                 style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}
                             >
                                 {/* Decorative background glow on hover */}
-                                <div 
+                                <div
                                     className="absolute -right-10 -bottom-10 w-24 h-24 rounded-full opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 blur-xl"
                                     style={{ background: stat.bg }}
                                 />
 
-                                <div className="flex flex-col justify-between h-full py-1">
-                                    <p className="text-gray-400 text-[10px] font-extrabold uppercase tracking-wider">{stat.label}</p>
-                                    <p className="text-3xl font-black mt-2 leading-none" style={{ color: "#1A1A2E" }}>{stat.value}</p>
-                                    <p className="text-[10px] font-bold flex items-center gap-1 mt-2" style={{ color: stat.trendColor }}>
+                                <div className="flex flex-col justify-center items-center text-center gap-2.5 z-10">
+                                    <p className="text-gray-400 text-[10px] font-extrabold uppercase tracking-wider leading-none">{stat.label}</p>
+                                    <p className="text-3xl font-black leading-none" style={{ color: "#1A1A2E" }}>{stat.value}</p>
+                                    <p className="text-[10px] font-bold flex items-center justify-center gap-1 leading-none" style={{ color: stat.trendColor }}>
                                         <Activity size={10} className="animate-pulse" /> {stat.trend}
                                     </p>
                                 </div>
 
                                 <div
-                                    className="p-3.5 rounded-full text-white shadow-md transition-all duration-300 group-hover/card:scale-105"
-                                    style={{ 
-                                        background: `linear-gradient(135deg, ${stat.bg}, ${stat.bg}DD)`, 
-                                        boxShadow: `0 6px 12px ${stat.bg}20` 
+                                    className="w-14 h-14 rounded-full text-white shadow-md transition-all duration-300 group-hover/card:scale-105 flex items-center justify-center shrink-0 z-10"
+                                    style={{
+                                        background: `linear-gradient(135deg, ${stat.bg}, ${stat.bg}DD)`,
+                                        boxShadow: `0 6px 12px ${stat.bg}20`
                                     }}
                                 >
-                                    {stat.icon}
+                                    {React.cloneElement(stat.icon as React.ReactElement<any>, { size: 24 })}
                                 </div>
                             </div>
                         ))}
@@ -307,7 +407,7 @@ export default function DashboardPage() {
 
                     {/* Alertas Críticas de Deserción (ocupa la mitad derecha, alineada a 296px de alto) */}
                     <div
-                        className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-[296px]"
+                        className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-[296px] w-full"
                         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
                     >
                         <div>
@@ -316,7 +416,7 @@ export default function DashboardPage() {
                             </h3>
                             <p className="text-xs text-gray-400 mb-4">Riesgos y ausentismo crítico detectados</p>
                         </div>
-                        
+
                         <div className="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[160px] scrollbar-thin">
                             {!adminStats || adminStats.alertas_desercion.length === 0 ? (
                                 <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100">
@@ -346,42 +446,12 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* CLASES DEL DOCENTE (Solo si rol === Docente) */}
-                {sesion.rol === "Docente" && (
-                    <div className="space-y-4">
-                        <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                            <Calendar size={15} /> Tus Clases de Hoy
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {horarios.length === 0 ? (
-                                <p className="text-gray-400 text-xs italic col-span-full bg-white p-4 rounded-2xl border text-center border-gray-100">No tienes horarios asignados para hoy.</p>
-                            ) : (
-                                horarios.map(h => (
-                                    <div key={h.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <p className="font-bold text-sidebar-bg leading-none" style={{ color: "#1A1A2E" }}>{h.asignatura}</p>
-                                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-sara-red/10 text-sara-red" style={{ background: "rgba(139,26,26,0.08)", color: "#8B1A1A" }}>
-                                                    {h.aula}
-                                                </span>
-                                            </div>
-                                            <p className="text-[10px] text-gray-400 font-medium">{h.dia_semana} | {strTime(h.hora_inicio)} - {strTime(h.hora_fin)}</p>
-                                            <p className="text-[9px] text-gray-400 font-extrabold mt-1">GRUPO {h.grupo}</p>
-                                        </div>
-                                        <button onClick={() => registrarClase(h)} className="px-3 py-1.5 bg-sidebar-bg text-white text-xs font-bold rounded-xl hover:bg-black transition-colors shrink-0" style={{ background: "#1e1e30" }}>
-                                            Confirmar
-                                        </button>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                )}
+
 
                 {/* FILA DE GRÁFICO SEMANAL (A ANCHO COMPLETO CON CONCENTRIC RADIAL BARCHART EN PROPORCIÓN 3:2 Y ENLAZADO A SABADO) */}
                 <div
                     className="bg-white p-6 rounded-2xl border border-gray-100"
-                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
+                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)", breakInside: "avoid", pageBreakInside: "avoid" }}
                 >
                     {/* Header general de la tarjeta con títulos divididos */}
                     <div className="flex justify-between items-start mb-6">
@@ -394,7 +464,7 @@ export default function DashboardPage() {
                             </p>
                         </div>
                         {/* Título de la gráfica circular alineado en el header para ganar espacio vertical */}
-                        <div className="hidden lg:block w-[40%] text-right pr-6">
+                        <div className="hidden lg:block print:block w-[40%] text-right pr-6">
                             <h3 className="font-bold text-xs uppercase tracking-widest text-gray-400">
                                 TASA DE ASISTENCIA DIARIA (%)
                             </h3>
@@ -408,42 +478,64 @@ export default function DashboardPage() {
                             {/* Filtros colocados directamente sobre la gráfica de barras */}
                             <div className="flex flex-wrap items-center gap-3">
                                 {/* Filtro de Rol */}
-                                <select
-                                    value={filtroRol}
-                                    onChange={(e) => setFiltroRol(e.target.value)}
-                                    className="text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-sara-red transition-all cursor-pointer h-8"
-                                    style={{ color: "#1A1A2E" }}
-                                >
-                                    <option value="todos">Todos los Roles</option>
-                                    <option value="estudiante">Estudiantes</option>
-                                    <option value="docente">Docentes</option>
-                                </select>
+                                {/* Filtro de Rol para Administrativo y Docente */}
+                                {sesion.rol === "Administrativo" ? (
+                                    <>
+                                        <select
+                                            value={filtroRol}
+                                            onChange={(e) => setFiltroRol(e.target.value)}
+                                            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-sara-red transition-all cursor-pointer h-8 print:hidden"
+                                            style={{ color: "#1A1A2E" }}
+                                        >
+                                            <option value="todos">Todos los Roles</option>
+                                            <option value="estudiante">Estudiantes</option>
+                                            <option value="docente">Docentes</option>
+                                        </select>
+                                        <div className="hidden print:block text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white h-8 flex items-center" style={{ color: "#1A1A2E" }}>
+                                            {filtroRol === "todos" ? "Todos los Roles" : filtroRol === "estudiante" ? "Estudiantes" : "Docentes"}
+                                        </div>
+                                    </>
+                                ) : sesion.rol === "Docente" ? (
+                                    <>
+                                        <select
+                                            value={filtroRol}
+                                            onChange={(e) => setFiltroRol(e.target.value)}
+                                            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-sara-red transition-all cursor-pointer h-8 print:hidden"
+                                            style={{ color: "#1A1A2E" }}
+                                        >
+                                            <option value="todos">Ambas (Mi Asistencia y Estudiantes)</option>
+                                            <option value="estudiante">Mis Estudiantes</option>
+                                            <option value="docente">Mi Asistencia</option>
+                                        </select>
+                                        <div className="hidden print:block text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white h-8 flex items-center" style={{ color: "#1A1A2E" }}>
+                                            {filtroRol === "todos" ? "Ambas (Mi Asistencia y Estudiantes)" : filtroRol === "estudiante" ? "Mis Estudiantes" : "Mi Asistencia"}
+                                        </div>
+                                    </>
+                                ) : null}
 
                                 {/* Filtro de Semanas */}
-                                <div className="flex flex-wrap items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8">
+                                <div className="flex flex-wrap items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8 print:hidden">
                                     {quickWeeks.map(qw => (
                                         <button
                                             key={qw.val}
                                             type="button"
                                             onClick={() => setFiltroSemana(qw.val)}
-                                            className={`text-[10px] font-extrabold px-2.5 h-6 rounded-lg transition-all ${
-                                                filtroSemana === qw.val
+                                            className={`text-[10px] font-extrabold px-2.5 h-6 rounded-lg transition-all ${filtroSemana === qw.val
                                                     ? "bg-white text-sara-red shadow-sm"
                                                     : "text-gray-500 hover:text-gray-700"
-                                            }`}
+                                                }`}
                                         >
                                             {qw.label}
                                         </button>
                                     ))}
-                                    
+
                                     <div className="relative group/week h-6">
                                         <button
                                             type="button"
-                                            className={`text-[10px] font-extrabold px-2.5 h-6 rounded-lg transition-all flex items-center gap-1 ${
-                                                filtroSemana !== "actual" && filtroSemana !== "ultimas_5" && filtroSemana !== "ultimas_10" && filtroSemana !== "todo"
+                                            className={`text-[10px] font-extrabold px-2.5 h-6 rounded-lg transition-all flex items-center gap-1 ${filtroSemana !== "actual" && filtroSemana !== "ultimas_5" && filtroSemana !== "ultimas_10" && filtroSemana !== "todo"
                                                     ? "bg-white text-sara-red shadow-sm"
                                                     : "text-gray-500 hover:text-gray-700"
-                                            }`}
+                                                }`}
                                         >
                                             {filtroSemana !== "actual" && filtroSemana !== "ultimas_5" && filtroSemana !== "ultimas_10" && filtroSemana !== "todo"
                                                 ? `Sem. ${filtroSemana}`
@@ -458,9 +550,8 @@ export default function DashboardPage() {
                                                             key={w}
                                                             type="button"
                                                             onClick={() => setFiltroSemana(String(w))}
-                                                            className={`w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[10px] font-bold border-b border-gray-50 last:border-0 ${
-                                                                filtroSemana === String(w) ? "text-sara-red" : "text-gray-600"
-                                                            }`}
+                                                            className={`w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[10px] font-bold border-b border-gray-50 last:border-0 ${filtroSemana === String(w) ? "text-sara-red" : "text-gray-600"
+                                                                }`}
                                                         >
                                                             Semana {w}
                                                         </button>
@@ -468,6 +559,15 @@ export default function DashboardPage() {
                                                 })}
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                                <div className="hidden print:flex items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8">
+                                    <div className="bg-white text-sara-red shadow-sm text-[10px] font-extrabold px-2.5 h-6 rounded-lg flex items-center justify-center">
+                                        {filtroSemana === "actual" ? "Semana Actual"
+                                         : filtroSemana === "ultimas_5" ? "Últimas 5"
+                                         : filtroSemana === "ultimas_10" ? "Últimas 10"
+                                         : filtroSemana === "todo" ? "Todo"
+                                         : `Semana ${filtroSemana}`}
                                     </div>
                                 </div>
                             </div>
@@ -494,8 +594,9 @@ export default function DashboardPage() {
                                             iconSize={8}
                                             wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }}
                                         />
-                                        <Bar dataKey="presentes" name="Asistencias" fill="#3B82F6" radius={[6, 6, 0, 0]} />
-                                        <Bar dataKey="ausentes" name="Inasistencias" fill="#8B1A1A" radius={[6, 6, 0, 0]} />
+                                        <Bar dataKey="a_tiempo" stackId="asistencia" name="A tiempo" fill="#10B981" radius={[6, 6, 0, 0]} maxBarSize={16} />
+                                        <Bar dataKey="tardes" stackId="asistencia" name="Tarde" fill="#F59E0B" radius={[6, 6, 0, 0]} maxBarSize={16} />
+                                        <Bar dataKey="ausentes" name="Inasistencias" fill="#8B1A1A" radius={[6, 6, 0, 0]} maxBarSize={16} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             )}
@@ -507,12 +608,12 @@ export default function DashboardPage() {
                             <div className="relative w-full flex items-center justify-center" style={{ height: 270 }}>
                                 {showCharts && (
                                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                                        <RadialBarChart 
-                                            cx="50%" 
-                                            cy="50%" 
-                                            innerRadius="20%" 
-                                            outerRadius="95%" 
-                                            barSize={12} 
+                                        <RadialBarChart
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius="20%"
+                                            outerRadius="95%"
+                                            barSize={12}
                                             startAngle={90}
                                             endAngle={-270}
                                             data={
@@ -529,18 +630,18 @@ export default function DashboardPage() {
                                                 }).reverse()
                                             }
                                         >
-                                            <PolarAngleAxis 
-                                                type="number" 
-                                                domain={[0, 100]} 
-                                                angleAxisId={0} 
-                                                tick={false} 
+                                            <PolarAngleAxis
+                                                type="number"
+                                                domain={[0, 100]}
+                                                angleAxisId={0}
+                                                tick={false}
                                             />
                                             <RadialBar
                                                 background={{ fill: "#F3F4F6" }}
                                                 dataKey="uv"
                                                 cornerRadius={6}
                                             />
-                                            <Tooltip 
+                                            <Tooltip
                                                 formatter={(value) => [`${value}%`, "Asistencia"]}
                                                 contentStyle={{ fontSize: 10, borderRadius: 8 }}
                                             />
@@ -575,10 +676,10 @@ export default function DashboardPage() {
                 {/* NUEVA FILA DE DETALLE DE PERMANENCIA REAL (Full Width) */}
                 <div
                     className="bg-white p-6 rounded-2xl border border-gray-100 mt-6"
-                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
+                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)", breakInside: "avoid", pageBreakInside: "avoid" }}
                 >
-                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
-                        <div>
+                    <div className="flex flex-col xl:flex-row justify-start items-start xl:items-center gap-6 xl:gap-10 mb-6">
+                        <div className="max-w-[280px] shrink-0">
                             <h3 className="font-bold text-base" style={{ color: "#1A1A2E" }}>
                                 Detalle de Permanencia en Clase
                             </h3>
@@ -586,28 +687,49 @@ export default function DashboardPage() {
                                 Analiza el porcentaje de tiempo real de permanencia de estudiantes o docentes en el aula
                             </p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
                             {/* Filtro de Rol */}
-                            <div className="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[180px]">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rol</label>
-                                <select 
-                                    value={selectedRolPerm}
-                                    onChange={(e) => setSelectedRolPerm(e.target.value)}
-                                    className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold cursor-pointer"
-                                >
-                                    <option value="todos">Ambos (Docentes y Estudiantes)</option>
-                                    <option value="estudiante">Estudiantes</option>
-                                    <option value="docente">Docentes</option>
-                                </select>
-                            </div>
+                            {sesion.rol === "Administrativo" ? (
+                                <div className="flex flex-col gap-1 w-full sm:w-[240px]">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rol</label>
+                                    <select
+                                        value={selectedRolPerm}
+                                        onChange={(e) => setSelectedRolPerm(e.target.value)}
+                                        className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold cursor-pointer w-full print:hidden"
+                                    >
+                                        <option value="todos">Ambos (Docentes y Estudiantes)</option>
+                                        <option value="estudiante">Estudiantes</option>
+                                        <option value="docente">Docentes</option>
+                                    </select>
+                                    <div className="hidden print:block text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 font-semibold w-full">
+                                        {selectedRolPerm === "todos" ? "Ambos (Docentes y Estudiantes)" : selectedRolPerm === "estudiante" ? "Estudiantes" : "Docentes"}
+                                    </div>
+                                </div>
+                            ) : sesion.rol === "Docente" ? (
+                                <div className="flex flex-col gap-1 w-full sm:w-[240px]">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rol</label>
+                                    <select
+                                        value={selectedRolPerm}
+                                        onChange={(e) => setSelectedRolPerm(e.target.value)}
+                                        className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold cursor-pointer w-full print:hidden"
+                                    >
+                                        <option value="todos">Ambas (Mi Asistencia y Estudiantes)</option>
+                                        <option value="estudiante">Mis Estudiantes</option>
+                                        <option value="docente">Mi Asistencia</option>
+                                    </select>
+                                    <div className="hidden print:block text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 font-semibold w-full">
+                                        {selectedRolPerm === "todos" ? "Ambas (Mi Asistencia y Estudiantes)" : selectedRolPerm === "estudiante" ? "Mis Estudiantes" : "Mi Asistencia"}
+                                    </div>
+                                </div>
+                            ) : null}
 
                             {/* Filtro de Persona/Usuario */}
-                            <div className="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[200px]">
+                            <div className="flex flex-col gap-1 w-full sm:w-[300px]">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Persona</label>
-                                <select 
+                                <select
                                     value={selectedUsuarioPerm}
                                     onChange={(e) => setSelectedUsuarioPerm(e.target.value)}
-                                    className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold cursor-pointer"
+                                    className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold cursor-pointer w-full print:hidden"
                                 >
                                     <option value="todos">Todos los usuarios</option>
                                     {usuariosFiltro.map((u) => (
@@ -616,15 +738,18 @@ export default function DashboardPage() {
                                         </option>
                                     ))}
                                 </select>
+                                <div className="hidden print:block text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 font-semibold w-full truncate">
+                                    {selectedUsuarioPerm === "todos" ? "Todos los usuarios" : (usuariosFiltro.find(u => u.id === selectedUsuarioPerm) ? `${usuariosFiltro.find(u => u.id === selectedUsuarioPerm)?.apellidos}, ${usuariosFiltro.find(u => u.id === selectedUsuarioPerm)?.nombres}` : selectedUsuarioPerm)}
+                                </div>
                             </div>
 
                             {/* Filtro de Asignatura */}
-                            <div className="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[200px]">
+                            <div className="flex flex-col gap-1 w-full sm:w-[300px]">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Asignatura</label>
-                                <select 
+                                <select
                                     value={selectedAsignaturaPerm}
                                     onChange={(e) => setSelectedAsignaturaPerm(e.target.value)}
-                                    className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold cursor-pointer"
+                                    className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold cursor-pointer w-full print:hidden"
                                 >
                                     <option value="todos">Todas las asignaturas</option>
                                     {asignaturasFiltro.map((a) => (
@@ -633,6 +758,9 @@ export default function DashboardPage() {
                                         </option>
                                     ))}
                                 </select>
+                                <div className="hidden print:block text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 font-semibold w-full truncate">
+                                    {selectedAsignaturaPerm === "todos" ? "Todas las asignaturas" : (asignaturasFiltro.find(a => a.id === selectedAsignaturaPerm)?.nombre || selectedAsignaturaPerm)}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -652,6 +780,7 @@ export default function DashboardPage() {
                                             <stop offset="95%" stopColor="#D97706" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
                                     <XAxis
                                         dataKey="semana"
                                         tick={{ fontSize: 10, fill: "#9CA3AF" }}
@@ -720,57 +849,195 @@ export default function DashboardPage() {
                 bg: "#3B82F6",
                 trend: "Cursos activos",
                 trendColor: "#3B82F6"
-            },
-            {
-                label: "Horarios programados hoy",
-                value: estudianteStats.horarios_hoy.length,
-                icon: <Clock size={22} />,
-                bg: "#8B1A1A",
-                trend: "Clases para el día",
-                trendColor: "#8B1A1A"
             }
         ];
 
         return (
             <div className="space-y-6">
+                {/* REPORTE PRINT HEADER */}
+                <div className="only-print w-full bg-white border-b-2 border-sara-red pb-4 mb-6" style={{ borderColor: "#8B1A1A" }}>
+                    <div className="h-1.5 bg-gradient-to-r from-[#8B1A1A] via-[#C9A84C] to-[#003366] mb-6 -mx-6" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <img src="/logo_unipamplona.png" alt="Logo Universidad de Pamplona" className="h-16 w-auto shrink-0" />
+                            <div className="flex flex-col">
+                                <h1 className="text-lg font-extrabold tracking-tight uppercase" style={{ color: "#8B1A1A", fontFamily: "Inter, sans-serif" }}>
+                                    UNIVERSIDAD DE PAMPLONA
+                                </h1>
+                                <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "#C9A84C", fontFamily: "Inter, sans-serif" }}>
+                                    SISTEMA AUTOMATIZADO DE REGISTRO DE ASISTENCIA (SARA)
+                                </p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: "#8B1A1A", fontFamily: "Inter, sans-serif" }}>
+                                REPORTE OFICIAL DE RENDIMIENTO Y ASISTENCIA
+                            </h2>
+                            <p className="text-[10px] text-gray-500 font-bold mt-1">
+                                Generado el {fechaImpresion || new Date().toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-gray-500 font-bold mt-0.5">
+                                Estudiante: {sesion.nombre} ({sesion.num_doc})
+                            </p>
+                        </div>
+                    </div>
+                </div>
                 {/* BIENVENIDA ESTUDIANTE */}
-                <div className="bg-gradient-to-r from-sidebar-bg to-black text-white p-6 rounded-3xl relative overflow-hidden shadow-sm" style={{ background: "linear-gradient(135deg, #1e1e30 0%, #11111d 100%)" }}>
+                <div className="welcome-card bg-gradient-to-r from-sidebar-bg to-black text-white p-6 rounded-3xl relative overflow-hidden shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print" style={{ background: "linear-gradient(135deg, #1e1e30 0%, #11111d 100%)" }}>
                     <div className="relative z-10 space-y-1">
                         <span className="text-xs uppercase font-extrabold text-sara-gold tracking-widest" style={{ color: "#C9A84C" }}>Portal del Estudiante</span>
                         <h1 className="text-2xl font-black">¡Hola, {sesion.nombre}!</h1>
                         <p className="text-xs text-gray-400 max-w-xl">Revisa tu porcentaje de asistencia en cada materia. Recuerda que no debes superar el 20% de inasistencias en el periodo académico.</p>
                     </div>
+                    <button
+                        onClick={handlePrint}
+                        className="no-print px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md active:scale-95 shrink-0 flex items-center gap-2"
+                        style={{ border: "none" }}
+                    >
+                        <Award size={14} /> Guardar Reporte (PDF)
+                    </button>
                 </div>
 
-                {/* GRID ESTUDIANTE */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    {studentMetricas.map((stat, i) => (
-                        <div
-                            key={i}
-                            className="bg-white p-5 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300"
-                            style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
-                        >
-                            <div className="flex justify-between items-start mb-4">
+                {/* FILA DE RESUMEN DEL ESTUDIANTE: KPIs + Rendimiento + Desglose de puntualidad */}
+                <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_1fr] gap-6 items-stretch">
+                    {/* Columna 1: KPIs apilados verticalmente */}
+                    <div className="flex flex-col gap-4 justify-between h-full">
+                        {studentMetricas.map((stat, i) => (
+                            <div
+                                key={i}
+                                className="relative overflow-hidden bg-white p-5 rounded-3xl border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex justify-between items-center h-[140px] w-full group/card"
+                                style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}
+                            >
+                                {/* Decorative background glow on hover */}
                                 <div
-                                    className="p-3 rounded-xl text-white"
-                                    style={{ background: stat.bg, boxShadow: `0 4px 12px ${stat.bg}25` }}
+                                    className="absolute -right-10 -bottom-10 w-24 h-24 rounded-full opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 blur-xl"
+                                    style={{ background: stat.bg }}
+                                />
+
+                                <div className="flex flex-col justify-center items-center text-center gap-2.5 z-10 h-full">
+                                    <p className="text-gray-400 text-[10px] font-extrabold uppercase tracking-wider leading-none">{stat.label}</p>
+                                    <p className="text-3xl font-black leading-none" style={{ color: "#1A1A2E" }}>{stat.value}</p>
+                                    <p className="text-[10px] font-bold flex items-center justify-center gap-1 leading-none" style={{ color: stat.trendColor }}>
+                                        <Activity size={10} className="animate-pulse" /> {stat.trend}
+                                    </p>
+                                </div>
+
+                                <div
+                                    className="w-14 h-14 rounded-full text-white shadow-md transition-all duration-300 group-hover/card:scale-105 flex items-center justify-center shrink-0 z-10"
+                                    style={{
+                                        background: `linear-gradient(135deg, ${stat.bg}, ${stat.bg}DD)`,
+                                        boxShadow: `0 6px 12px ${stat.bg}20`
+                                    }}
                                 >
-                                    {stat.icon}
+                                    {React.cloneElement(stat.icon as React.ReactElement<any>, { size: 24 })}
                                 </div>
                             </div>
-                            <p className="text-gray-400 text-xs font-semibold">{stat.label}</p>
-                            <p className="text-3xl font-black mt-1" style={{ color: "#1A1A2E" }}>{stat.value}</p>
-                            <p className="text-[10px] font-bold mt-2" style={{ color: stat.trendColor }}>
-                                {stat.trend}
-                            </p>
+                        ))}
+                    </div>
+
+                    {/* Columna 2: Rendimiento por Asignatura */}
+                    <div
+                        className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-[296px] w-full"
+                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
+                    >
+                        <div className="w-full">
+                            <h3 className="font-bold text-sm tracking-tight" style={{ color: "#1A1A2E" }}>
+                                Rendimiento por Asignatura
+                            </h3>
+                            <p className="text-[11px] text-gray-400 mt-0.5 mb-4">Porcentaje de asistencia por materia.</p>
+
+                            <div className="space-y-3 max-h-[170px] overflow-y-auto pr-1 scrollbar-thin">
+                                {estudianteStats.asignaturas_asistencias.map((asig, i) => {
+                                    const isRisk = asig.porcentaje < 80;
+                                    const isCritical = asig.porcentaje < 70;
+                                    const colorBar = isCritical ? "#EF4444" : isRisk ? "#F59E0B" : "#10B981";
+
+                                    return (
+                                        <div key={i} className="space-y-1">
+                                            <div className="flex justify-between text-[11px] font-semibold">
+                                                <span className="truncate max-w-[70%]" style={{ color: "#1A1A2E" }}>{asig.nombre}</span>
+                                                <span style={{ color: colorBar }}>
+                                                    {asig.porcentaje}% ({asig.asistidas}/{asig.dictadas})
+                                                </span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-500"
+                                                    style={{ width: `${asig.porcentaje}%`, backgroundColor: colorBar }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    ))}
+                        <div className="text-[10px] text-gray-400 font-bold border-t border-gray-50 pt-2 flex justify-between items-center mt-2 w-full">
+                            <span>Asistencia mínima: 80%</span>
+                            <span className="text-amber-500">Alerta &lt; 80%</span>
+                        </div>
+                    </div>
+
+                    {/* Columna 3: Desglose de Puntualidad */}
+                    <div
+                        className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-[296px] w-full"
+                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
+                    >
+                        <div>
+                            <h3 className="font-bold text-sm tracking-tight" style={{ color: "#1A1A2E" }}>
+                                Desglose de Puntualidad
+                            </h3>
+                            <p className="text-[11px] text-gray-400 mt-0.5 mb-2">Frecuencia de estados en el semestre.</p>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-12 h-full w-full">
+                            {/* Referencias al lado izquierdo */}
+                            <div className="flex flex-col gap-3 shrink-0">
+                                {estudianteStats.desglose_puntualidad.map((entry, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] text-gray-400 font-bold uppercase leading-none">{entry.name}</span>
+                                            <span className="text-xs font-black mt-0.5" style={{ color: entry.color }}>
+                                                {entry.value}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Gráfico a la derecha (más grande) */}
+                            <div className="w-48 h-48 relative flex justify-center items-center shrink-0">
+                                {showCharts && (
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                                        <PieChart>
+                                            <Pie
+                                                data={estudianteStats.desglose_puntualidad}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={52}
+                                                outerRadius={78}
+                                                paddingAngle={4}
+                                                dataKey="value"
+                                            >
+                                                {estudianteStats.desglose_puntualidad.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip
+                                                contentStyle={{ borderRadius: 10, fontSize: 10, border: "1px solid #F3F4F6" }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* HORARIO DEL DÍA */}
                 <div className="space-y-3">
                     <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                        <Calendar size={15} /> Tus Clases para Hoy
+                        <Calendar size={15} /> Tus Clases de Hoy
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {estudianteStats.horarios_hoy.length === 0 ? (
@@ -779,124 +1046,343 @@ export default function DashboardPage() {
                                 <p className="text-xs text-gray-400 italic">No tienes clases agendadas para el día de hoy.</p>
                             </div>
                         ) : (
-                            estudianteStats.horarios_hoy.map((h, i) => (
-                                <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-2">
-                                    <div>
-                                        <div className="flex justify-between items-start">
-                                            <p className="font-bold text-sm text-sidebar-bg" style={{ color: "#1A1A2E" }}>{h.asignatura}</p>
-                                            <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-gray-100 text-gray-500">
-                                                Aula {h.aula}
+                            estudianteStats.horarios_hoy.map((h, i) => {
+                                const estadoClase = (() => {
+                                    const now = new Date();
+                                    const [hiHours, hiMinutes] = h.hora_inicio.split(":").map(Number);
+                                    const [hfHours, hfMinutes] = h.hora_fin.split(":").map(Number);
+                                    
+                                    const start = new Date(now);
+                                    start.setHours(hiHours, hiMinutes, 0, 0);
+                                    
+                                    const end = new Date(now);
+                                    end.setHours(hfHours, hfMinutes, 0, 0);
+                                    
+                                    if (now < start) {
+                                        return { label: "No ha comenzado", bg: "bg-gray-50 text-gray-400 border border-gray-100" };
+                                    } else if (now >= start && now <= end) {
+                                        return { label: "En curso", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 animate-pulse font-bold" };
+                                    } else {
+                                        return { label: "Finalizada", bg: "bg-gray-100 text-gray-500 border border-gray-200/50" };
+                                    }
+                                })();
+
+                                const asistioClase = (() => {
+                                    const estNorm = h.asistencia_estado ? h.asistencia_estado.toLowerCase().trim() : null;
+                                    if (estNorm === "presente" || estNorm === "tarde") {
+                                        return { label: "Asistido", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" };
+                                    }
+                                    if (h.sesion_id) {
+                                        return { label: "Falta/Inasistencia", bg: "bg-red-50 text-red-600 border border-red-200/60 font-bold" };
+                                    }
+                                    return { label: "Pendiente de registro", bg: "bg-gray-50 text-gray-400 border border-gray-100" };
+                                })();
+
+                                return (
+                                    <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 hover:shadow-md transition-all duration-300 flex flex-col justify-between space-y-4" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.02)" }}>
+                                        <div>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <p className="font-bold text-sm text-[#1A1A2E] leading-tight truncate" title={h.asignatura}>{h.asignatura}</p>
+                                                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-lg bg-gray-100/80 text-gray-500 shrink-0">
+                                                    Aula {h.aula}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">Grupo {h.grupo} • {h.hora_inicio} - {h.hora_fin}</p>
+                                        </div>
+                                        <div className="border-t border-gray-50 pt-3 flex flex-wrap gap-2 justify-between items-center">
+                                            <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${estadoClase.bg}`}>
+                                                {estadoClase.label}
+                                            </span>
+                                            <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${asistioClase.bg}`}>
+                                                {asistioClase.label}
                                             </span>
                                         </div>
-                                        <p className="text-[10px] text-gray-400 font-semibold">{h.hora_inicio} - {h.hora_fin}</p>
                                     </div>
-                                    <div className="border-t border-gray-50 pt-2 flex justify-between items-center text-[9px] font-extrabold text-gray-400">
-                                        <span>GRUPO {h.grupo}</span>
-                                        <span className="text-emerald-600 uppercase flex items-center gap-1">
-                                            <Activity size={10} /> Activa
-                                        </span>
-                                    </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>
 
-                {/* GRÁFICOS DEL ESTUDIANTE */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    {/* Lista de asignaturas y barras horizontales */}
-                    <div
-                        className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100"
-                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
-                    >
-                        <h3 className="font-bold text-base mb-1" style={{ color: "#1A1A2E" }}>
-                            Rendimiento por Asignatura
-                        </h3>
-                        <p className="text-xs text-gray-400 mb-5">Porcentaje de asistencia en cada materia matriculada.</p>
-
-                        <div className="space-y-4">
-                            {estudianteStats.asignaturas_asistencias.map((asig, i) => {
-                                const isRisk = asig.porcentaje < 80;
-                                const isCritical = asig.porcentaje < 70;
-                                const colorBar = isCritical ? "#EF4444" : isRisk ? "#F59E0B" : "#10B981";
-
-                                return (
-                                    <div key={i} className="space-y-1.5">
-                                        <div className="flex justify-between text-xs font-semibold">
-                                            <span style={{ color: "#1A1A2E" }}>{asig.nombre}</span>
-                                            <span style={{ color: colorBar }}>
-                                                {asig.porcentaje}% ({asig.asistidas}/{asig.dictadas})
-                                            </span>
-                                        </div>
-                                        <div className="h-2 w-100 bg-gray-100 rounded-full overflow-hidden">
-                                            <div 
-                                                className="h-full rounded-full transition-all duration-500" 
-                                                style={{ width: `${asig.porcentaje}%`, backgroundColor: colorBar }}
-                                            />
-                                        </div>
-                                        <div className="flex justify-between text-[9px] text-gray-400">
-                                            <span>Asistencia mínima reglamentaria: 80%</span>
-                                            {isCritical ? (
-                                                <span className="text-red-500 font-bold">Riesgo de pérdida</span>
-                                            ) : isRisk ? (
-                                                <span className="text-amber-500 font-bold">Alerta de inasistencias</span>
-                                            ) : (
-                                                <span className="text-emerald-500 font-bold">Estado seguro</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                {/* FILA DE GRÁFICO SEMANAL PARA ESTUDIANTE */}
+                <div
+                    className="bg-white p-6 rounded-2xl border border-gray-100 mt-6"
+                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)", breakInside: "avoid", pageBreakInside: "avoid" }}
+                >
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 className="font-bold text-base" style={{ color: "#1A1A2E" }}>
+                                Mi Tasa de Asistencia Semanal
+                            </h3>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                                Histórico de tus asistencias e inasistencias promedio por día de clase.
+                            </p>
+                        </div>
+                        <div className="hidden lg:block print:block w-[40%] text-right pr-6">
+                            <h3 className="font-bold text-xs uppercase tracking-widest text-gray-400">
+                                MI TASA DE ASISTENCIA DIARIA (%)
+                            </h3>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Distribución porcentual acumulada de lunes a sábado</p>
                         </div>
                     </div>
 
-                    {/* Desglose de puntualidad */}
-                    <div
-                        className="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
-                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
-                    >
-                        <div>
-                            <h3 className="font-bold text-base mb-1" style={{ color: "#1A1A2E" }}>
-                                Desglose de Puntualidad
-                            </h3>
-                            <p className="text-xs text-gray-400 mb-6">Frecuencia de estados registrados en el semestre.</p>
-                        </div>
-
-                        <div className="flex justify-center items-center h-40">
-                            {showCharts && (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                                    <PieChart>
-                                        <Pie
-                                            data={estudianteStats.desglose_puntualidad}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={45}
-                                            outerRadius={65}
-                                            paddingAngle={4}
-                                            dataKey="value"
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                        {/* Lado izquierdo: Filtro + Gráfico de Barras */}
+                        <div className="lg:col-span-3 space-y-4">
+                            <div className="flex flex-wrap items-center gap-3">
+                                {/* Filtro de Semanas */}
+                                <div className="flex flex-wrap items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8 print:hidden">
+                                    {quickWeeks.map(qw => (
+                                        <button
+                                            key={qw.val}
+                                            type="button"
+                                            onClick={() => setFiltroSemana(qw.val)}
+                                            className={`text-[10px] font-extrabold px-2.5 h-6 rounded-lg transition-all ${filtroSemana === qw.val
+                                                    ? "bg-white text-sara-red shadow-sm"
+                                                    : "text-gray-500 hover:text-gray-700"
+                                                }`}
                                         >
-                                            {estudianteStats.desglose_puntualidad.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip 
-                                            contentStyle={{ borderRadius: 10, fontSize: 11, border: "1px solid #F3F4F6" }} 
+                                            {qw.label}
+                                        </button>
+                                    ))}
+
+                                    <div className="relative group/week h-6">
+                                        <button
+                                            type="button"
+                                            className={`text-[10px] font-extrabold px-2.5 h-6 rounded-lg transition-all flex items-center gap-1 ${filtroSemana !== "actual" && filtroSemana !== "ultimas_5" && filtroSemana !== "ultimas_10" && filtroSemana !== "todo"
+                                                    ? "bg-white text-sara-red shadow-sm"
+                                                    : "text-gray-500 hover:text-gray-700"
+                                                }`}
+                                        >
+                                            {filtroSemana !== "actual" && filtroSemana !== "ultimas_5" && filtroSemana !== "ultimas_10" && filtroSemana !== "todo"
+                                                ? `Sem. ${filtroSemana}`
+                                                : "Otra..."}
+                                        </button>
+                                        <div className="absolute right-0 top-full pt-1.5 hidden group-hover/week:block z-30">
+                                            <div className="bg-white border border-gray-100 rounded-xl shadow-lg py-1 max-h-40 overflow-y-auto w-28 scrollbar-thin">
+                                                {Array.from({ length: adminStats?.semana_actual ?? 1 }, (_, i) => {
+                                                    const w = i + 1;
+                                                    return (
+                                                        <button
+                                                            key={w}
+                                                            type="button"
+                                                            onClick={() => setFiltroSemana(String(w))}
+                                                            className={`w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[10px] font-bold border-b border-gray-50 last:border-0 ${filtroSemana === String(w) ? "text-sara-red" : "text-gray-600"
+                                                                }`}
+                                                        >
+                                                            Semana {w}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="hidden print:flex items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8">
+                                    <div className="bg-white text-sara-red shadow-sm text-[10px] font-extrabold px-2.5 h-6 rounded-lg flex items-center justify-center">
+                                        {filtroSemana === "actual" ? "Semana Actual"
+                                         : filtroSemana === "ultimas_5" ? "Últimas 5"
+                                         : filtroSemana === "ultimas_10" ? "Últimas 10"
+                                         : filtroSemana === "todo" ? "Todo"
+                                         : `Semana ${filtroSemana}`}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {showCharts && (
+                                <ResponsiveContainer width="100%" height={240} minWidth={0}>
+                                    <BarChart data={adminStats?.asistencia_semanal ?? []} barGap={6} barCategoryGap="30%">
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#F9FAFB" vertical={false} />
+                                        <XAxis
+                                            dataKey="dia"
+                                            tick={{ fontSize: 11, fill: "#9CA3AF", fontWeight: 500 }}
+                                            axisLine={false}
+                                            tickLine={false}
                                         />
-                                    </PieChart>
+                                        <YAxis
+                                            tick={{ fontSize: 10, fill: "#9CA3AF" }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            width={25}
+                                        />
+                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: "#F9FAFB", radius: 8 }} />
+                                        <Legend
+                                            iconType="circle"
+                                            iconSize={8}
+                                            wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }}
+                                        />
+                                        <Bar dataKey="a_tiempo" stackId="asistencia" name="A tiempo" fill="#10B981" radius={[6, 6, 0, 0]} maxBarSize={16} />
+                                        <Bar dataKey="tardes" stackId="asistencia" name="Tarde" fill="#F59E0B" radius={[6, 6, 0, 0]} maxBarSize={16} />
+                                        <Bar dataKey="ausentes" name="Inasistencias" fill="#8B1A1A" radius={[6, 6, 0, 0]} maxBarSize={16} />
+                                    </BarChart>
                                 </ResponsiveContainer>
                             )}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-                            {estudianteStats.desglose_puntualidad.map((entry, i) => (
-                                <div key={i} className="space-y-0.5">
-                                    <p className="text-[10px] text-gray-400 font-semibold">{entry.name}</p>
-                                    <p className="text-sm font-black" style={{ color: entry.color }}>
-                                        {entry.value}
-                                    </p>
-                                </div>
-                            ))}
+                        {/* Lado derecho: Radial concéntrico */}
+                        <div className="lg:col-span-2 flex flex-col items-center justify-center border-t lg:border-t-0 lg:border-l border-gray-100 pt-6 lg:pt-0 lg:pl-6 w-full">
+                            <div className="relative w-full flex items-center justify-center" style={{ height: 270 }}>
+                                {showCharts && (
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                                        <RadialBarChart
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius="20%"
+                                            outerRadius="95%"
+                                            barSize={12}
+                                            startAngle={90}
+                                            endAngle={-270}
+                                            data={
+                                                (adminStats?.asistencia_semanal ?? []).map((d, index) => {
+                                                    const total = d.presentes + d.ausentes;
+                                                    const pct = total > 0 ? Math.round((d.presentes / total) * 100) : 0;
+                                                    const colors = ["#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#84CC16", "#8B5CF6"];
+                                                    return {
+                                                        name: d.dia,
+                                                        uv: pct,
+                                                        fill: colors[index % colors.length]
+                                                    };
+                                                }).reverse()
+                                            }
+                                        >
+                                            <PolarAngleAxis
+                                                type="number"
+                                                domain={[0, 100]}
+                                                angleAxisId={0}
+                                                tick={false}
+                                            />
+                                            <RadialBar
+                                                background={{ fill: "#F3F4F6" }}
+                                                dataKey="uv"
+                                                cornerRadius={6}
+                                            />
+                                            <Tooltip
+                                                formatter={(value) => [`${value}%`, "Asistencia"]}
+                                                contentStyle={{ fontSize: 10, borderRadius: 8 }}
+                                            />
+                                        </RadialBarChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-6 gap-x-2 gap-y-2 text-[9px] font-bold text-gray-500 w-full px-2 justify-center mt-3">
+                                {(adminStats?.asistencia_semanal ?? []).map((d, index) => {
+                                    const total = d.presentes + d.ausentes;
+                                    const pct = total > 0 ? Math.round((d.presentes / total) * 100) : 0;
+                                    const colors = ["#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#84CC16", "#8B5CF6"];
+                                    return (
+                                        <div key={index} className="flex flex-col items-center justify-center text-center">
+                                            <div className="flex items-center gap-1">
+                                                <span className="w-2.5 h-2.5 rounded-full shrink-0 animate-pulse" style={{ backgroundColor: colors[index % colors.length] }} />
+                                                <span>{d.dia}</span>
+                                            </div>
+                                            <span className="text-gray-700 font-extrabold mt-0.5">{pct}%</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* FILA DE DETALLE DE PERMANENCIA PARA ESTUDIANTE */}
+                <div
+                    className="bg-white p-6 rounded-2xl border border-gray-100 mt-6"
+                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)", breakInside: "avoid", pageBreakInside: "avoid" }}
+                >
+                    <div className="flex flex-col xl:flex-row justify-start items-start xl:items-center gap-6 xl:gap-10 mb-6">
+                        <div className="max-w-[280px] shrink-0">
+                            <h3 className="font-bold text-base" style={{ color: "#1A1A2E" }}>
+                                Mi Permanencia en Clase
+                            </h3>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                                Porcentaje de permanencia real en el aula por asignatura y semana.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+
+
+                            {/* Filtro de Asignatura */}
+                            <div className="flex flex-col gap-1 w-full sm:w-[300px]">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Asignatura</label>
+                                <select
+                                    value={selectedAsignaturaPerm}
+                                    onChange={(e) => setSelectedAsignaturaPerm(e.target.value)}
+                                    className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold cursor-pointer w-full print:hidden"
+                                >
+                                    <option value="todos">Todas las asignaturas</option>
+                                    {asignaturasFiltro.map((a) => (
+                                        <option key={a.id} value={a.id}>
+                                            {a.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="hidden print:block text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 font-semibold w-full truncate">
+                                    {selectedAsignaturaPerm === "todos" ? "Todas las asignaturas" : (asignaturasFiltro.find(a => a.id === selectedAsignaturaPerm)?.nombre || selectedAsignaturaPerm)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative">
+                        {loadingPermanencia && (
+                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-xl">
+                                <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        )}
+                        {showCharts && (
+                            <ResponsiveContainer width="100%" height={220} minWidth={0}>
+                                <AreaChart data={permanenciaStats} margin={{ left: 5, right: 5, top: 10 }}>
+                                    <defs>
+                                        <linearGradient id="colorPermDetalleEst" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#D97706" stopOpacity={0.15} />
+                                            <stop offset="95%" stopColor="#D97706" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                                    <XAxis
+                                        dataKey="semana"
+                                        tick={{ fontSize: 10, fill: "#9CA3AF" }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        domain={[0, 100]}
+                                        tick={{ fontSize: 10, fill: "#9CA3AF" }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        width={25}
+                                    />
+                                    <Tooltip
+                                        content={({ active, payload, label }) => {
+                                            if (active && payload && payload.length) {
+                                                const data = payload[0].payload;
+                                                return (
+                                                    <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-lg text-xs space-y-1">
+                                                        <p className="font-bold text-gray-700">{label}</p>
+                                                        <p className="text-amber-600 font-semibold">
+                                                            Permanencia Promedio: <strong className="font-extrabold">{Number(data.permanencia).toFixed(2)}%</strong>
+                                                        </p>
+                                                        <p className="text-gray-500 font-medium">
+                                                            Asistencias evaluadas: <strong className="font-bold text-gray-700">{data.total_asistencias ?? 0}</strong>
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="permanencia"
+                                        stroke="#D97706"
+                                        strokeWidth={2}
+                                        fill="url(#colorPermDetalleEst)"
+                                        dot={{ fill: "#D97706", r: 3 }}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>

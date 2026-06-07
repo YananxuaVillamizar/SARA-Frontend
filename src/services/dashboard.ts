@@ -45,11 +45,20 @@ export interface EstudianteStats {
         hora_inicio: string;
         hora_fin: string;
         grupo: string;
+        sesion_id?: string | null;
+        asistencia_estado?: string | null;
     }[];
 }
 
-export async function obtenerAdminStats(rol?: string, semana?: string): Promise<AdminStats> {
-    const response = await api.get("/dashboard/admin-stats", { params: { rol, semana } });
+export async function obtenerAdminStats(rol?: string, semana?: string, usuarioAutenticadoId?: string, rolUsuario?: string): Promise<AdminStats> {
+    const response = await api.get("/dashboard/admin-stats", {
+        params: {
+            rol,
+            semana,
+            usuario_autenticado_id: usuarioAutenticadoId,
+            rol_usuario: rolUsuario
+        }
+    });
     return response.data;
 }
 
@@ -76,8 +85,8 @@ export interface PermanenciaStats {
     total_asistencias: number;
 }
 
-export async function obtenerUsuariosFiltro(rol?: string): Promise<UsuarioFiltro[]> {
-    const response = await api.get("/dashboard/usuarios-filtro", { params: { rol } });
+export async function obtenerUsuariosFiltro(rol?: string, docenteId?: string): Promise<UsuarioFiltro[]> {
+    const response = await api.get("/dashboard/usuarios-filtro", { params: { rol, docente_id: docenteId } });
     return response.data;
 }
 
@@ -86,12 +95,14 @@ export async function obtenerAsignaturasFiltro(usuarioId?: string): Promise<Asig
     return response.data;
 }
 
-export async function obtenerPermanenciaStats(rol?: string, usuarioId?: string, asignaturaId?: string): Promise<PermanenciaStats[]> {
+export async function obtenerPermanenciaStats(rol?: string, usuarioId?: string, asignaturaId?: string, usuarioAutenticadoId?: string, rolUsuario?: string): Promise<PermanenciaStats[]> {
     const response = await api.get("/dashboard/permanencia-stats", {
         params: {
             rol,
             usuario_id: usuarioId,
-            asignatura_id: asignaturaId
+            asignatura_id: asignaturaId,
+            usuario_autenticado_id: usuarioAutenticadoId,
+            rol_usuario: rolUsuario
         }
     });
     return response.data;

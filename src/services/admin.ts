@@ -39,7 +39,7 @@ export const eliminarAsignatura = async (id: string) => (await api.delete(`/admi
 
 export const listarHorarios = async (): Promise<Horario[]> => (await api.get("/admin/horarios")).data;
 export const crearHorario = async (d: { asignatura_id: string; docente_id: string; dia_semana: string; hora_inicio: string; hora_fin: string; aula: string; grupo: string; cupo_maximo: number }) => (await api.post("/admin/horarios", d)).data;
-export const actualizarHorario = async (id: string, d: { asignatura_id: string; docente_id: string; dia_semana: string; hora_inicio: string; hora_fin: string; aula: string; grupo: string; cupo_maximo: number }) => (await api.put(`/admin/horarios/${id}`, d)).data;
+export const actualizarHorario = async (id: string, d: { asignatura_id: string; docente_id: string; dia_semana: string; hora_inicio: string; hora_fin: string; aula: string; grupo: string; cupo_maximo: number }, force?: boolean) => (await api.put(`/admin/horarios/${id}${force ? "?force=true" : ""}`, d)).data;
 export const eliminarHorario = async (id: string) => (await api.delete(`/admin/horarios/${id}`)).data;
 
 export interface Rol { id: string; nombre: string; }

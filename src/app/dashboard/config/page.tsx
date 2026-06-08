@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, X, Pencil, Building2, BookOpen, GraduationCap, CalendarDays, Users, ChevronDown } from "lucide-react";
+import { Plus, Trash2, X, Pencil, Building2, BookOpen, GraduationCap, CalendarDays, Users, ChevronDown, AlertTriangle } from "lucide-react";
 import {
     listarFacultades, crearFacultad, actualizarFacultad, eliminarFacultad, Facultad,
     listarProgramas, crearPrograma, actualizarPrograma, eliminarPrograma, Programa,
@@ -87,6 +87,7 @@ export default function ConfigPage() {
     const [matriculas, setMatriculas] = useState<Matricula[]>([]);
     const [semestres, setSemestres] = useState<Semestre[]>([]);
     const [mostrarHistorial, setMostrarHistorial] = useState(false);
+    const [conflictingStudents, setConflictingStudents] = useState<{ id: string; nombre: string; num_doc: string }[]>([]);
 
     // Formularios
     const [fFacultad, setFFacultad] = useState({ nombre: "", codigo: "" });
@@ -312,6 +313,7 @@ export default function ConfigPage() {
         setConfirmingRemoveSesionIndex(null);
         setError("");
         setErrorSesion("");
+        setConflictingStudents([]);
         setFacShowAll(false);
         setProgShowAll(false);
         setEstShowAll(false);
@@ -422,8 +424,8 @@ export default function ConfigPage() {
         try { await callback(); } catch (e: any) { alert(e.message); }
     };
 
-    const guardar = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const guardar = async (e: React.FormEvent, forceUpdate: boolean = false) => {
+        if (e && e.preventDefault) e.preventDefault();
         setLoading(true); setError("");
         try {
             switch (tab) {
@@ -460,11 +462,19 @@ export default function ConfigPage() {
                         if (existe) throw new Error("Este grupo ya existe y tiene un horario asignado. Use la opción de editar.");
                     }
                     if (editandoId) {
-                        await Promise.all([
-                            ...sesiones.filter(s => s.id).map(s => actualizarHorario(s.id!, { ...s, asignatura_id: fHorario.asignatura_id, docente_id: fHorario.docente_id, grupo: fHorario.grupo, cupo_maximo: fHorario.cupo_maximo })),
-                            ...sesiones.filter(s => !s.id).map(s => crearHorario({ ...s, asignatura_id: fHorario.asignatura_id, docente_id: fHorario.docente_id, grupo: fHorario.grupo, cupo_maximo: fHorario.cupo_maximo })),
-                            ...sesionesAEliminar.map(id => eliminarHorario(id))
-                        ]);
+                        try {
+                            await Promise.all([
+                                ...sesiones.filter(s => s.id).map(s => actualizarHorario(s.id!, { ...s, asignatura_id: fHorario.asignatura_id, docente_id: fHorario.docente_id, grupo: fHorario.grupo, cupo_maximo: fHorario.cupo_maximo }, forceUpdate)),
+                                ...sesiones.filter(s => !s.id).map(s => crearHorario({ ...s, asignatura_id: fHorario.asignatura_id, docente_id: fHorario.docente_id, grupo: fHorario.grupo, cupo_maximo: fHorario.cupo_maximo })),
+                                ...sesionesAEliminar.map(id => eliminarHorario(id))
+                            ]);
+                        } catch (err: any) {
+                            if (err.response?.status === 409 && err.response?.data?.detail?.tipo === "cruce_estudiantes") {
+                                setConflictingStudents(err.response.data.detail.estudiantes);
+                                return;
+                            }
+                            throw err;
+                        }
                     } else {
                         if (sesiones.length === 0) throw new Error("Agrega al menos una sesión.");
                         await Promise.all(sesiones.map(s => crearHorario({ ...s, asignatura_id: fHorario.asignatura_id, docente_id: fHorario.docente_id, grupo: fHorario.grupo, cupo_maximo: fHorario.cupo_maximo })));
@@ -1923,6 +1933,53 @@ export default function ConfigPage() {
                             <button onClick={guardar} disabled={loading} className="w-full py-4 rounded-2xl text-white font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100" style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
                                 {loading ? "Guardando..." : "Guardar Cambios"}
                             </button>
+                        </div>
+                    </div>
+                </>
+            )}
+            {conflictingStudents.length > 0 && (
+                <>
+                    <div className="fixed inset-0 bg-black/60 z-[999] backdrop-blur-md flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-red-100 animate-in fade-in zoom-in-95 duration-200">
+                            <div className="flex items-center gap-3 text-red-600">
+                                <div className="p-3 bg-red-50 rounded-2xl">
+                                    <AlertTriangle size={24} />
+                                </div>
+                                <h4 className="font-black text-lg">Conflicto de Horarios</h4>
+                            </div>
+                            <p className="text-gray-600 text-sm leading-relaxed">
+                                De guardar los cambios, se eliminará el grupo para la matrícula de los siguientes estudiantes por cruce de horarios:
+                            </p>
+                            <div className="max-h-40 overflow-y-auto bg-gray-50 rounded-2xl p-4 divide-y divide-gray-100">
+                                {conflictingStudents.map(student => (
+                                    <div key={student.id} className="py-2 text-xs font-bold text-gray-700 flex justify-between items-center">
+                                        <span>{student.nombre}</span>
+                                        <span className="text-gray-400 font-mono">{student.num_doc}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-gray-600 text-xs font-semibold">
+                                Se eliminarán también sus registros de asistencia y permanencia asociados a este grupo. ¿Desea continuar?
+                            </p>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setConflictingStudents([])}
+                                    className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold text-sm transition-all"
+                                >
+                                    No, cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        setConflictingStudents([]);
+                                        await guardar(undefined as any, true);
+                                    }}
+                                    className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-red-600/10"
+                                >
+                                    Sí, continuar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </>

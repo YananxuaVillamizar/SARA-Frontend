@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getSesion, cerrarSesion } from "@/services/auth";
+import api from "@/services/api";
 
 export default function DashboardLayout({
     children,
@@ -24,10 +25,12 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const router = useRouter();
     const [sesion, setSesion] = useState({ nombre: "", rol: "" });
+    const [alertas, setAlertas] = useState<{ tipo: string; titulo: string; descripcion: string }[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
 
     // Protección de ruta: si no hay token, vuelve al login
     useEffect(() => {
-        const { token, nombre, rol } = getSesion();
+        const { token, nombre, rol, id } = getSesion();
         if (!token) {
             router.push("/");
             return; // No desactivamos isChecking — la pantalla queda en blanco hasta que redirige
@@ -37,6 +40,20 @@ export default function DashboardLayout({
             rol: rol || "Sin rol",
         });
         setIsChecking(false); // Solo mostramos el dashboard si hay sesión válida
+
+        if (id) {
+            const fetchAlertas = async () => {
+                try {
+                    const res = await api.get(`/dashboard/alertas/${id}`);
+                    setAlertas(res.data);
+                } catch (err) {
+                    console.error("Error cargando alertas:", err);
+                }
+            };
+            fetchAlertas();
+            const interval = setInterval(fetchAlertas, 60000); // Refrescar cada minuto
+            return () => clearInterval(interval);
+        }
     }, []);
 
 
@@ -161,10 +178,62 @@ export default function DashboardLayout({
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button className="relative p-2 text-gray-400 hover:bg-page-bg rounded-full transition-colors">
-                            <Bell size={20} />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-sara-red rounded-full border border-white"></span>
-                        </button>
+                        <div className="relative">
+                            <button 
+                                onClick={() => setShowNotifications(!showNotifications)}
+                                className="relative p-2 text-gray-400 hover:bg-page-bg rounded-full transition-colors focus:outline-none"
+                            >
+                                <Bell size={20} />
+                                {alertas.length > 0 && (
+                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-sara-red rounded-full border-2 border-white animate-pulse"></span>
+                                )}
+                            </button>
+
+                            {showNotifications && (
+                                <>
+                                    <div 
+                                        className="fixed inset-0 z-40" 
+                                        onClick={() => setShowNotifications(false)}
+                                    />
+                                    <div className="absolute right-0 mt-2 w-80 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden transition-all duration-300">
+                                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                                            <h3 className="font-bold text-gray-800 text-sm">Notificaciones</h3>
+                                            {alertas.length > 0 && (
+                                                <span className="text-[10px] bg-sara-red/10 text-sara-red font-black px-2 py-0.5 rounded-full">
+                                                    {alertas.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="max-h-72 overflow-y-auto">
+                                            {alertas.length === 0 ? (
+                                                <div className="p-8 text-center text-gray-400 text-xs">
+                                                    No tienes alertas o notificaciones pendientes.
+                                                </div>
+                                            ) : (
+                                                alertas.map((alerta, index) => {
+                                                    return (
+                                                        <div 
+                                                            key={index} 
+                                                            className="p-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-colors"
+                                                        >
+                                                            <div className="flex gap-2">
+                                                                <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                                                                    alerta.tipo === 'critical' ? 'bg-red-500' : alerta.tipo === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
+                                                                }`} />
+                                                                <div>
+                                                                    <p className="text-xs font-bold text-gray-800">{alerta.titulo}</p>
+                                                                    <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{alerta.descripcion}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
 
                         <div className="flex items-center gap-3 pl-4 border-l border-gray-100">
                             <div className="text-right hidden sm:block">

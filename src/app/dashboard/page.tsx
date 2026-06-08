@@ -855,6 +855,20 @@ export default function DashboardPage() {
             }
         ];
 
+        const studentAlerts = estudianteStats.asignaturas_asistencias
+            .filter(asig => asig.porcentaje < 80)
+            .map(asig => {
+                const isCritical = asig.porcentaje < 70;
+                return {
+                    materia: asig.nombre,
+                    porcentaje: asig.porcentaje,
+                    isCritical,
+                    descripcion: isCritical 
+                        ? "Riesgo crítico de reprobar la materia por inasistencia."
+                        : "Tu asistencia está por debajo del límite sugerido (80%)."
+                };
+            });
+
         return (
             <div className="space-y-6">
                 {/* REPORTE PRINT HEADER */}
@@ -904,14 +918,14 @@ export default function DashboardPage() {
                     </button>
                 </div>
 
-                {/* FILA DE RESUMEN DEL ESTUDIANTE: KPIs + Rendimiento + Desglose de puntualidad */}
-                <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_1fr] gap-6 items-stretch">
-                    {/* Columna 1: KPIs apilados verticalmente */}
-                    <div className="flex flex-col gap-4 justify-between h-full">
+                {/* FILA DE RESUMEN DEL ESTUDIANTE: KPIs + Alertas de Asistencia */}
+                <div className="grid grid-cols-1 lg:grid-cols-[540px_1fr] gap-6">
+                    {/* KPIs (ancho aproximado de 540px) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                         {studentMetricas.map((stat, i) => (
                             <div
                                 key={i}
-                                className="relative overflow-hidden bg-white p-5 rounded-3xl border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex justify-between items-center h-[140px] w-full group/card"
+                                className="relative overflow-hidden bg-white p-5 rounded-3xl border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex justify-between items-center h-[140px] w-full max-w-[255px] mx-auto group/card"
                                 style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}
                             >
                                 {/* Decorative background glow on hover */}
@@ -920,7 +934,7 @@ export default function DashboardPage() {
                                     style={{ background: stat.bg }}
                                 />
 
-                                <div className="flex flex-col justify-center items-center text-center gap-2.5 z-10 h-full">
+                                <div className="flex flex-col justify-center items-center text-center gap-2.5 z-10 w-full">
                                     <p className="text-gray-400 text-[10px] font-extrabold uppercase tracking-wider leading-none">{stat.label}</p>
                                     <p className="text-3xl font-black leading-none" style={{ color: "#1A1A2E" }}>{stat.value}</p>
                                     <p className="text-[10px] font-bold flex items-center justify-center gap-1 leading-none" style={{ color: stat.trendColor }}>
@@ -941,7 +955,52 @@ export default function DashboardPage() {
                         ))}
                     </div>
 
-                    {/* Columna 2: Rendimiento por Asignatura */}
+                    {/* Alertas del Estudiante (altura fija de 140px a juego con los KPIs) */}
+                    <div
+                        className="bg-white p-5 rounded-3xl border border-gray-100 flex flex-col justify-between h-[140px] w-full"
+                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
+                    >
+                        <div className="flex justify-between items-center mb-1">
+                            <h3 className="font-bold text-xs flex items-center gap-2" style={{ color: "#1A1A2E" }}>
+                                <AlertTriangle size={14} className="text-sara-red" style={{ color: "#8B1A1A" }} /> Mis Alertas de Asistencia
+                            </h3>
+                            <span className="text-[9px] text-gray-400 font-bold">Límite permitido: 80%</span>
+                        </div>
+
+                        <div className="space-y-2 overflow-y-auto pr-1 flex-1 max-h-[85px] scrollbar-thin">
+                            {studentAlerts.length === 0 ? (
+                                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100 h-full">
+                                    <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
+                                    <p className="text-[9px] font-bold">Tu asistencia está al día en todas las materias.</p>
+                                </div>
+                            ) : (
+                                studentAlerts.map((al, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="flex flex-col gap-1 p-2 rounded-xl border transition-all"
+                                        style={{ background: "#FFF5F5", borderColor: "#8B1A1A20" }}
+                                    >
+                                        <div className="flex justify-between items-center">
+                                            <p className="font-extrabold text-[11px] truncate max-w-[70%]" style={{ color: "#8B1A1A" }}>
+                                                {al.materia}
+                                            </p>
+                                            <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase ${al.isCritical ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                                                {al.isCritical ? "Crítico" : "Advertencia"}
+                                            </span>
+                                        </div>
+                                        <p className="text-[9px] text-gray-500 leading-normal">
+                                            Asistencia: <span className="font-bold text-red-700">{al.porcentaje}%</span> · {al.descripcion}
+                                        </p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* FILA DE DETALLES DEL RENDIMIENTO: Rendimiento por Asignatura + Desglose de puntualidad */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                    {/* Columna 1: Rendimiento por Asignatura */}
                     <div
                         className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-[296px] w-full"
                         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
@@ -983,7 +1042,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    {/* Columna 3: Desglose de Puntualidad */}
+                    {/* Columna 2: Desglose de Puntualidad */}
                     <div
                         className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-[296px] w-full"
                         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}

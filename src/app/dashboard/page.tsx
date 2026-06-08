@@ -286,7 +286,7 @@ export default function DashboardPage() {
                 value: adminStats?.metricas.estudiantes_activos ?? "0 / 0",
                 icon: <Users size={26} />,
                 bg: "#3B82F6",
-                trend: "Semestre en curso",
+                trend: adminStats?.semestre_actual ? `Semestre: ${adminStats.semestre_actual}` : "Semestre en curso",
                 trendColor: "#3B82F6",
             },
             {
@@ -354,7 +354,10 @@ export default function DashboardPage() {
                 {/* BIENVENIDA */}
                 <div className="welcome-card bg-gradient-to-r from-sidebar-bg to-black text-white p-6 rounded-3xl relative overflow-hidden shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print" style={{ background: "linear-gradient(135deg, #1e1e30 0%, #11111d 100%)" }}>
                     <div className="relative z-10 space-y-1">
-                        <span className="text-xs uppercase font-extrabold text-sara-gold tracking-widest" style={{ color: "#C9A84C" }}>Panel Administrativo</span>
+                        <span className="text-xs uppercase font-extrabold text-sara-gold tracking-widest" style={{ color: "#C9A84C" }}>
+                            {sesion.rol === "Administrativo" ? "Panel Administrativo" : "Panel de Docente"}
+                            {adminStats?.semestre_actual ? ` • Semestre ${adminStats.semestre_actual}` : ""}
+                        </span>
                         <h1 className="text-2xl font-black">¡Hola, {sesion.nombre}!</h1>
                         <p className="text-xs text-gray-400 max-w-xl">Supervisa el ausentismo, detecta riesgos de deserción escolar temprana y gestiona las contingencias académicas de SARA.</p>
                     </div>
@@ -885,7 +888,10 @@ export default function DashboardPage() {
                 {/* BIENVENIDA ESTUDIANTE */}
                 <div className="welcome-card bg-gradient-to-r from-sidebar-bg to-black text-white p-6 rounded-3xl relative overflow-hidden shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print" style={{ background: "linear-gradient(135deg, #1e1e30 0%, #11111d 100%)" }}>
                     <div className="relative z-10 space-y-1">
-                        <span className="text-xs uppercase font-extrabold text-sara-gold tracking-widest" style={{ color: "#C9A84C" }}>Portal del Estudiante</span>
+                        <span className="text-xs uppercase font-extrabold text-sara-gold tracking-widest" style={{ color: "#C9A84C" }}>
+                            Portal del Estudiante
+                            {estudianteStats?.semestre_actual ? ` • Semestre ${estudianteStats.semestre_actual}` : ""}
+                        </span>
                         <h1 className="text-2xl font-black">¡Hola, {sesion.nombre}!</h1>
                         <p className="text-xs text-gray-400 max-w-xl">Revisa tu porcentaje de asistencia en cada materia. Recuerda que no debes superar el 20% de inasistencias en el periodo académico.</p>
                     </div>

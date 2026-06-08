@@ -22,6 +22,7 @@ export interface AdminStats {
         descripcion: string;
     }[];
     semana_actual?: number;
+    semestre_actual?: string;
 }
 
 export interface EstudianteStats {
@@ -48,6 +49,7 @@ export interface EstudianteStats {
         sesion_id?: string | null;
         asistencia_estado?: string | null;
     }[];
+    semestre_actual?: string;
 }
 
 export async function obtenerAdminStats(rol?: string, semana?: string, usuarioAutenticadoId?: string, rolUsuario?: string): Promise<AdminStats> {

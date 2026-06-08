@@ -41,6 +41,9 @@ export default function UsuariosPage() {
     const [usuarios, setUsuarios] = useState<Usuario[]>([]);
     const [cargando, setCargando] = useState(true);
     const [busqueda, setBusqueda] = useState("");
+    const [filtroRol, setFiltroRol] = useState("todos");
+    const [filtroEstado, setFiltroEstado] = useState("todos");
+    const [filtroBiometria, setFiltroBiometria] = useState("todos");
     const [mostrarForm, setMostrarForm] = useState(false);
     const [form, setForm] = useState(FORM_INICIAL);
     const [guardando, setGuardando] = useState(false);
@@ -83,12 +86,22 @@ export default function UsuariosPage() {
         }
     }
 
-    // Filtro de búsqueda local
-    const usuariosFiltrados = usuarios.filter(u =>
-        `${u.nombres} ${u.apellidos} ${u.num_doc} ${u.email}`
+    // Filtros combinados
+    const usuariosFiltrados = usuarios.filter(u => {
+        const matchesBusqueda = `${u.nombres} ${u.apellidos} ${u.num_doc} ${u.email}`
             .toLowerCase()
-            .includes(busqueda.toLowerCase())
-    );
+            .includes(busqueda.toLowerCase());
+            
+        const matchesRol = filtroRol === "todos" || u.rol === filtroRol;
+        
+        const matchesEstado = filtroEstado === "todos" || 
+            (filtroEstado === "activo" ? u.activo : !u.activo);
+            
+        const matchesBiometria = filtroBiometria === "todos" || 
+            (filtroBiometria === "autorizada" ? u.autoriza_biometria : !u.autoriza_biometria);
+            
+        return matchesBusqueda && matchesRol && matchesEstado && matchesBiometria;
+    });
 
     async function handleCrear(e: React.FormEvent) {
         e.preventDefault();
@@ -235,22 +248,75 @@ export default function UsuariosPage() {
                 </button>
             </div>
 
-            {/* Barra de búsqueda */}
-            <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                    type="text"
-                    placeholder="Buscar por nombre, documento o correo..."
-                    value={busqueda}
-                    onChange={e => setBusqueda(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none focus:border-sara-red transition-all"
-                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
-                />
-                {busqueda && (
-                    <button onClick={() => setBusqueda("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        <X size={16} />
-                    </button>
-                )}
+            {/* Barra de búsqueda y Filtros */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* Búsqueda */}
+                <div className="relative md:col-span-6">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                        id="input-busqueda-usuario"
+                        type="text"
+                        placeholder="Buscar por nombre, documento o correo..."
+                        value={busqueda}
+                        onChange={e => setBusqueda(e.target.value)}
+                        className="w-full pl-11 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none focus:border-sara-red transition-all"
+                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+                    />
+                    {busqueda && (
+                        <button onClick={() => setBusqueda("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
+
+                {/* Filtro por Rol */}
+                <div className="relative md:col-span-2">
+                    <select
+                        id="select-filtro-rol"
+                        value={filtroRol}
+                        onChange={e => setFiltroRol(e.target.value)}
+                        className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
+                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+                    >
+                        <option value="todos">Todos los Roles</option>
+                        <option value="Administrativo">Administrativo</option>
+                        <option value="Docente">Docente</option>
+                        <option value="Estudiante">Estudiante</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                </div>
+
+                {/* Filtro por Estado */}
+                <div className="relative md:col-span-2">
+                    <select
+                        id="select-filtro-estado"
+                        value={filtroEstado}
+                        onChange={e => setFiltroEstado(e.target.value)}
+                        className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
+                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+                    >
+                        <option value="todos">Todos los Estados</option>
+                        <option value="activo">Activos</option>
+                        <option value="inactivo">Inactivos</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                </div>
+
+                {/* Filtro por Biometría */}
+                <div className="relative md:col-span-2">
+                    <select
+                        id="select-filtro-biometria"
+                        value={filtroBiometria}
+                        onChange={e => setFiltroBiometria(e.target.value)}
+                        className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
+                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+                    >
+                        <option value="todos">Biometría</option>
+                        <option value="autorizada">Autorizado</option>
+                        <option value="no_autorizada">No Autorizado</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                </div>
             </div>
 
             {/* Tabla */}

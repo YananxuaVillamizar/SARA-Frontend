@@ -70,6 +70,60 @@ function THead({ cols }: { cols: string[] }) {
     );
 }
 
+const HorariosDropdown = ({ matricula, horarios }: { matricula: Matricula; horarios: Horario[] }) => {
+    const [open, setOpen] = useState(false);
+    
+    // Find matching schedules
+    const matches = horarios.filter(h => 
+        h.asignatura_id === matricula.asignatura_id && 
+        h.grupo === matricula.grupo
+    );
+    
+    return (
+        <div className="relative inline-block text-left">
+            <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                onBlur={() => setTimeout(() => setOpen(false), 200)}
+                className="inline-flex items-center justify-center p-1 rounded-lg text-gray-400 hover:text-[#8B1A1A] hover:bg-gray-50 transition-all cursor-pointer animate-pulse"
+                title="Ver Horarios"
+            >
+                <CalendarDays size={14} className="text-gray-500 hover:text-[#8B1A1A]" />
+            </button>
+            
+            {open && (
+                <div className="absolute left-0 mt-1 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-3 animate-in fade-in duration-200">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-gray-400 mb-2 border-b border-gray-50 pb-1">
+                        Horarios del Grupo {matricula.grupo}
+                    </p>
+                    {matches.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic">Sin horarios programados</p>
+                    ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            {matches.map((h, i) => (
+                                <div key={i} className="text-xs flex flex-col gap-0.5 p-1.5 rounded-lg bg-gray-50/50 border border-gray-100">
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-bold text-gray-700 capitalize">{h.dia_semana}</span>
+                                        <span className="text-[10px] bg-purple-50 text-purple-700 font-bold px-1.5 py-0.2 rounded-full">
+                                            Aula {h.aula}
+                                        </span>
+                                    </div>
+                                    <div className="text-[11px] text-gray-500">
+                                        ⏱️ {h.hora_inicio.slice(0, 5)} - {h.hora_fin.slice(0, 5)}
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 italic">
+                                        Docente: {h.docente} {h.apellido_docente}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function ConfigPage() {
     const [tab, setTab] = useState<Tab>("facultades");
     const [panel, setPanel] = useState(false);
@@ -1118,7 +1172,12 @@ export default function ConfigPage() {
                                                     <td className="px-2 py-4 text-sm text-gray-600">{g.programa}</td>
                                                     <td className="px-5 py-4 text-sm text-center font-bold text-gray-700">{g.semestre}</td>
                                                     <td className="px-5 py-4"><div className="flex flex-col gap-2">
-                                                        {sorted.map(m => <div key={m.id} className="min-h-8 flex items-center"><span className="text-sm text-gray-700">{m.asignatura}</span></div>)}
+                                                        {sorted.map(m => (
+                                                            <div key={m.id} className="min-h-8 flex items-center gap-2 relative">
+                                                                <span className="text-sm text-gray-700">{m.asignatura}</span>
+                                                                <HorariosDropdown matricula={m} horarios={horarios} />
+                                                            </div>
+                                                        ))}
                                                     </div></td>
                                                     <td className="px-5 py-4"><div className="flex flex-col gap-2">
                                                         {sorted.map(m => <div key={m.id} className="min-h-8 flex items-center justify-center"><span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-purple-50 text-purple-700">{m.grupo}</span></div>)}

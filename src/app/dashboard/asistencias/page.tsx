@@ -438,7 +438,9 @@ export default function AsistenciasPage() {
                         if (matchDia && matchFac && matchProg && matchAsig && matchAula && matchFechaGroup) {
                             const filteredSessions: any = {};
                             const weekFromFecha = filtAFecha ? getWeekFromFecha(filtAFecha) : null;
-                            const targetWeekStr = filtASemana || weekFromFecha?.toString() || currentWeek.toString();
+                            const hasWeekOrDateFilter = !!(filtASemana || filtAFecha);
+                            const hasCrossWeekFilter = !!(filtAMetodo || filtAEstado || filtAEstudiante);
+                            const targetWeekStr = filtASemana || weekFromFecha?.toString() || ((hasWeekOrDateFilter || !hasCrossWeekFilter) ? currentWeek.toString() : "");
 
                             for (const sKey in grupoData.sesiones) {
                                 const sData = grupoData.sesiones[sKey];
@@ -451,9 +453,10 @@ export default function AsistenciasPage() {
                                     continue;
                                 }
 
-                                const matchSemana = sData.semana?.toString() === targetWeekStr;
+                                const matchSemana = !targetWeekStr || sData.semana?.toString() === targetWeekStr;
                                 const matchFecha = !filtAFecha || (sData.fecha && sData.fecha === filtAFecha);
-                                const matchDiaSesion = true;
+                                const actualSessionDia = sData.fecha ? getDiaDeLaSemana(sData.fecha) : (sData.dia_virtual || "");
+                                const matchDiaSesion = !filtADia || normalizeDia(actualSessionDia) === normalizeDia(filtADia);
 
                                 const filteredRecords = sData.records.filter((r: any) => {
                                     const matchEst = !filtAEstudiante || normalizar(`${r.nombre} ${r.apellido} ${r.num_doc}`).includes(normalizar(filtAEstudiante));
@@ -1021,9 +1024,10 @@ export default function AsistenciasPage() {
                                 </h2>
 
                                 {/* FILTROS */}
-                                {!isEstudiante && (
-                                    <>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                {/* FILTROS */}
+                                <>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                        {!isEstudiante && (
                                             <div className="relative">
                                                 <input type="text" placeholder="Facultad..." readOnly value={filtAFacultad} onFocus={() => setShowAFacultadSugg(true)} onBlur={() => setTimeout(() => setShowAFacultadSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
                                                 {filtAFacultad && <button type="button" onClick={() => setFiltAFacultad("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
@@ -1035,124 +1039,127 @@ export default function AsistenciasPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="relative">
-                                                <input type="text" placeholder="Programa..." readOnly value={filtAPrograma} onFocus={() => setShowAProgramaSugg(true)} onBlur={() => setTimeout(() => setShowAProgramaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
-                                                {filtAPrograma && <button type="button" onClick={() => setFiltAPrograma("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
-                                                {showAProgramaSugg && (
-                                                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto">
-                                                        {programas.map(p => (
-                                                            <button key={p} type="button" onMouseDown={() => { setFiltAPrograma(p); setShowAProgramaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{p}</button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="relative">
-                                                <input type="text" placeholder="Asignatura..." readOnly value={filtAAsignatura} onFocus={() => setShowAAsignaturaSugg(true)} onBlur={() => setTimeout(() => setShowAAsignaturaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
-                                                {filtAAsignatura && <button type="button" onClick={() => setFiltAAsignatura("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
-                                                {showAAsignaturaSugg && (
-                                                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto">
-                                                        {asignaturas.map(a => (
-                                                            <button key={a} type="button" onMouseDown={() => { setFiltAAsignatura(a); setShowAAsignaturaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{a}</button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="relative">
-                                                <input type="text" placeholder="Aula..." readOnly value={filtAAula} onFocus={() => setShowAAulaSugg(true)} onBlur={() => setTimeout(() => setShowAAulaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
-                                                {filtAAula && <button type="button" onClick={() => setFiltAAula("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
-                                                {showAAulaSugg && (
-                                                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto">
-                                                        {aulas.map(a => (
-                                                            <button key={a} type="button" onMouseDown={() => { setFiltAAula(a); setShowAAulaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{a}</button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
+                                        )}
+                                        <div className="relative">
+                                            <input type="text" placeholder="Programa..." readOnly value={filtAPrograma} onFocus={() => setShowAProgramaSugg(true)} onBlur={() => setTimeout(() => setShowAProgramaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
+                                            {filtAPrograma && <button type="button" onClick={() => setFiltAPrograma("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                            {showAProgramaSugg && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                                    {programas.map(p => (
+                                                        <button key={p} type="button" onMouseDown={() => { setFiltAPrograma(p); setShowAProgramaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{p}</button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative">
+                                            <input type="text" placeholder="Asignatura..." readOnly value={filtAAsignatura} onFocus={() => setShowAAsignaturaSugg(true)} onBlur={() => setTimeout(() => setShowAAsignaturaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
+                                            {filtAAsignatura && <button type="button" onClick={() => setFiltAAsignatura("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                            {showAAsignaturaSugg && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                                    {asignaturas.map(a => (
+                                                        <button key={a} type="button" onMouseDown={() => { setFiltAAsignatura(a); setShowAAsignaturaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{a}</button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative">
+                                            <input type="text" placeholder="Aula..." readOnly value={filtAAula} onFocus={() => setShowAAulaSugg(true)} onBlur={() => setTimeout(() => setShowAAulaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
+                                            {filtAAula && <button type="button" onClick={() => setFiltAAula("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                            {showAAulaSugg && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                                    {aulas.map(a => (
+                                                        <button key={a} type="button" onMouseDown={() => { setFiltAAula(a); setShowAAulaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{a}</button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {!isEstudiante && (
                                             <div className="relative">
                                                 <input type="text" placeholder="Estudiante..." value={estudianteSearch} onChange={e => setEstudianteSearch(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all" />
                                                 {estudianteSearch && <button type="button" onClick={() => { setEstudianteSearch(""); setFiltAEstudiante(""); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
                                             </div>
+                                        )}
 
-                                            <div className="relative">
-                                                <input type="text" placeholder="Método..." readOnly value={filtAMetodo} onFocus={() => setShowAMetodoSugg(true)} onBlur={() => setTimeout(() => setShowAMetodoSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
-                                                {filtAMetodo && <button type="button" onClick={() => setFiltAMetodo("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
-                                                {showAMetodoSugg && (
-                                                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
-                                                        {["Biometría", "Firma Electrónica", "Supervisado"].map(m => (
-                                                            <button key={m} type="button" onMouseDown={() => { setFiltAMetodo(m); setShowAMetodoSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{m}</button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="relative">
-                                                <input type="text" placeholder="Estado..." readOnly value={filtAEstado} onFocus={() => setShowAEstadoSugg(true)} onBlur={() => setTimeout(() => setShowAEstadoSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
-                                                {filtAEstado && <button type="button" onClick={() => setFiltAEstado("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
-                                                {showAEstadoSugg && (
-                                                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
-                                                        {["asistencia", "asistencia con retraso", "inasistencia"].map(e => (
-                                                            <button key={e} type="button" onMouseDown={() => { setFiltAEstado(e); setShowAEstadoSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer capitalize">{e}</button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="relative">
-                                                <input type="text" placeholder="Semana..." readOnly value={filtASemana ? `Semana ${filtASemana}` : ""} onFocus={() => setShowASemanaSugg(true)} onBlur={() => setTimeout(() => setShowASemanaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
-                                                {filtASemana && <button type="button" onClick={() => setFiltASemana("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
-                                                {showASemanaSugg && (
-                                                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto">
-                                                        {Array.from({ length: semanasSemestre }, (_, i) => i + 1).map(w => (
-                                                            <button key={w} type="button" onMouseDown={() => { setFiltASemana(w.toString()); setShowASemanaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">Semana {w}</button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="relative">
-                                                <input type="text" placeholder="Día..." readOnly value={filtADia} onFocus={() => setShowADiaSugg(true)} onBlur={() => setTimeout(() => setShowADiaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
-                                                {filtADia && <button type="button" onClick={() => setFiltADia("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
-                                                {showADiaSugg && (
-                                                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
-                                                        {["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"].map(d => (
-                                                            <button key={d} type="button" onMouseDown={() => { setFiltADia(d.charAt(0).toUpperCase() + d.slice(1)); setShowADiaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer capitalize">{d}</button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="relative">
-                                                <input type="date" value={filtAFecha} onChange={e => {
-                                                    const date = new Date(e.target.value);
-                                                    if (date.getUTCDay() === 0) {
-                                                        setDateError("No hay clases los domingos.");
-                                                        setFiltAFecha("");
-                                                    } else {
-                                                        setDateError("");
-                                                        setFiltAFecha(e.target.value);
-                                                    }
-                                                }} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all" />
-                                                {filtAFecha && <button type="button" onClick={() => setFiltAFecha("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
-                                                {dateError && <p className="text-red-500 text-[10px] mt-0.5 absolute">{dateError}</p>}
-                                            </div>
+                                        <div className="relative">
+                                            <input type="text" placeholder="Método..." readOnly value={filtAMetodo} onFocus={() => setShowAMetodoSugg(true)} onBlur={() => setTimeout(() => setShowAMetodoSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
+                                            {filtAMetodo && <button type="button" onClick={() => setFiltAMetodo("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                            {showAMetodoSugg && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
+                                                    {["Biometría", "Firma Electrónica", "Supervisado"].map(m => (
+                                                        <button key={m} type="button" onMouseDown={() => { setFiltAMetodo(m); setShowAMetodoSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{m}</button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="flex justify-end mt-2">
-                                            <button type="button" onClick={() => {
-                                                setFiltAFacultad("");
-                                                setFiltAPrograma("");
-                                                setFiltAAsignatura("");
-                                                setFiltAEstudiante("");
-                                                setFiltAMetodo("");
-                                                setFiltAEstado("");
-                                                setFiltASemana("");
-                                                setFiltADia("");
-                                                setFiltAFecha("");
-                                                setFiltAAula("");
-                                            }} className="px-4 py-2 bg-gray-100 text-gray-600 text-xs font-bold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
-                                                <XCircle size={14} /> Limpiar Todos los Filtros
-                                            </button>
+                                        <div className="relative">
+                                            <input type="text" placeholder="Estado..." readOnly value={filtAEstado} onFocus={() => setShowAEstadoSugg(true)} onBlur={() => setTimeout(() => setShowAEstadoSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
+                                            {filtAEstado && <button type="button" onClick={() => setFiltAEstado("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                            {showAEstadoSugg && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
+                                                    {["asistencia", "asistencia con retraso", "inasistencia"].map(e => (
+                                                        <button key={e} type="button" onMouseDown={() => { setFiltAEstado(e); setShowAEstadoSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer capitalize">{e}</button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                    </>
-                                )}
+
+                                        <div className="relative">
+                                            <input type="text" placeholder="Semana..." readOnly value={filtASemana ? `Semana ${filtASemana}` : ""} onFocus={() => setShowASemanaSugg(true)} onBlur={() => setTimeout(() => setShowASemanaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
+                                            {filtASemana && <button type="button" onClick={() => setFiltASemana("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                            {showASemanaSugg && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                                    {Array.from({ length: semanasSemestre }, (_, i) => i + 1).map(w => (
+                                                        <button key={w} type="button" onMouseDown={() => { setFiltASemana(w.toString()); setShowASemanaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">Semana {w}</button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="relative">
+                                            <input type="text" placeholder="Día..." readOnly value={filtADia} onFocus={() => setShowADiaSugg(true)} onBlur={() => setTimeout(() => setShowADiaSugg(false), 200)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all cursor-pointer" />
+                                            {filtADia && <button type="button" onClick={() => setFiltADia("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                            {showADiaSugg && (
+                                                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
+                                                    {["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"].map(d => (
+                                                        <button key={d} type="button" onMouseDown={() => { setFiltADia(d.charAt(0).toUpperCase() + d.slice(1)); setShowADiaSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer capitalize">{d}</button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="relative">
+                                            <input type="date" value={filtAFecha} onChange={e => {
+                                                const date = new Date(e.target.value);
+                                                if (date.getUTCDay() === 0) {
+                                                    setDateError("No hay clases los domingos.");
+                                                    setFiltAFecha("");
+                                                } else {
+                                                    setDateError("");
+                                                    setFiltAFecha(e.target.value);
+                                                }
+                                            }} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-sara-red transition-all" />
+                                            {filtAFecha && <button type="button" onClick={() => setFiltAFecha("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
+                                            {dateError && <p className="text-red-500 text-[10px] mt-0.5 absolute">{dateError}</p>}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end mt-2">
+                                        <button type="button" onClick={() => {
+                                            setFiltAFacultad("");
+                                            setFiltAPrograma("");
+                                            setFiltAAsignatura("");
+                                            setEstudianteSearch("");
+                                            setFiltAEstudiante("");
+                                            setFiltAMetodo("");
+                                            setFiltAEstado("");
+                                            setFiltASemana("");
+                                            setFiltADia("");
+                                            setFiltAFecha("");
+                                            setFiltAAula("");
+                                        }} className="px-4 py-2 bg-gray-100 text-gray-600 text-xs font-bold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
+                                            <XCircle size={14} /> Limpiar Todos los Filtros
+                                        </button>
+                                    </div>
+                                </>
 
                                 {/* TARJETAS AGRUPADAS POR FACULTAD Y PROGRAMA */}
                                 <div className="space-y-6">

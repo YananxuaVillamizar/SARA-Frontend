@@ -86,6 +86,7 @@ export default function ConfigPage() {
     const [estudiantes, setEstudiantes] = useState<Usuario[]>([]);
     const [matriculas, setMatriculas] = useState<Matricula[]>([]);
     const [semestres, setSemestres] = useState<Semestre[]>([]);
+    const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
     // Formularios
     const [fFacultad, setFFacultad] = useState({ nombre: "", codigo: "" });
@@ -491,8 +492,8 @@ export default function ConfigPage() {
                     // Validar fechas (Lunes a Sábado)
                     const ini = new Date(fSemestre.fecha_inicio);
                     const fin = new Date(fSemestre.fecha_fin);
-                    if (ini.getDay() !== 1) throw new Error("La fecha de inicio debe ser un Lunes.");
-                    if (fin.getDay() !== 6) throw new Error("La fecha de fin debe ser un Sábado.");
+                    if (ini.getUTCDay() !== 1) throw new Error("La fecha de inicio debe ser un Lunes.");
+                    if (fin.getUTCDay() !== 6) throw new Error("La fecha de fin debe ser un Sábado.");
                     if (ini >= fin) throw new Error("La fecha de inicio debe ser menor a la de fin.");
 
                     editandoId ? await actualizarSemestre(editandoId, fSemestre) : await crearSemestre(fSemestre);
@@ -1131,47 +1132,153 @@ export default function ConfigPage() {
                 })()}
 
                 {tab === "semestres" && (() => {
-                    return (
-                        <div className="p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-lg font-bold text-gray-800">Semestres Académicos</h2>
-                            </div>
+                    const activo = semestres.find(s => s.activo);
+                    const inactivos = semestres.filter(s => !s.activo);
 
-                            {semestres.length === 0 ? (
-                                <div className="py-16 text-center text-gray-400 text-sm">No hay semestres registrados.</div>
+                    return (
+                        <div className="p-6 space-y-6 font-sans">
+                            {/* Card de Semestre Activo */}
+                            {activo ? (
+                                <div className="p-6 rounded-2xl border border-gray-100 bg-gray-50/30 shadow-sm space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <CalendarDays className="text-sara-red animate-bounce" size={20} style={{ color: "#8B1A1A" }} />
+                                            <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Semestre Activo</span>
+                                        </div>
+                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                            En Curso
+                                        </span>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div>
+                                            <h3 className="text-2xl font-black text-gray-800">{activo.nombre}</h3>
+                                            <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                                                <div>
+                                                    <span className="block text-[10px] font-black text-gray-400 uppercase">Fecha Inicio (Lunes)</span>
+                                                    <span className="font-semibold text-gray-700">{activo.fecha_inicio}</span>
+                                                </div>
+                                                <div className="border-l border-gray-200 h-6"></div>
+                                                <div>
+                                                    <span className="block text-[10px] font-black text-gray-400 uppercase">Fecha Fin (Sábado)</span>
+                                                    <span className="font-semibold text-gray-700">{activo.fecha_fin}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                setEditandoId(activo.id);
+                                                setFSemestre({
+                                                    nombre: activo.nombre,
+                                                    fecha_inicio: activo.fecha_inicio,
+                                                    fecha_fin: activo.fecha_fin,
+                                                    activo: activo.activo
+                                                });
+                                                setPanel(true);
+                                            }}
+                                            className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-1.5 self-start sm:self-center"
+                                        >
+                                            <Pencil size={13} /> Editar Semestre Activo
+                                        </button>
+                                    </div>
+
+                                    {/* Nota de protección de datos */}
+                                    <div className="p-3.5 bg-amber-50/50 border border-amber-100/70 rounded-xl text-[11px] text-amber-950 leading-relaxed">
+                                        <span className="font-black block uppercase mb-0.5 text-amber-900">⚠️ Nota de integridad de datos</span>
+                                        Al cambiar la fecha del semestre, los registros existentes fuera del nuevo rango de fechas no se eliminarán de la base de datos, pero se ocultarán y se excluirán automáticamente de los cálculos de inasistencia, reportes y tableros en todo el sistema.
+                                    </div>
+                                </div>
                             ) : (
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="bg-gray-50 font-sans">
-                                            <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Nombre</th>
-                                            <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Fecha Inicio</th>
-                                            <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Fecha Fin</th>
-                                            <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Estado</th>
-                                            <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50 font-sans">
-                                        {semestres.map(s => (
-                                            <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-5 py-4 font-semibold text-sm" style={{ color: "#1A1A2E" }}>{s.nombre}</td>
-                                                <td className="px-5 py-4 text-sm text-gray-600">{s.fecha_inicio}</td>
-                                                <td className="px-5 py-4 text-sm text-gray-600">{s.fecha_fin}</td>
-                                                <td className="px-5 py-4 text-center">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${s.activo ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>
-                                                        {s.activo ? "Activo" : "Inactivo"}
-                                                    </span>
-                                                </td>
-                                                <td className="px-5 py-4 text-center">
-                                                    <div className="flex gap-1 justify-center items-center">
-                                                        <button onClick={() => { setEditandoId(s.id); setFSemestre({ nombre: s.nombre, fecha_inicio: s.fecha_inicio, fecha_fin: s.fecha_fin, activo: s.activo }); setPanel(true); }} className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={13} /></button>
-                                                        <button onClick={() => { if (!confirm(`¿Eliminar semestre "${s.nombre}"?`)) return; eliminarSemestre(s.id).then(() => listarSemestres().then(setSemestres)); }} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                <div className="p-8 border border-dashed border-gray-200 rounded-2xl text-center space-y-3 bg-gray-50/50">
+                                    <CalendarDays className="mx-auto text-gray-300 animate-pulse" size={36} />
+                                    <div>
+                                        <h3 className="font-bold text-gray-700">No hay un semestre activo configurado</h3>
+                                        <p className="text-xs text-gray-400 mt-1">El sistema requiere un semestre activo para realizar el control y cálculo de asistencias.</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            resetForm();
+                                            setFSemestre(prev => ({ ...prev, activo: true }));
+                                            setPanel(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-sara-red text-white text-xs font-bold rounded-xl transition-all hover:opacity-90"
+                                        style={{ background: "#8B1A1A" }}
+                                    >
+                                        <Plus size={14} /> Configurar Semestre Activo
+                                    </button>
+                                </div>
                             )}
+
+                            {/* Historial de Semestres */}
+                            <div className="pt-2">
+                                <button
+                                    onClick={() => setMostrarHistorial(!mostrarHistorial)}
+                                    className="flex items-center gap-1.5 text-xs font-black text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-wider cursor-pointer"
+                                >
+                                    <ChevronDown size={14} className={`transform transition-transform ${mostrarHistorial ? "rotate-180" : ""}`} />
+                                    {mostrarHistorial ? "Ocultar Historial de Semestres" : `Ver Historial (${inactivos.length} semestres inactivos)`}
+                                </button>
+
+                                {mostrarHistorial && (
+                                    <div className="mt-3 overflow-hidden border border-gray-100 rounded-2xl">
+                                        {inactivos.length === 0 ? (
+                                            <div className="py-8 text-center text-xs text-gray-400 bg-gray-50/50">No hay semestres inactivos registrados.</div>
+                                        ) : (
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50/70 border-b border-gray-100">
+                                                        <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Nombre</th>
+                                                        <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Inicio</th>
+                                                        <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Fin</th>
+                                                        <th className="px-5 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-wider">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50 bg-white">
+                                                    {inactivos.map(s => (
+                                                        <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                                                            <td className="px-5 py-3 font-semibold text-xs text-gray-700">{s.nombre}</td>
+                                                            <td className="px-5 py-3 text-xs text-gray-500 font-mono">{s.fecha_inicio}</td>
+                                                            <td className="px-5 py-3 text-xs text-gray-500 font-mono">{s.fecha_fin}</td>
+                                                            <td className="px-5 py-3 text-center">
+                                                                <div className="flex gap-1.5 justify-center items-center">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditandoId(s.id);
+                                                                            setFSemestre({
+                                                                                nombre: s.nombre,
+                                                                                fecha_inicio: s.fecha_inicio,
+                                                                                fecha_fin: s.fecha_fin,
+                                                                                activo: s.activo
+                                                                            });
+                                                                            setPanel(true);
+                                                                        }}
+                                                                        className="p-1 rounded text-blue-400 hover:bg-blue-50 transition-colors"
+                                                                        title="Editar"
+                                                                    >
+                                                                        <Pencil size={12} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            if (!confirm(`¿Eliminar semestre "${s.nombre}"?`)) return;
+                                                                            eliminarSemestre(s.id).then(() => listarSemestres().then(setSemestres));
+                                                                        }}
+                                                                        className="p-1 rounded text-red-400 hover:bg-red-50 transition-colors"
+                                                                        title="Eliminar"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     );
                 })()}

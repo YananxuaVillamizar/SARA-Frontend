@@ -284,8 +284,13 @@ export default function UsuariosPage() {
                                     <td className="px-4 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
-                                                style={{ background: "#8B1A1A" }}>
-                                                {u.nombres[0]}{u.apellidos[0]}
+                                                style={{
+                                                    background: 
+                                                        u.rol === "Administrativo" ? "#8B1A1A" : 
+                                                        u.rol === "Docente" ? "#1D4ED8" : 
+                                                        u.rol === "Estudiante" ? "#065F46" : "#6B7280"
+                                                }}>
+                                                {(u.nombres?.[0] || "").toUpperCase()}{(u.apellidos?.[0] || "").toUpperCase()}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold" style={{ color: "#1A1A2E" }}>

@@ -45,8 +45,9 @@ export const eliminarHorario = async (id: string) => (await api.delete(`/admin/h
 export interface Rol { id: string; nombre: string; }
 export const listarRoles = async (): Promise<Rol[]> => (await api.get("/admin/roles")).data;
 
-export interface Semestre { id: string; nombre: string; fecha_inicio: string; fecha_fin: string; activo: boolean; }
+export interface Semestre { id: string; nombre: string; fecha_inicio: string; fecha_fin: string; activo: boolean; estado?: string; }
 export const listarSemestres = async (): Promise<Semestre[]> => (await api.get("/admin/semestres")).data;
-export const crearSemestre = async (d: { nombre: string; fecha_inicio: string; fecha_fin: string; activo: boolean }) => (await api.post("/admin/semestres", d)).data;
-export const actualizarSemestre = async (id: string, d: { nombre: string; fecha_inicio: string; fecha_fin: string; activo: boolean }) => (await api.put(`/admin/semestres/${id}`, d)).data;
+export const crearSemestre = async (d: { nombre: string; fecha_inicio: string; fecha_fin: string; activo: boolean; estado?: string }) => (await api.post("/admin/semestres", d)).data;
+export const actualizarSemestre = async (id: string, d: { nombre: string; fecha_inicio: string; fecha_fin: string; activo: boolean; estado?: string }) => (await api.put(`/admin/semestres/${id}`, d)).data;
 export const eliminarSemestre = async (id: string) => (await api.delete(`/admin/semestres/${id}`)).data;
+

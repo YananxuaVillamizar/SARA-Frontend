@@ -283,12 +283,16 @@ export default function UsuariosPage() {
                                 <tr key={u.id} className="hover:bg-gray-50 transition-colors font-sans">
                                     <td className="px-4 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
+                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
                                                 style={{
                                                     background: 
+                                                        u.rol === "Administrativo" ? "#FFF5F5" : 
+                                                        u.rol === "Docente" ? "#EFF6FF" : 
+                                                        u.rol === "Estudiante" ? "#ECFDF5" : "#F3F4F6",
+                                                    color:
                                                         u.rol === "Administrativo" ? "#8B1A1A" : 
                                                         u.rol === "Docente" ? "#1D4ED8" : 
-                                                        u.rol === "Estudiante" ? "#065F46" : "#6B7280"
+                                                        u.rol === "Estudiante" ? "#065F46" : "#374151"
                                                 }}>
                                                 {(u.nombres?.[0] || "").toUpperCase()}{(u.apellidos?.[0] || "").toUpperCase()}
                                             </div>

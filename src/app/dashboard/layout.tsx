@@ -171,9 +171,20 @@ export default function DashboardLayout({
                                 <p className="text-xs font-bold text-sidebar-bg">{sesion.nombre}</p>
                                 <p className="text-[9px] text-sara-red font-black uppercase">{sesion.rol}</p>
                             </div>
-                            <div className="w-9 h-9 rounded-xl bg-linear-to-br from-sara-red to-sara-red-dark flex items-center justify-center text-white text-xs font-bold shadow-lg">
-                                {sesion.nombre.substring(0, 2).toUpperCase()}
-                            </div>
+                            {(() => {
+                                const config: Record<string, { color: string; bg: string }> = {
+                                    Administrativo: { color: "#8B1A1A", bg: "#FFF5F5" },
+                                    Docente: { color: "#1D4ED8", bg: "#EFF6FF" },
+                                    Estudiante: { color: "#065F46", bg: "#ECFDF5" },
+                                };
+                                const c = config[sesion.rol] ?? { color: "#374151", bg: "#F3F4F6" };
+                                return (
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
+                                        style={{ color: c.color, background: c.bg }}>
+                                        {sesion.nombre.substring(0, 2).toUpperCase()}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </header>

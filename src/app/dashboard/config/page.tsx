@@ -94,7 +94,7 @@ export default function ConfigPage() {
     const [fAsig, setFAsig] = useState({ nombre: "", codigo: "", creditos: 0, programa_id: "", facultad_id: "" });
     const [fHorario, setFHorario] = useState(HORARIO_VACIO);
     const [fMat, setFMat] = useState(MAT_VACIA);
-    const [fSemestre, setFSemestre] = useState({ nombre: "", fecha_inicio: "", fecha_fin: "", activo: false });
+    const [fSemestre, setFSemestre] = useState<{ nombre: string; fecha_inicio: string; fecha_fin: string; activo: boolean; estado?: string }>({ nombre: "", fecha_inicio: "", fecha_fin: "", activo: false, estado: "pendiente" });
 
     // Multi-sesión
     const [sesiones, setSesiones] = useState<Sesion[]>([]);
@@ -274,7 +274,7 @@ export default function ConfigPage() {
 
 
     const resetForm = () => {
-        setFSemestre({ nombre: "", fecha_inicio: "", fecha_fin: "", activo: false });
+        setFSemestre({ nombre: "", fecha_inicio: "", fecha_fin: "", activo: false, estado: "pendiente" });
         setFFacultad({ nombre: "", codigo: "" });
         setFPrograma({ nombre: "", codigo: "", facultad_id: "" });
         setFAsig({ nombre: "", codigo: "", creditos: 0, programa_id: "", facultad_id: "" });
@@ -495,6 +495,14 @@ export default function ConfigPage() {
                     if (ini.getUTCDay() !== 1) throw new Error("La fecha de inicio debe ser un Lunes.");
                     if (fin.getUTCDay() !== 6) throw new Error("La fecha de fin debe ser un Sábado.");
                     if (ini >= fin) throw new Error("La fecha de inicio debe ser menor a la de fin.");
+
+                    if (fSemestre.estado === "actual") {
+                        const actualExistente = semestres.find(s => s.activo && s.id !== editandoId);
+                        if (actualExistente) {
+                            const confirmar = window.confirm(`El semestre "${actualExistente.nombre}" ya está marcado como "Actual". Si continúas, cambiará automáticamente a "Terminado". ¿Deseas continuar?`);
+                            if (!confirmar) return;
+                        }
+                    }
 
                     editandoId ? await actualizarSemestre(editandoId, fSemestre) : await crearSemestre(fSemestre);
                     setSemestres(await listarSemestres());
@@ -1132,99 +1140,144 @@ export default function ConfigPage() {
                 })()}
 
                 {tab === "semestres" && (() => {
-                    const activo = semestres.find(s => s.activo);
-                    const inactivos = semestres.filter(s => !s.activo);
+                    const activosOPendientes = semestres.filter(s => s.estado === "actual" || s.estado === "pendiente" || (!s.estado && s.activo));
+                    const terminados = semestres.filter(s => s.estado === "terminado" || (!s.estado && !s.activo));
 
                     return (
                         <div className="p-6 space-y-6 font-sans">
-                            {/* Card de Semestre Activo */}
-                            {activo ? (
-                                <div className="p-6 rounded-2xl border border-gray-100 bg-gray-50/30 shadow-sm space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <CalendarDays className="text-sara-red animate-bounce" size={20} style={{ color: "#8B1A1A" }} />
-                                            <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Semestre Activo</span>
-                                        </div>
-                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                            En Curso
-                                        </span>
-                                    </div>
+                            {/* Nota de protección de datos */}
+                            <div className="p-3.5 bg-amber-50/50 border border-amber-100/70 rounded-xl text-[11px] text-amber-950 leading-relaxed">
+                                <span className="font-black block uppercase mb-0.5 text-amber-900">⚠️ Nota de integridad de datos</span>
+                                Al cambiar la fecha del semestre, los registros existentes fuera del nuevo rango de fechas no se eliminarán de la base de datos, pero se ocultarán y se excluirán automáticamente de los cálculos de inasistencia, reportes y tableros en todo el sistema.
+                            </div>
 
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3">Semestres Activos y Pendientes</h3>
+                                {activosOPendientes.length === 0 ? (
+                                    <div className="p-8 border border-dashed border-gray-200 rounded-2xl text-center space-y-3 bg-gray-50/50">
+                                        <CalendarDays className="mx-auto text-gray-300 animate-pulse" size={36} />
                                         <div>
-                                            <h3 className="text-2xl font-black text-gray-800">{activo.nombre}</h3>
-                                            <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                                                <div>
-                                                    <span className="block text-[10px] font-black text-gray-400 uppercase">Fecha Inicio (Lunes)</span>
-                                                    <span className="font-semibold text-gray-700">{activo.fecha_inicio}</span>
-                                                </div>
-                                                <div className="border-l border-gray-200 h-6"></div>
-                                                <div>
-                                                    <span className="block text-[10px] font-black text-gray-400 uppercase">Fecha Fin (Sábado)</span>
-                                                    <span className="font-semibold text-gray-700">{activo.fecha_fin}</span>
-                                                </div>
-                                            </div>
+                                            <h3 className="font-bold text-gray-700">No hay semestres activos o pendientes</h3>
+                                            <p className="text-xs text-gray-400 mt-1">Puedes agregar un nuevo semestre usando el botón superior.</p>
                                         </div>
-
-                                        <button
-                                            onClick={() => {
-                                                setEditandoId(activo.id);
-                                                setFSemestre({
-                                                    nombre: activo.nombre,
-                                                    fecha_inicio: activo.fecha_inicio,
-                                                    fecha_fin: activo.fecha_fin,
-                                                    activo: activo.activo
-                                                });
-                                                setPanel(true);
-                                            }}
-                                            className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-1.5 self-start sm:self-center"
-                                        >
-                                            <Pencil size={13} /> Editar Semestre Activo
-                                        </button>
                                     </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {activosOPendientes.map(s => {
+                                            const esActual = s.estado === "actual" || s.activo;
+                                            return (
+                                                <div key={s.id} className={`p-5 rounded-2xl border transition-all ${esActual ? "border-green-100 bg-green-50/10 shadow-sm" : "border-gray-100 bg-white"}`}>
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <CalendarDays className={esActual ? "text-green-600 animate-pulse" : "text-gray-400"} size={18} />
+                                                            <span className="font-bold text-sm text-gray-800">{s.nombre}</span>
+                                                        </div>
+                                                        {esActual ? (
+                                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-green-50 text-green-700 flex items-center gap-1 border border-green-100">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping"></span>
+                                                                ACTUAL
+                                                            </span>
+                                                        ) : (
+                                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-100">
+                                                                PENDIENTE
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                        <div>
+                                                            <span className="block text-[9px] font-black text-gray-400 uppercase">Inicio</span>
+                                                            <span className="font-semibold text-gray-700">{s.fecha_inicio}</span>
+                                                        </div>
+                                                        <div className="border-l border-gray-100 h-6"></div>
+                                                        <div>
+                                                            <span className="block text-[9px] font-black text-gray-400 uppercase">Fin</span>
+                                                            <span className="font-semibold text-gray-700">{s.fecha_fin}</span>
+                                                        </div>
+                                                    </div>
 
-                                    {/* Nota de protección de datos */}
-                                    <div className="p-3.5 bg-amber-50/50 border border-amber-100/70 rounded-xl text-[11px] text-amber-950 leading-relaxed">
-                                        <span className="font-black block uppercase mb-0.5 text-amber-900">⚠️ Nota de integridad de datos</span>
-                                        Al cambiar la fecha del semestre, los registros existentes fuera del nuevo rango de fechas no se eliminarán de la base de datos, pero se ocultarán y se excluirán automáticamente de los cálculos de inasistencia, reportes y tableros en todo el sistema.
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="p-8 border border-dashed border-gray-200 rounded-2xl text-center space-y-3 bg-gray-50/50">
-                                    <CalendarDays className="mx-auto text-gray-300 animate-pulse" size={36} />
-                                    <div>
-                                        <h3 className="font-bold text-gray-700">No hay un semestre activo configurado</h3>
-                                        <p className="text-xs text-gray-400 mt-1">El sistema requiere un semestre activo para realizar el control y cálculo de asistencias.</p>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            resetForm();
-                                            setFSemestre(prev => ({ ...prev, activo: true }));
-                                            setPanel(true);
-                                        }}
-                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-sara-red text-white text-xs font-bold rounded-xl transition-all hover:opacity-90"
-                                        style={{ background: "#8B1A1A" }}
-                                    >
-                                        <Plus size={14} /> Configurar Semestre Activo
-                                    </button>
-                                </div>
-                            )}
+                                                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditandoId(s.id);
+                                                                    setFSemestre({
+                                                                        nombre: s.nombre,
+                                                                        fecha_inicio: s.fecha_inicio,
+                                                                        fecha_fin: s.fecha_fin,
+                                                                        activo: s.activo,
+                                                                        estado: s.estado || (s.activo ? "actual" : "pendiente")
+                                                                    });
+                                                                    setPanel(true);
+                                                                }}
+                                                                className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-all"
+                                                                title="Editar Semestre"
+                                                            >
+                                                                <Pencil size={13} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (!confirm(`¿Eliminar semestre "${s.nombre}"?`)) return;
+                                                                    eliminarSemestre(s.id).then(() => listarSemestres().then(setSemestres));
+                                                                }}
+                                                                className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-all"
+                                                                title="Eliminar Semestre"
+                                                            >
+                                                                <Trash2 size={13} />
+                                                            </button>
+                                                        </div>
 
-                            {/* Historial de Semestres */}
+                                                        {!esActual && (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    const actualExistente = semestres.find(x => x.activo);
+                                                                    if (actualExistente) {
+                                                                        const confirmar = window.confirm(`El semestre "${actualExistente.nombre}" ya está marcado como "Actual". Si continúas, cambiará automáticamente a "Terminado". ¿Deseas continuar?`);
+                                                                        if (!confirmar) return;
+                                                                    }
+                                                                    try {
+                                                                        setLoading(true);
+                                                                        await actualizarSemestre(s.id, {
+                                                                            nombre: s.nombre,
+                                                                            fecha_inicio: s.fecha_inicio,
+                                                                            fecha_fin: s.fecha_fin,
+                                                                            activo: true,
+                                                                            estado: "actual"
+                                                                        });
+                                                                        setSemestres(await listarSemestres());
+                                                                    } catch (err: any) {
+                                                                        alert(err.response?.data?.detail || err.message);
+                                                                    } finally {
+                                                                        setLoading(false);
+                                                                    }
+                                                                }}
+                                                                className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-[10px] font-black rounded-lg transition-all"
+                                                            >
+                                                                Marcar como Actual
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Historial de Semestres Terminados */}
                             <div className="pt-2">
                                 <button
                                     onClick={() => setMostrarHistorial(!mostrarHistorial)}
                                     className="flex items-center gap-1.5 text-xs font-black text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-wider cursor-pointer"
                                 >
                                     <ChevronDown size={14} className={`transform transition-transform ${mostrarHistorial ? "rotate-180" : ""}`} />
-                                    {mostrarHistorial ? "Ocultar Historial de Semestres" : `Ver Historial (${inactivos.length} semestres inactivos)`}
+                                    {mostrarHistorial ? "Ocultar Historial" : `Ver Historial (${terminados.length} semestres terminados)`}
                                 </button>
 
                                 {mostrarHistorial && (
                                     <div className="mt-3 overflow-hidden border border-gray-100 rounded-2xl">
-                                        {inactivos.length === 0 ? (
-                                            <div className="py-8 text-center text-xs text-gray-400 bg-gray-50/50">No hay semestres inactivos registrados.</div>
+                                        {terminados.length === 0 ? (
+                                            <div className="py-8 text-center text-xs text-gray-400 bg-gray-50/50">No hay semestres terminados registrados.</div>
                                         ) : (
                                             <table className="w-full">
                                                 <thead>
@@ -1232,15 +1285,21 @@ export default function ConfigPage() {
                                                         <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Nombre</th>
                                                         <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Inicio</th>
                                                         <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Fin</th>
+                                                        <th className="px-5 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-wider">Estado</th>
                                                         <th className="px-5 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-wider">Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-50 bg-white">
-                                                    {inactivos.map(s => (
+                                                    {terminados.map(s => (
                                                         <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                                                             <td className="px-5 py-3 font-semibold text-xs text-gray-700">{s.nombre}</td>
                                                             <td className="px-5 py-3 text-xs text-gray-500 font-mono">{s.fecha_inicio}</td>
                                                             <td className="px-5 py-3 text-xs text-gray-500 font-mono">{s.fecha_fin}</td>
+                                                            <td className="px-5 py-3 text-center">
+                                                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-gray-100 text-gray-500 border border-gray-200">
+                                                                    TERMINADO
+                                                                </span>
+                                                            </td>
                                                             <td className="px-5 py-3 text-center">
                                                                 <div className="flex gap-1.5 justify-center items-center">
                                                                     <button
@@ -1250,7 +1309,8 @@ export default function ConfigPage() {
                                                                                 nombre: s.nombre,
                                                                                 fecha_inicio: s.fecha_inicio,
                                                                                 fecha_fin: s.fecha_fin,
-                                                                                activo: s.activo
+                                                                                activo: s.activo,
+                                                                                estado: s.estado || "terminado"
                                                                             });
                                                                             setPanel(true);
                                                                         }}
@@ -1832,13 +1892,28 @@ export default function ConfigPage() {
                                 </div>
                             </>}
 
-                            {tab === "semestres" && <>
+                             {tab === "semestres" && <>
                                 <div><label className={lbl}>Nombre</label><input type="text" className={inp} value={fSemestre.nombre} onChange={e => setFSemestre({ ...fSemestre, nombre: e.target.value })} required placeholder="Ej: 2026-1" /></div>
                                 <div><label className={lbl}>Fecha Inicio (Lunes)</label><input type="date" className={inp} value={fSemestre.fecha_inicio} onChange={e => setFSemestre({ ...fSemestre, fecha_inicio: e.target.value })} required /></div>
                                 <div><label className={lbl}>Fecha Fin (Sábado)</label><input type="date" className={inp} value={fSemestre.fecha_fin} onChange={e => setFSemestre({ ...fSemestre, fecha_fin: e.target.value })} required /></div>
-                                <div className="flex items-center gap-2">
-                                    <input type="checkbox" id="semestre_activo" checked={fSemestre.activo} onChange={e => setFSemestre({ ...fSemestre, activo: e.target.checked })} className="rounded text-sara-red focus:ring-sara-red" />
-                                    <label htmlFor="semestre_activo" className="text-sm font-semibold text-gray-700">Marcar como Semestre Activo</label>
+                                <div>
+                                    <label className={lbl}>Estado del Semestre</label>
+                                    <select
+                                        className={inp}
+                                        value={fSemestre.estado || "pendiente"}
+                                        onChange={e => {
+                                            const newVal = e.target.value;
+                                            setFSemestre({
+                                                ...fSemestre,
+                                                estado: newVal,
+                                                activo: newVal === "actual"
+                                            });
+                                        }}
+                                    >
+                                        <option value="pendiente">Pendiente</option>
+                                        <option value="actual">Actual (Activo)</option>
+                                        <option value="terminado">Terminado</option>
+                                    </select>
                                 </div>
                             </>}
 

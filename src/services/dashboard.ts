@@ -22,6 +22,7 @@ export interface AdminStats {
         descripcion: string;
     }[];
     semana_actual?: number;
+    semanas_semestre?: number;
     semestre_actual?: string;
 }
 

@@ -179,11 +179,27 @@ export default function AsistenciasPage() {
     const normalizar = (s: string) => s ? s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") : "";
 
     const currentWeek = useMemo(() => {
+        if (fechaInicioSemestre) {
+            try {
+                const today = new Date();
+                const [sy, sm, sd] = fechaInicioSemestre.split('-').map(Number);
+                const startObj = new Date(sy, sm - 1, sd);
+                
+                const diff = today.getTime() - startObj.getTime();
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                if (days >= 0) {
+                    const week = Math.floor(days / 7) + 1;
+                    return Math.min(Math.max(week, 1), semanasSemestre);
+                }
+            } catch (e) {
+                console.error("Error calculating current week:", e);
+            }
+        }
         return asistenciasRaw.reduce((max, a) => {
             const sem = typeof a.semana === 'string' ? parseInt(a.semana) : a.semana;
             return sem > max ? sem : max;
-        }, 0) || 14;
-    }, [asistenciasRaw]);
+        }, 0) || 1;
+    }, [asistenciasRaw, fechaInicioSemestre, semanasSemestre]);
 
     const allGroups = useMemo(() => {
         const groups: any = {};
@@ -453,6 +469,11 @@ export default function AsistenciasPage() {
                                     continue;
                                 }
 
+                                const isEstudiante = sesion.rol === "Estudiante";
+                                if (isEstudiante && filtAEstado === "inasistencia" && !sData.docente_asistio) {
+                                    continue;
+                                }
+
                                 const matchSemana = !targetWeekStr || sData.semana?.toString() === targetWeekStr;
                                 const matchFecha = !filtAFecha || (sData.fecha && sData.fecha === filtAFecha);
                                 const actualSessionDia = sData.fecha ? getDiaDeLaSemana(sData.fecha) : (sData.dia_virtual || "");
@@ -571,7 +592,7 @@ export default function AsistenciasPage() {
         }
 
         return { filteredFaculties: filteredFacs, filteredCount: count };
-    }, [allGroups, filtADia, filtAFacultad, filtAPrograma, filtAAsignatura, filtAAula, filtAFecha, filtASemana, filtAEstudiante, filtAMetodo, filtAEstado, currentWeek, fechaInicioSemestre]);
+    }, [allGroups, filtADia, filtAFacultad, filtAPrograma, filtAAsignatura, filtAAula, filtAFecha, filtASemana, filtAEstudiante, filtAMetodo, filtAEstado, currentWeek, fechaInicioSemestre, semanasSemestre, sesion]);
 
     const handleExportarPDF = (grupoData: any, sesionData: any, progName?: string, facName?: string) => {
         // Dynamic academic filename
@@ -1297,8 +1318,16 @@ export default function AsistenciasPage() {
                                                                                                                      
                                                                                                                      return (
                                                                                                                          <div 
-                                                                                                                             onClick={() => !isEstudiante && (isSessionCompleta || isSessionAbierta) && toggleSession(sesionKey)} 
-                                                                                                                             className={`flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-100 p-2 rounded-xl gap-2 ${(!isEstudiante && (isSessionCompleta || isSessionAbierta)) ? 'cursor-pointer hover:bg-gray-200 transition-colors' : ''}`}
+                                                                                                                            onClick={() => !isEstudiante && (isSessionCompleta || isSessionAbierta) && toggleSession(sesionKey)} 
+                                                                                                                            className={`flex flex-col md:flex-row justify-between items-start md:items-center p-3 rounded-xl gap-3 transition-all border-l-4 ${
+                                                                                                                                isSessionAbierta 
+                                                                                                                                    ? "bg-blue-50/50 border-blue-500 hover:bg-blue-100/60" 
+                                                                                                                                    : isSessionCompleta 
+                                                                                                                                        ? "bg-emerald-50/40 border-emerald-500 hover:bg-emerald-100/40" 
+                                                                                                                                        : (sesionData.isVirtual && sesionData.reason === "No completada por fecha")
+                                                                                                                                            ? "bg-amber-50/30 border-amber-400 hover:bg-amber-100/30"
+                                                                                                                                            : "bg-red-50/20 border-red-400 hover:bg-red-100/20"
+                                                                                                                            } ${(!isEstudiante && (isSessionCompleta || isSessionAbierta)) ? 'cursor-pointer' : ''}`}
                                                                                                                          >
                                                                                                                               <div className="flex items-center gap-3">
                                                                                                                                   {isEstudiante ? (
@@ -1465,20 +1494,40 @@ export default function AsistenciasPage() {
                                                                                                                                           }
                                                                                                                                           if (!isSessionCompleta) {
                                                                                                                                               return (
-                                                                                                                                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full text-center ${sesionData.isVirtual && sesionData.reason === "No completada por fecha" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
+                                                                                                                                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full text-center border ${
+                                                                                                                                                      sesionData.isVirtual && sesionData.reason === "No completada por fecha" 
+                                                                                                                                                          ? "bg-amber-50 text-amber-700 border-amber-200" 
+                                                                                                                                                          : "bg-red-50 text-red-700 border-red-200"
+                                                                                                                                                  }`}>
                                                                                                                                                       {sesionData.isVirtual && sesionData.reason === "No completada por fecha" ? "Pendiente" : "Clase Cancelada"}
                                                                                                                                                   </span>
                                                                                                                                               );
                                                                                                                                           }
                                                                                                                                           return (
-                                                                                                                                              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${estado === "asistencia" ? "bg-green-50 text-green-700" : estado === "asistencia con retraso" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
+                                                                                                                                              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                                                                                                                                  estado === "asistencia" 
+                                                                                                                                                      ? "bg-green-50 text-green-700 border-green-200" 
+                                                                                                                                                      : estado === "asistencia con retraso" 
+                                                                                                                                                          ? "bg-amber-50 text-amber-700 border-amber-200" 
+                                                                                                                                                          : "bg-red-50 text-red-700 border-red-200"
+                                                                                                                                              }`}>
                                                                                                                                                   {estado === "asistencia" ? "Presente" : estado === "asistencia con retraso" ? "Tarde" : "Ausente"}
                                                                                                                                               </span>
                                                                                                                                           );
                                                                                                                                       })()
                                                                                                                                   ) : (
                                                                                                                                       <>
-                                                                                                                                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full text-center flex flex-col items-center justify-center ${isSessionAbierta ? "bg-blue-50 text-blue-700 border border-blue-200 animate-pulse" : sesionData.isVirtual ? (sesionData.reason === "No completada por fecha" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700") : isSessionCompleta ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                                                                                                                                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full text-center flex flex-col items-center justify-center border ${
+                                                                                                                                              isSessionAbierta 
+                                                                                                                                                  ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse" 
+                                                                                                                                                  : sesionData.isVirtual 
+                                                                                                                                                      ? (sesionData.reason === "No completada por fecha" 
+                                                                                                                                                          ? "bg-amber-50 text-amber-700 border-amber-200" 
+                                                                                                                                                          : "bg-red-50 text-red-700 border-red-200") 
+                                                                                                                                                      : isSessionCompleta 
+                                                                                                                                                          ? "bg-green-50 text-green-700 border-green-200" 
+                                                                                                                                                          : "bg-red-50 text-red-700 border-red-200"
+                                                                                                                                          }`}>
                                                                                                                                               {isSessionAbierta ? "En Curso" : sesionData.isVirtual ? (sesionData.reason === "No completada por fecha" ? "Pendiente" : "Clase Cancelada") : isSessionCompleta ? "Docente Asistió" : "Clase Cancelada"}
                                                                                                                                           </span>
                                                                                                                                           {(isSessionCompleta || isSessionAbierta) && (

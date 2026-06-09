@@ -142,6 +142,7 @@ export default function ConfigPage() {
     const [semestres, setSemestres] = useState<Semestre[]>([]);
     const [mostrarHistorial, setMostrarHistorial] = useState(false);
     const [conflictingStudents, setConflictingStudents] = useState<{ id: string; nombre: string; num_doc: string }[]>([]);
+    const [conflictDia, setConflictDia] = useState("");
 
     // Formularios
     const [fFacultad, setFFacultad] = useState({ nombre: "", codigo: "" });
@@ -368,6 +369,7 @@ export default function ConfigPage() {
         setError("");
         setErrorSesion("");
         setConflictingStudents([]);
+        setConflictDia("");
         setFacShowAll(false);
         setProgShowAll(false);
         setEstShowAll(false);
@@ -525,6 +527,9 @@ export default function ConfigPage() {
                         } catch (err: any) {
                             if (err.response?.status === 409 && err.response?.data?.detail?.tipo === "cruce_estudiantes") {
                                 setConflictingStudents(err.response.data.detail.estudiantes);
+                                // Guardar el día del horario que causó el cruce (del primer update que falló)
+                                const diaConflicto = sesiones.find(s => s.id)?.dia_semana ?? "";
+                                setConflictDia(diaConflicto ? (DIA_LABEL[diaConflicto] ?? diaConflicto) : "");
                                 return;
                             }
                             throw err;
@@ -1424,7 +1429,7 @@ export default function ConfigPage() {
                         </div>
 
                         <form onSubmit={guardar} className="flex-1 overflow-y-auto p-6 space-y-5">
-                            {error && !(tab === "matriculas" && error.toLowerCase().includes("cupo máximo")) && <div className="p-4 rounded-2xl bg-red-50 text-red-600 text-xs font-bold border border-red-100">{error}</div>}
+                        {/* El bloque de error se ubica en el footer (ver más abajo) para garantizar visibilidad */}
 
                             {tab === "facultades" && <>
                                 <div><label className={lbl}>Nombre</label><input type="text" className={inp} value={fFacultad.nombre} onChange={e => setFFacultad({ ...fFacultad, nombre: e.target.value })} required /></div>
@@ -1988,7 +1993,14 @@ export default function ConfigPage() {
 
                         </form>
 
-                        <div className="p-6 border-t bg-gray-50 rounded-b-3xl">
+                        <div className="p-6 border-t bg-gray-50 rounded-b-3xl space-y-3">
+                            {/* Mensajes de error/cruce al pie del panel, siempre visibles antes del botón */}
+                            {error && !(tab === "matriculas" && error.toLowerCase().includes("cupo máximo")) && (
+                                <div className="p-3 rounded-xl bg-red-50 text-red-600 text-xs font-bold border border-red-100 flex items-start gap-2">
+                                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                                    <span>{error}</span>
+                                </div>
+                            )}
                             <button onClick={guardar} disabled={loading} className="w-full py-4 rounded-2xl text-white font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100" style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
                                 {loading ? "Guardando..." : "Guardar Cambios"}
                             </button>
@@ -2007,7 +2019,7 @@ export default function ConfigPage() {
                                 <h4 className="font-black text-lg">Conflicto de Horarios</h4>
                             </div>
                             <p className="text-gray-600 text-sm leading-relaxed">
-                                De guardar los cambios, se eliminará el grupo para la matrícula de los siguientes estudiantes por cruce de horarios:
+                                De guardar los cambios, se eliminará el grupo para la matrícula de los siguientes estudiantes por cruce de horarios{conflictDia ? ` el día ${conflictDia}` : ""}:
                             </p>
                             <div className="max-h-40 overflow-y-auto bg-gray-50 rounded-2xl p-4 divide-y divide-gray-100">
                                 {conflictingStudents.map(student => (

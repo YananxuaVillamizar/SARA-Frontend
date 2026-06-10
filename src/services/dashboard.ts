@@ -93,8 +93,8 @@ export async function obtenerUsuariosFiltro(rol?: string, docenteId?: string): P
     return response.data;
 }
 
-export async function obtenerAsignaturasFiltro(usuarioId?: string): Promise<AsignaturaFiltro[]> {
-    const response = await api.get("/dashboard/asignaturas-filtro", { params: { usuario_id: usuarioId } });
+export async function obtenerAsignaturasFiltro(usuarioId?: string, docenteId?: string): Promise<AsignaturaFiltro[]> {
+    const response = await api.get("/dashboard/asignaturas-filtro", { params: { usuario_id: usuarioId, docente_id: docenteId } });
     return response.data;
 }
 

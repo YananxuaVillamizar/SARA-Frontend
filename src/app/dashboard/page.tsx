@@ -121,7 +121,7 @@ export default function DashboardPage() {
                     : (selectedUsuarioPerm === "todos"
                         ? (sesion.rol === "Docente" ? sesion.id : undefined)
                         : selectedUsuarioPerm);
-                const subjects = await obtenerAsignaturasFiltro(uId);
+                const subjects = await obtenerAsignaturasFiltro(uId, sesion.rol === "Docente" ? sesion.id : undefined);
                 setAsignaturasFiltro(subjects);
                 setSelectedAsignaturaPerm("todos");
             } catch (err) {

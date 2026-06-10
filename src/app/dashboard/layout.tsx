@@ -8,7 +8,8 @@ import {
     ClipboardCheck,
     Settings,
     LogOut,
-    Bell
+    Bell,
+    Calendar
 } from "lucide-react";
 import Link from "next/link";
 import { getSesion, cerrarSesion } from "@/services/auth";
@@ -59,14 +60,15 @@ export default function DashboardLayout({
 
     const MENU_ROL: Record<string, string[]> = {
         "Administrativo": ["/dashboard", "/dashboard/usuarios", "/dashboard/asistencias", "/dashboard/config"],
-        "Docente":        ["/dashboard", "/dashboard/asistencias"],
-        "Estudiante":     ["/dashboard", "/dashboard/asistencias"],
+        "Docente":        ["/dashboard", "/dashboard/asistencias", "/dashboard/horario"],
+        "Estudiante":     ["/dashboard", "/dashboard/asistencias", "/dashboard/horario"],
     };
 
     const todosLosItems = [
         { icon: <LayoutDashboard size={20} />, label: "Panel General",  href: "/dashboard"             },
         { icon: <Users size={20} />,           label: "Usuarios",        href: "/dashboard/usuarios"    },
         { icon: <ClipboardCheck size={20} />,  label: "Asistencias",     href: "/dashboard/asistencias" },
+        { icon: <Calendar size={20} />,        label: "Mi Horario",      href: "/dashboard/horario"     },
         { icon: <Settings size={20} />,        label: "Configuración",   href: "/dashboard/config"      },
     ];
 

@@ -110,3 +110,23 @@ export async function obtenerPermanenciaStats(rol?: string, usuarioId?: string, 
     });
     return response.data;
 }
+
+export interface HorarioSemanal {
+    id: string;
+    dia_semana: string;
+    hora_inicio: string;
+    hora_fin: string;
+    aula: string;
+    grupo: string;
+    asignatura: string;
+    cod_asignatura: string;
+    docente: string;
+}
+
+export async function obtenerHorarioSemanal(usuarioId: string, rol: string): Promise<HorarioSemanal[]> {
+    const response = await api.get(`/dashboard/horario-semanal/${usuarioId}`, {
+        params: { rol }
+    });
+    return response.data;
+}
+

@@ -1,10 +1,24 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw } from "lucide-react";
+import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw, Calendar, Clock, MapPin, Printer } from "lucide-react";
 import { listarUsuarios, crearUsuario, actualizarUsuario, obtenerUsuario, generarPinSeguro, Usuario } from "@/services/usuarios";
 import { listarRoles, Rol } from "@/services/admin";
 import { getSesion } from "@/services/auth";
+import { obtenerHorarioSemanal, HorarioSemanal } from "@/services/dashboard";
+
+const DIAS = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+const DIA_MAP: Record<string, string> = {
+    "lunes": "Lunes",
+    "martes": "Martes",
+    "miercoles": "Miercoles",
+    "miércoles": "Miercoles",
+    "jueves": "Jueves",
+    "viernes": "Viernes",
+    "sabado": "Sabado",
+    "sábado": "Sabado",
+    "domingo": "Domingo"
+};
 
 // ── Helpers visuales ──────────────────────────────────────────
 const RolBadge = ({ rol }: { rol: string }) => {
@@ -64,7 +78,25 @@ export default function UsuariosPage() {
     const [editConfirmWarning, setEditConfirmWarning] = useState("");
     const [showPin, setShowPin] = useState(false);
     const [confirmingPinRegen, setConfirmingPinRegen] = useState(false);
-    const [isGeneratingPin, setIsGeneratingPin] = useState(false);
+    const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false);
+    const [horarioUsuario, setHorarioUsuario] = useState<Usuario | null>(null);
+    const [horariosData, setHorariosData] = useState<HorarioSemanal[]>([]);
+    const [cargandoHorario, setCargandoHorario] = useState(false);
+
+    async function openHorarioModal(u: Usuario) {
+        setHorarioUsuario(u);
+        setMostrarHorarioModal(true);
+        setCargandoHorario(true);
+        setHorariosData([]);
+        try {
+            const data = await obtenerHorarioSemanal(u.id, u.rol);
+            setHorariosData(data);
+        } catch (err) {
+            console.error("Error al obtener horario del usuario:", err);
+        } finally {
+            setCargandoHorario(false);
+        }
+    }
 
     // Cargar usuarios al montar
     useEffect(() => {
@@ -388,13 +420,24 @@ export default function UsuariosPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <button
-                                            onClick={() => openEditModal(u)}
-                                            className="p-2 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors mx-auto"
-                                            title="Editar Usuario"
-                                        >
-                                            <Pencil size={14} strokeWidth={2.5} />
-                                        </button>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => openEditModal(u)}
+                                                className="p-2 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
+                                                title="Editar Usuario"
+                                            >
+                                                <Pencil size={14} strokeWidth={2.5} />
+                                            </button>
+                                            {u.activo && (u.rol === "Estudiante" || u.rol === "Docente") && (
+                                                <button
+                                                    onClick={() => openHorarioModal(u)}
+                                                    className="p-2 rounded-xl text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors"
+                                                    title="Ver Horario"
+                                                >
+                                                    <Calendar size={14} strokeWidth={2.5} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -730,6 +773,183 @@ export default function UsuariosPage() {
                                     </button>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </>
+            )}
+            {/* MODAL DE HORARIO SEMANAL */}
+            {mostrarHorarioModal && horarioUsuario && (
+                <>
+                    {/* Overlay */}
+                    <div className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm no-print"
+                        onClick={() => setMostrarHorarioModal(false)} />
+
+                    {/* Contenedor del Modal */}
+                    <div className="fixed inset-4 md:inset-10 bg-white z-50 rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 print:absolute print:inset-0 print:rounded-none print:shadow-none print:border-0 print:h-screen print:w-screen">
+                        
+                        {/* Header del Modal (Oculto al imprimir) */}
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between no-print"
+                            style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
+                            <div>
+                                <h2 className="text-white font-black text-lg flex items-center gap-2">
+                                    <Calendar size={20} /> Horario Semanal de Clases
+                                </h2>
+                                <p className="text-white/70 text-xs mt-0.5 font-medium">
+                                    {horarioUsuario.rol}: {horarioUsuario.nombres} {horarioUsuario.apellidos} ({horarioUsuario.num_doc})
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => window.print()}
+                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+                                >
+                                    <Printer size={13} /> Imprimir
+                                </button>
+                                <button onClick={() => setMostrarHorarioModal(false)}
+                                    className="text-white/70 hover:text-white transition-colors">
+                                    <X size={22} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
+                        <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#8B1A1A] flex justify-between items-center px-4 pt-4">
+                            <div className="flex items-center gap-4">
+                                <img src="/logo_sara.png" alt="Logo SARA" className="h-12 w-auto" />
+                                <div>
+                                    <h2 className="text-sm font-black text-sidebar-bg">UNIVERSIDAD DE PAMPLONA</h2>
+                                    <p className="text-[9px] text-[#C9A84C] font-bold tracking-widest uppercase">SARA - REGISTRO DE ASISTENCIA</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs font-black text-sidebar-bg uppercase">{horarioUsuario.rol}: {horarioUsuario.nombres} {horarioUsuario.apellidos}</p>
+                                <p className="text-[9px] text-gray-500 font-medium">Documento: {horarioUsuario.num_doc} • {new Date().toLocaleDateString()}</p>
+                            </div>
+                        </div>
+
+                        {/* Contenido / Tabla del Horario */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-page-bg print:bg-white print:p-0">
+                            {cargandoHorario ? (
+                                <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                                    <div className="w-10 h-10 border-4 border-[#8B1A1A] border-t-transparent rounded-full animate-spin" />
+                                    <p className="text-gray-400 text-sm font-medium animate-pulse">Cargando horario semanal...</p>
+                                </div>
+                            ) : (() => {
+                                // Agrupar horarios por Asignatura + Grupo para formar las filas de la tabla
+                                const filasMap: Record<string, any> = {};
+
+                                horariosData.forEach(h => {
+                                    const key = `${h.cod_asignatura}-${h.grupo}`;
+                                    if (!filasMap[key]) {
+                                        filasMap[key] = {
+                                            cod_asignatura: h.cod_asignatura,
+                                            asignatura: h.asignatura,
+                                            grupo: h.grupo,
+                                            docente: h.docente,
+                                            clasesPorDia: {
+                                                "Lunes": [],
+                                                "Martes": [],
+                                                "Miercoles": [],
+                                                "Jueves": [],
+                                                "Viernes": [],
+                                                "Sabado": [],
+                                                "Domingo": []
+                                            }
+                                        };
+                                    }
+                                    
+                                    const diaNorm = DIA_MAP[h.dia_semana.toLowerCase()] || "Lunes";
+                                    if (filasMap[key].clasesPorDia[diaNorm]) {
+                                        filasMap[key].clasesPorDia[diaNorm].push({
+                                            hora_inicio: h.hora_inicio,
+                                            hora_fin: h.hora_fin,
+                                            aula: h.aula
+                                        });
+                                    }
+                                });
+
+                                const filas = Object.values(filasMap);
+
+                                if (filas.length === 0) {
+                                    return (
+                                        <div className="bg-white p-12 rounded-3xl border border-gray-100 text-center space-y-4 shadow-sm flex flex-col items-center justify-center h-64 print:border-0 print:shadow-none">
+                                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                                                <Calendar size={32} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-lg text-sidebar-bg">No se encontraron clases programadas</h3>
+                                                <p className="text-xs text-gray-400 mt-1">El usuario no registra clases activas para este semestre.</p>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none">
+                                        <table className="w-full border-collapse min-w-[900px] print:min-w-full">
+                                            <thead>
+                                                <tr className="bg-[#5A6268] text-white text-[10px] font-black uppercase tracking-wider print:bg-[#5A6268] print:text-white">
+                                                    <th className="py-2.5 px-3 text-center border border-gray-300/40 w-[200px]">Materia</th>
+                                                    {DIAS.map(dia => (
+                                                        <th key={dia} className="py-2.5 px-2 text-center border border-gray-300/40 font-bold">{dia}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filas.map((fila: any, idx) => {
+                                                    const esPar = idx % 2 === 1;
+                                                    return (
+                                                        <tr 
+                                                            key={idx} 
+                                                            className={`text-[9px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
+                                                                esPar ? "bg-gray-100/70" : "bg-white"
+                                                            } print:bg-white`}
+                                                        >
+                                                            {/* Columna Materia */}
+                                                            <td className="py-3 px-3 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[200px]">
+                                                                <div className="space-y-1">
+                                                                    <p className="text-gray-400 font-extrabold tracking-wider text-[8px]">{fila.cod_asignatura}</p>
+                                                                    <p className="text-[10px] font-black text-sidebar-bg uppercase leading-tight print:text-black">{fila.asignatura}</p>
+                                                                    <p className="text-[9px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
+                                                                    {horarioUsuario.rol === "Estudiante" && (
+                                                                        <p className="text-[8px] text-[#8B1A1A] font-bold mt-1 uppercase" title={fila.docente}>
+                                                                            Docente: {fila.docente}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            
+                                                            {/* Columnas de Días */}
+                                                            {DIAS.map(dia => {
+                                                                const clases = fila.clasesPorDia[dia] || [];
+                                                                return (
+                                                                    <td key={dia} className="p-1.5 text-center border border-gray-200/80 align-middle w-[100px] min-h-[50px]">
+                                                                        {clases.map((clase: any, cIdx: number) => (
+                                                                            <div key={cIdx} className="space-y-0.5 py-0.5">
+                                                                                <p className="font-extrabold text-sidebar-bg text-[9px] tracking-tight print:text-black">
+                                                                                    {clase.hora_inicio}-{clase.hora_fin}
+                                                                                </p>
+                                                                                <p className="text-[8px] text-gray-500 font-semibold leading-tight">
+                                                                                    {clase.aula}
+                                                                                </p>
+                                                                                <div 
+                                                                                    className="inline-block px-1 py-0.2 bg-gray-200/60 rounded-md text-[7px] font-black text-gray-600 tracking-wider mt-0.5"
+                                                                                >
+                                                                                    {fila.cod_asignatura}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </>

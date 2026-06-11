@@ -65,12 +65,14 @@ export default function LoginPage() {
           </div>
 
           {/* Logo / Escudo universitario */}
-          <div className="flex justify-center mb-3">
-            <img 
-              src="/logo_sara.png" 
-              alt="SARA Logo" 
-              className="h-16 w-auto object-contain drop-shadow-md" 
-            />
+          <div className="flex justify-center mb-4">
+            <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg inline-flex items-center justify-center border border-white/20">
+              <img 
+                src="/logo_sara.png" 
+                alt="SARA Logo" 
+                className="h-14 w-auto object-contain" 
+              />
+            </div>
           </div>
 
           {/* Nombre de la institución */}

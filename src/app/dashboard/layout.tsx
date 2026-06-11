@@ -93,12 +93,14 @@ export default function DashboardLayout({
         return (
             <div className="h-screen flex items-center justify-center bg-page-bg">
                 <div className="flex flex-col items-center gap-4">
-                    <img 
-                        src="/logo_sara.png" 
-                        alt="SARA Logo" 
-                        className="h-16 w-auto object-contain animate-pulse"
-                    />
-                    <p className="text-gray-400 text-sm font-medium">Verificando sesión...</p>
+                    <div className="bg-white p-4 rounded-3xl shadow-xl border border-gray-100 animate-pulse flex items-center justify-center">
+                        <img 
+                            src="/logo_sara.png" 
+                            alt="SARA Logo" 
+                            className="h-16 w-auto object-contain" 
+                        />
+                    </div>
+                    <p className="text-gray-400 text-sm font-medium mt-2">Verificando sesión...</p>
                 </div>
             </div>
         );
@@ -118,17 +120,21 @@ export default function DashboardLayout({
                 <div className="h-20 flex items-center justify-center border-b border-white/5 overflow-hidden px-4">
                     <div className="w-full flex items-center justify-center">
                         {isCollapsed ? (
-                            <img 
-                                src="/logo_sara_mini.png" 
-                                alt="SARA" 
-                                className="h-10 w-auto object-contain transition-all duration-300 max-w-[45px]" 
-                            />
+                            <div className="bg-white p-1.5 rounded-xl shadow-lg border border-white/10 flex items-center justify-center w-11 h-11 transition-all duration-300">
+                                <img 
+                                    src="/logo_sara_mini.png" 
+                                    alt="SARA" 
+                                    className="h-7 w-auto object-contain transition-all duration-300" 
+                                />
+                            </div>
                         ) : (
-                            <img 
-                                src="/logo_sara.png" 
-                                alt="SARA Logo" 
-                                className="h-12 w-auto object-contain transition-all duration-300 max-w-[180px]" 
-                            />
+                            <div className="bg-white/95 backdrop-blur-sm py-1.5 px-4 rounded-xl shadow-lg border border-white/10 flex items-center justify-center w-full max-w-[180px] transition-all duration-300">
+                                <img 
+                                    src="/logo_sara.png" 
+                                    alt="SARA Logo" 
+                                    className="h-9 w-auto object-contain transition-all duration-300" 
+                                />
+                            </div>
                         )}
                     </div>
                 </div>

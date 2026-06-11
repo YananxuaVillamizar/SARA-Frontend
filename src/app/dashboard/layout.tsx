@@ -26,8 +26,19 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const router = useRouter();
     const [sesion, setSesion] = useState({ nombre: "", rol: "" });
-    const [alertas, setAlertas] = useState<{ tipo: string; titulo: string; descripcion: string }[]>([]);
+    const [alertas, setAlertas] = useState<{ tipo: string; titulo: string; descripcion: string; persistente?: boolean }[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
+
+    const handleLimpiarNotificaciones = async () => {
+        const { id } = getSesion();
+        if (!id) return;
+        try {
+            await api.post(`/dashboard/alertas/${id}/limpiar`);
+            setAlertas(prev => prev.filter(al => !al.persistente));
+        } catch (err) {
+            console.error("Error al limpiar notificaciones:", err);
+        }
+    };
 
     // Protección de ruta: si no hay token, vuelve al login
     useEffect(() => {
@@ -82,12 +93,11 @@ export default function DashboardLayout({
         return (
             <div className="h-screen flex items-center justify-center bg-page-bg">
                 <div className="flex flex-col items-center gap-4">
-                    <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl font-bold animate-pulse"
-                        style={{ background: "#8B1A1A" }}
-                    >
-                        S
-                    </div>
+                    <img 
+                        src="/logo_sara.png" 
+                        alt="SARA Logo" 
+                        className="h-16 w-auto object-contain animate-pulse"
+                    />
                     <p className="text-gray-400 text-sm font-medium">Verificando sesión...</p>
                 </div>
             </div>
@@ -105,16 +115,21 @@ export default function DashboardLayout({
                     }`}
             >
                 {/* Logo Section */}
-                <div className="h-20 flex items-center justify-center border-b border-white/5 overflow-hidden relative">
-                    <div className={`absolute transition-opacity duration-300 ${isCollapsed ? 'opacity-0' : 'opacity-100 delay-150'}`}>
-                        <h1 className="text-2xl font-bold text-white tracking-tighter">
-                            SARA<span className="text-sara-gold">.</span>
-                        </h1>
-                    </div>
-                    <div className={`absolute transition-opacity duration-300 ${isCollapsed ? 'opacity-100 delay-150' : 'opacity-0'}`}>
-                        <div className="w-10 h-10 bg-sara-red rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-sara-red/20">
-                            S
-                        </div>
+                <div className="h-20 flex items-center justify-center border-b border-white/5 overflow-hidden px-4">
+                    <div className="w-full flex items-center justify-center">
+                        {isCollapsed ? (
+                            <img 
+                                src="/logo_sara.png" 
+                                alt="SARA" 
+                                className="h-8 w-auto object-contain transition-all duration-300 max-w-[45px]" 
+                            />
+                        ) : (
+                            <img 
+                                src="/logo_sara.png" 
+                                alt="SARA Logo" 
+                                className="h-12 w-auto object-contain transition-all duration-300 max-w-[180px]" 
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -198,14 +213,25 @@ export default function DashboardLayout({
                                         onClick={() => setShowNotifications(false)}
                                     />
                                     <div className="absolute right-0 mt-2 w-80 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden transition-all duration-300">
-                                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                                            <h3 className="font-bold text-gray-800 text-sm">Notificaciones</h3>
-                                            {alertas.length > 0 && (
-                                                <span className="text-[10px] bg-sara-red/10 text-sara-red font-black px-2 py-0.5 rounded-full">
-                                                    {alertas.length}
-                                                </span>
-                                            )}
-                                        </div>
+                                         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                                             <div className="flex items-center gap-2">
+                                                 <h3 className="font-bold text-gray-800 text-sm">Notificaciones</h3>
+                                                 {alertas.length > 0 && (
+                                                     <span className="text-[10px] bg-sara-red/10 text-sara-red font-black px-2 py-0.5 rounded-full">
+                                                         {alertas.length}
+                                                     </span>
+                                                 )}
+                                             </div>
+                                             {alertas.some(al => al.persistente) && (
+                                                 <button 
+                                                     onClick={handleLimpiarNotificaciones}
+                                                     className="text-[10px] text-sara-red font-bold hover:underline bg-transparent border-0 cursor-pointer focus:outline-none flex items-center gap-1 transition-all"
+                                                     style={{ color: "#8B1A1A" }}
+                                                 >
+                                                     Limpiar todo
+                                                 </button>
+                                             )}
+                                         </div>
                                         <div className="max-h-72 overflow-y-auto">
                                             {alertas.length === 0 ? (
                                                 <div className="p-8 text-center text-gray-400 text-xs">

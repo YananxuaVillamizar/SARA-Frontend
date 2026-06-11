@@ -30,14 +30,7 @@ interface FilaHorario {
     }[]>;
 }
 
-function obtenerIniciales(nombreCompleto: string): string {
-    if (!nombreCompleto) return "DO";
-    const partes = nombreCompleto.trim().split(/\s+/);
-    if (partes.length >= 2) {
-        return (partes[0][0] + partes[1][0]).toUpperCase();
-    }
-    return partes[0].slice(0, 2).toUpperCase();
-}
+
 
 export default function HorarioPage() {
     const [sesion, setSesion] = useState({ id: "", rol: "", nombre: "" });
@@ -182,6 +175,11 @@ export default function HorarioPage() {
                                                 <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
                                                 <p className="text-[11px] font-black text-sidebar-bg uppercase leading-tight print:text-black">{fila.asignatura}</p>
                                                 <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
+                                                {sesion.rol === "Estudiante" && (
+                                                    <p className="text-[9px] text-[#8B1A1A] font-bold mt-1 uppercase" title={fila.docente}>
+                                                        Docente: {fila.docente}
+                                                    </p>
+                                                )}
                                             </div>
                                         </td>
                                         
@@ -199,10 +197,10 @@ export default function HorarioPage() {
                                                                 {clase.aula}
                                                             </p>
                                                             <div 
-                                                                className="inline-block px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 uppercase tracking-widest mt-0.5 cursor-help"
+                                                                className="inline-block px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5"
                                                                 title={fila.docente}
                                                             >
-                                                                {obtenerIniciales(fila.docente)}
+                                                                {fila.cod_asignatura}
                                                             </div>
                                                         </div>
                                                     ))}

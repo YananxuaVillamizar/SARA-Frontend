@@ -66,17 +66,17 @@ export default function LoginPage() {
 
           {/* Logo / Escudo universitario */}
           <div className="flex justify-center mb-3">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center border-2"
-              style={{ background: "rgba(201,168,76,0.15)", borderColor: "#C9A84C" }}>
-              <GraduationCap size={32} color="#C9A84C" />
-            </div>
+            <img 
+              src="/logo_sara.png" 
+              alt="SARA Logo" 
+              className="h-16 w-auto object-contain drop-shadow-md" 
+            />
           </div>
 
           {/* Nombre de la institución */}
           <p className="text-white/70 text-xs uppercase tracking-[0.2em] font-medium mb-1">
             Universidad de Pamplona
           </p>
-          <h1 className="text-4xl font-bold text-white tracking-tight">SARA</h1>
           <p style={{ color: "#C9A84C" }} className="text-xs mt-1 font-medium">
             Sistema de Asistencia con Reconocimiento Automático
           </p>

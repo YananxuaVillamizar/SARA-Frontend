@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Lock, ArrowRight, ShieldCheck, GraduationCap, Eye, EyeOff } from "lucide-react";
+import { User, Lock, ArrowRight, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { loginUsuario, guardarSesion } from "@/services/auth";
 
 

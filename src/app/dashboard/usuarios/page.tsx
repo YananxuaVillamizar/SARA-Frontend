@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw, Calendar, Clock, MapPin, Printer } from "lucide-react";
+import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw, Calendar, Printer } from "lucide-react";
 import { listarUsuarios, crearUsuario, actualizarUsuario, obtenerUsuario, generarPinSeguro, Usuario } from "@/services/usuarios";
 import { listarRoles, Rol } from "@/services/admin";
 import { getSesion } from "@/services/auth";

@@ -856,7 +856,7 @@ export default function DashboardPage() {
         ];
 
         const studentAlerts = estudianteStats.asignaturas_asistencias
-            .filter(asig => asig.porcentaje < 80)
+            .filter(asig => asig.dictadas > 0 && asig.porcentaje < 80)
             .map(asig => {
                 const isCritical = asig.porcentaje < 70;
                 return {

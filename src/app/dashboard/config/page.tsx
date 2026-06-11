@@ -179,6 +179,7 @@ export default function ConfigPage() {
     const [showEstSugg, setShowEstSugg] = useState(false);
     const [editMatContext, setEditMatContext] = useState({ asignatura: "", estudiante: "" });
     const [asigsMat, setAsigsMat] = useState<{ asignatura_id: string; asignatura: string; grupo: string; id?: string }[]>([]);
+    const [horariosExpansibles, setHorariosExpansibles] = useState<Record<string, boolean>>({});
     const [nuevaAsigMat, setNuevaAsigMat] = useState({ asignatura_id: "", grupo: "" });
     const [asigMatAEliminar, setAsigMatAEliminar] = useState<string[]>([]);
     const [errorAsigMat, setErrorAsigMat] = useState("");
@@ -355,6 +356,7 @@ export default function ConfigPage() {
         setShowFacSugg(false);
         setShowProgSugg(false);
         setAsigsMat([]); setNuevaAsigMat({ asignatura_id: "", grupo: "" });
+        setHorariosExpansibles({});
         setAsigMatAEliminar([]); setErrorAsigMat("");
         setEditMatStudent({ id: "", nombre: "", num_doc: "", programa_id: "", programa: "" });
         setEditMatContext({ asignatura: "", estudiante: "" });
@@ -1936,24 +1938,38 @@ export default function ConfigPage() {
                                                     const matches = horarios.filter(h => h.asignatura_id === a.asignatura_id && h.grupo === a.grupo);
                                                     const sortedMatches = [...matches].sort((x, y) => (DIA_ORDER[x.dia_semana] ?? 6) - (DIA_ORDER[y.dia_semana] ?? 6));
                                                     if (sortedMatches.length === 0) return null;
+                                                    const isExpanded = horariosExpansibles[a.asignatura_id] || false;
                                                     return (
-                                                        <div className="mt-2.5 space-y-2">
-                                                            {sortedMatches.map((h, idx) => (
-                                                                <div key={idx} className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1">
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="font-extrabold text-gray-800 capitalize text-xs">{DIA_LABEL[h.dia_semana] || h.dia_semana}</span>
-                                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-purple-50 text-purple-700">
-                                                                            Aula {h.aula}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1 text-[11px] text-gray-500 font-semibold mt-0.5">
-                                                                        ⏱️ {h.hora_inicio.slice(0, 5)} - {h.hora_fin.slice(0, 5)}
-                                                                    </div>
-                                                                    <div className="text-[10px] text-gray-400 italic">
-                                                                        Docente: {h.docente} {h.apellido_docente}
-                                                                    </div>
+                                                        <div className="mt-2.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setHorariosExpansibles(prev => ({ ...prev, [a.asignatura_id]: !prev[a.asignatura_id] }))}
+                                                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-500 hover:text-[#8B1A1A] hover:bg-red-50 hover:border-red-100 transition-all cursor-pointer"
+                                                            >
+                                                                <span>Horarios programados</span>
+                                                                <ChevronDown size={14} className={`transform transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                                                            </button>
+                                                            
+                                                            {isExpanded && (
+                                                                <div className="mt-2 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                                    {sortedMatches.map((h, idx) => (
+                                                                        <div key={idx} className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1">
+                                                                            <div className="flex justify-between items-center">
+                                                                                <span className="font-extrabold text-gray-800 capitalize text-xs">{DIA_LABEL[h.dia_semana] || h.dia_semana}</span>
+                                                                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-purple-50 text-purple-700">
+                                                                                    Aula {h.aula}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1 text-[11px] text-gray-500 font-semibold mt-0.5">
+                                                                                ⏱️ {h.hora_inicio.slice(0, 5)} - {h.hora_fin.slice(0, 5)}
+                                                                            </div>
+                                                                            <div className="text-[10px] text-gray-400 italic">
+                                                                                Docente: {h.docente} {h.apellido_docente}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
-                                                            ))}
+                                                            )}
                                                         </div>
                                                     );
                                                 })()}

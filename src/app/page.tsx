@@ -39,6 +39,11 @@ export default function LoginPage() {
     <div
       className="min-h-screen flex items-center justify-center p-4 relative bg-[#f8fafc] overflow-hidden"
     >
+      {/* Círculos difuminados con colores suaves para el fondo premium */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#e0f2fe] opacity-50 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#fef3c7] opacity-40 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[30%] right-[10%] w-[35%] h-[35%] rounded-full bg-[#fee2e2] opacity-40 blur-[100px] pointer-events-none" />
+
       {/* Patrón de circuitos impresos de fondo como marca de agua */}
       <div className="absolute inset-0 opacity-[0.06] pointer-events-none overflow-hidden">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" className="text-[#0c4357]">
@@ -68,7 +73,7 @@ export default function LoginPage() {
         {/* Encabezado Institucional Premium a ancho completo */}
         <div className="w-full bg-[#07222c] overflow-hidden">
           <img 
-            src="/logo_sara.png" 
+            src="/banner_sara.png" 
             alt="SARA Banner Logo" 
             className="w-full aspect-[1080/316] object-cover select-none block" 
           />
@@ -87,11 +92,15 @@ export default function LoginPage() {
                 Correo Institucional
               </label>
               <div className="relative group">
+                <User
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#c9a84c] transition-colors"
+                  size={18}
+                />
                 <input
                   type="email"
                   required
                   placeholder="usuario@unipamplona.edu.co"
-                  className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 outline-none transition-all focus:border-[#0c4357] text-[#1a1a2e]"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 outline-none transition-all focus:border-[#0c4357] text-[#1a1a2e]"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                 />

@@ -119,9 +119,9 @@ export default function DashboardLayout({
                     <div className="w-full flex items-center justify-center">
                         {isCollapsed ? (
                             <img 
-                                src="/logo_sara.png" 
+                                src="/logo_sara_mini.png" 
                                 alt="SARA" 
-                                className="h-8 w-auto object-contain transition-all duration-300 max-w-[45px]" 
+                                className="h-10 w-auto object-contain transition-all duration-300 max-w-[45px]" 
                             />
                         ) : (
                             <img 
@@ -222,7 +222,7 @@ export default function DashboardLayout({
                                                      </span>
                                                  )}
                                              </div>
-                                             {alertas.some(al => al.persistente) && (
+                                             {alertas.length > 0 && (
                                                  <button 
                                                      onClick={handleLimpiarNotificaciones}
                                                      className="text-[10px] text-sara-red font-bold hover:underline bg-transparent border-0 cursor-pointer focus:outline-none flex items-center gap-1 transition-all"

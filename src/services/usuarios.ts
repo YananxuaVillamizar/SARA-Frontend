@@ -56,5 +56,6 @@ export const actualizarUsuario = async (
         num_doc?: string;
         password?: string;
         pin?: string;
+        solicitante_id?: string;
     }
 ) => (await api.put(`/usuarios/${num_doc}`, datos)).data;

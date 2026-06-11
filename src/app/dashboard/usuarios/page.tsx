@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw } from "lucide-react";
 import { listarUsuarios, crearUsuario, actualizarUsuario, obtenerUsuario, generarPinSeguro, Usuario } from "@/services/usuarios";
 import { listarRoles, Rol } from "@/services/admin";
+import { getSesion } from "@/services/auth";
 
 // ── Helpers visuales ──────────────────────────────────────────
 const RolBadge = ({ rol }: { rol: string }) => {
@@ -148,6 +149,7 @@ export default function UsuariosPage() {
         setGuardando(true);
         setErrorForm("");
         try {
+            const { id: solicitanteId } = getSesion();
             const payload: any = {
                 nombres: formEdit.nombres,
                 apellidos: formEdit.apellidos,
@@ -155,7 +157,8 @@ export default function UsuariosPage() {
                 num_doc: formEdit.num_doc,
                 email: formEdit.email,
                 activo: formEdit.activo,
-                autoriza_biometria: formEdit.autoriza_biometria
+                autoriza_biometria: formEdit.autoriza_biometria,
+                solicitante_id: solicitanteId
             };
             if (formEdit.password && formEdit.password.trim() !== "") {
                 payload.password = formEdit.password;

@@ -78,6 +78,7 @@ export default function UsuariosPage() {
     const [editConfirmWarning, setEditConfirmWarning] = useState("");
     const [showPin, setShowPin] = useState(false);
     const [confirmingPinRegen, setConfirmingPinRegen] = useState(false);
+    const [isGeneratingPin, setIsGeneratingPin] = useState(false);
     const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false);
     const [horarioUsuario, setHorarioUsuario] = useState<Usuario | null>(null);
     const [horariosData, setHorariosData] = useState<HorarioSemanal[]>([]);

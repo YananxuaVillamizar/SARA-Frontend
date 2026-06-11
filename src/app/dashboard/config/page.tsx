@@ -70,7 +70,7 @@ function THead({ cols }: { cols: string[] }) {
     );
 }
 
-const HorariosDropdown = ({ matricula, horarios }: { matricula: Matricula; horarios: Horario[] }) => {
+const HorariosDropdown = ({ matricula, horarios }: { matricula: { asignatura_id: string; grupo: string }; horarios: Horario[] }) => {
     const [open, setOpen] = useState(false);
     
     // Find matching schedules
@@ -1900,7 +1900,10 @@ export default function ConfigPage() {
                                             <div key={i} className="flex flex-col gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
                                                 <div className="flex items-center justify-between">
                                                     <span className="font-bold text-gray-700 text-sm flex-1">{a.asignatura}</span>
-                                                    <button type="button" onClick={() => quitarAsigMat(i)} className="text-red-400 hover:text-red-600 p-1"><X size={16} /></button>
+                                                    <div className="flex items-center gap-1">
+                                                        <HorariosDropdown matricula={a} horarios={horarios} />
+                                                        <button type="button" onClick={() => quitarAsigMat(i)} className="text-red-400 hover:text-red-600 p-1"><X size={16} /></button>
+                                                    </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
@@ -1928,6 +1931,31 @@ export default function ConfigPage() {
                                                         return <p className="text-[10px] font-bold text-amber-600 mt-1 leading-tight">⚠️ Este grupo ya ha alcanzado su cupo máximo.</p>;
                                                     }
                                                     return null;
+                                                })()}
+                                                {(() => {
+                                                    const matches = horarios.filter(h => h.asignatura_id === a.asignatura_id && h.grupo === a.grupo);
+                                                    const sortedMatches = [...matches].sort((x, y) => (DIA_ORDER[x.dia_semana] ?? 6) - (DIA_ORDER[y.dia_semana] ?? 6));
+                                                    if (sortedMatches.length === 0) return null;
+                                                    return (
+                                                        <div className="mt-2.5 space-y-2">
+                                                            {sortedMatches.map((h, idx) => (
+                                                                <div key={idx} className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="font-extrabold text-gray-800 capitalize text-xs">{DIA_LABEL[h.dia_semana] || h.dia_semana}</span>
+                                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-purple-50 text-purple-700">
+                                                                            Aula {h.aula}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 text-[11px] text-gray-500 font-semibold mt-0.5">
+                                                                        ⏱️ {h.hora_inicio.slice(0, 5)} - {h.hora_fin.slice(0, 5)}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-gray-400 italic">
+                                                                        Docente: {h.docente} {h.apellido_docente}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
                                                 })()}
                                             </div>
                                         ))}

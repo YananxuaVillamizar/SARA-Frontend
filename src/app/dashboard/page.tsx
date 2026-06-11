@@ -1054,48 +1054,58 @@ export default function DashboardPage() {
                             <p className="text-[11px] text-gray-400 mt-0.5 mb-2">Frecuencia de estados en el semestre.</p>
                         </div>
 
-                        <div className="flex items-center justify-center gap-12 h-full w-full">
-                            {/* Referencias al lado izquierdo */}
-                            <div className="flex flex-col gap-3 shrink-0">
-                                {estudianteStats.desglose_puntualidad.map((entry, i) => (
-                                    <div key={i} className="flex items-center gap-2">
-                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] text-gray-400 font-bold uppercase leading-none">{entry.name}</span>
-                                            <span className="text-xs font-black mt-0.5" style={{ color: entry.color }}>
-                                                {entry.value}
-                                            </span>
-                                        </div>
+                        {(() => {
+                            const sumValues = estudianteStats.desglose_puntualidad.reduce((acc, curr) => acc + curr.value, 0);
+                            const pieData = sumValues > 0 
+                                ? estudianteStats.desglose_puntualidad 
+                                : [{ name: "Sin registros", value: 1, color: "#E5E7EB" }];
+                            return (
+                                <div className="flex items-center justify-center gap-12 h-full w-full">
+                                    {/* Referencias al lado izquierdo */}
+                                    <div className="flex flex-col gap-3 shrink-0">
+                                        {estudianteStats.desglose_puntualidad.map((entry, i) => (
+                                            <div key={i} className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[9px] text-gray-400 font-bold uppercase leading-none">{entry.name}</span>
+                                                    <span className="text-xs font-black mt-0.5" style={{ color: entry.color }}>
+                                                        {entry.value}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
 
-                            {/* Gráfico a la derecha (más grande) */}
-                            <div className="w-48 h-48 relative flex justify-center items-center shrink-0">
-                                {showCharts && (
-                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                                        <PieChart>
-                                            <Pie
-                                                data={estudianteStats.desglose_puntualidad}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={52}
-                                                outerRadius={78}
-                                                paddingAngle={4}
-                                                dataKey="value"
-                                            >
-                                                {estudianteStats.desglose_puntualidad.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip
-                                                contentStyle={{ borderRadius: 10, fontSize: 10, border: "1px solid #F3F4F6" }}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </div>
-                        </div>
+                                    {/* Gráfico a la derecha (más grande) */}
+                                    <div className="w-48 h-48 relative flex justify-center items-center shrink-0">
+                                        {showCharts && (
+                                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                                                <PieChart>
+                                                    <Pie
+                                                        data={pieData}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={52}
+                                                        outerRadius={78}
+                                                        paddingAngle={sumValues > 0 ? 4 : 0}
+                                                        dataKey="value"
+                                                    >
+                                                        {pieData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                                        ))}
+                                                    </Pie>
+                                                    {sumValues > 0 && (
+                                                        <Tooltip
+                                                            contentStyle={{ borderRadius: 10, fontSize: 10, border: "1px solid #F3F4F6" }}
+                                                        />
+                                                    )}
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 
@@ -1154,13 +1164,21 @@ export default function DashboardPage() {
                                             </div>
                                             <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">Grupo {h.grupo} • {h.hora_inicio} - {h.hora_fin}</p>
                                         </div>
-                                        <div className="border-t border-gray-50 pt-3 flex flex-wrap gap-2 justify-between items-center">
-                                            <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${estadoClase.bg}`}>
-                                                {estadoClase.label}
-                                            </span>
-                                            <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${asistioClase.bg}`}>
-                                                {asistioClase.label}
-                                            </span>
+                                        <div className="border-t border-gray-50 pt-3 flex flex-wrap gap-2 justify-between items-center w-full">
+                                            {(h as any).docente_asistio === false ? (
+                                                <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-md bg-red-50 text-red-600 border border-red-100 w-full text-center">
+                                                    Clase cancelada: Docente no asistió
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${estadoClase.bg}`}>
+                                                        {estadoClase.label}
+                                                    </span>
+                                                    <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${asistioClase.bg}`}>
+                                                        {asistioClase.label}
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 );

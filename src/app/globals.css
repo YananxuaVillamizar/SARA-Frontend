@@ -3,14 +3,14 @@
 /* 1. Definición de colores y variables SARA */
 @theme {
   /* Colores Institucionales */
-  --color-sara-red: #8B1A1A;
-  --color-sara-red-dark: #6B1212;
-  --color-sara-red-light: #A52020;
+  --color-sara-red: #07222c;
+  --color-sara-red-dark: #051820;
+  --color-sara-red-light: #0c4357;
   --color-sara-gold: #C9A84C;
   --color-sara-gold-light: #D4B96A;
 
   /* Colores de Interfaz */
-  --color-sidebar-bg: #1A1A2E;
+  --color-sidebar-bg: #07222c;
   --color-card-bg: #FFFFFF;
   --color-page-bg: #F4F6F9;
 

@@ -613,7 +613,7 @@ export default function ConfigPage() {
                     <h1 className="text-2xl font-black" style={{ color: "#1A1A2E" }}>Configuración Académica</h1>
                     <p className="text-gray-400 text-sm font-medium">Gestiona la estructura básica de la institución</p>
                 </div>
-                <button onClick={() => { resetForm(); setPanel(true); }} className="px-6 py-3 rounded-2xl text-white font-bold text-sm shadow-lg shadow-sara-red/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2" style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
+                <button onClick={() => { resetForm(); setPanel(true); }} className="px-6 py-3 rounded-2xl text-white font-bold text-sm shadow-lg shadow-sara-gold/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2" style={{ background: "linear-gradient(135deg, #07222c, #051820)" }}>
                     <Plus size={18} /> {TAB_ACTIONS[tab].btn}
                 </button>
             </div>
@@ -1466,7 +1466,7 @@ export default function ConfigPage() {
                 <>
                     <div className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm" onClick={() => setPanel(false)} />
                     <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 shadow-2xl flex flex-col">
-                        <div className="p-6 border-b flex items-center justify-between" style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
+                        <div className="p-6 border-b flex items-center justify-between" style={{ background: "linear-gradient(135deg, #07222c, #051820)" }}>
                             <h3 className="text-white font-bold">{editandoId ? TAB_ACTIONS[tab].editTitle : TAB_ACTIONS[tab].title}</h3>
                             <button onClick={() => setPanel(false)} className="text-white/80 hover:text-white transition-colors"><X size={20} /></button>
                         </div>
@@ -1944,7 +1944,6 @@ export default function ConfigPage() {
                                                 <div className="flex items-center justify-between">
                                                     <span className="font-bold text-gray-700 text-sm flex-1">{a.asignatura}</span>
                                                     <div className="flex items-center gap-1">
-                                                        <HorariosDropdown matricula={a} horarios={horarios} />
                                                         <button type="button" onClick={() => quitarAsigMat(i)} className="text-red-400 hover:text-red-600 p-1"><X size={16} /></button>
                                                     </div>
                                                 </div>
@@ -2167,7 +2166,7 @@ export default function ConfigPage() {
                             
                             {/* Header del Modal (Oculto al imprimir) */}
                             <div className="p-6 border-b border-gray-100 flex items-center justify-between no-print"
-                                style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
+                                style={{ background: "linear-gradient(135deg, #07222c, #051820)" }}>
                                 <div>
                                     <h2 className="text-white font-black text-lg flex items-center gap-2">
                                         <Calendar size={20} /> Horario Semanal de Clases
@@ -2191,7 +2190,7 @@ export default function ConfigPage() {
                             </div>
 
                             {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
-                            <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#8B1A1A] flex justify-between items-center px-4 pt-4">
+                            <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#07222c] flex justify-between items-center px-4 pt-4">
                                 <div className="flex items-center gap-4">
                                     <img src="/logo_sara.png" alt="Logo SARA" className="h-12 w-auto" />
                                     <div>
@@ -2209,7 +2208,7 @@ export default function ConfigPage() {
                             <div className="flex-1 overflow-y-auto p-6 bg-gray-50 print:bg-white print:p-0">
                                 {cargandoHorario ? (
                                     <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                                        <div className="w-10 h-10 border-4 border-[#8B1A1A] border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-10 h-10 border-4 border-[#07222c] border-t-transparent rounded-full animate-spin" />
                                         <p className="text-gray-400 text-sm font-medium animate-pulse">Cargando horario semanal...</p>
                                     </div>
                                 ) : (() => {

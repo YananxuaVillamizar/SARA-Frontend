@@ -109,15 +109,15 @@ export default function DashboardLayout({
 
     return (
         <div className="flex h-screen bg-page-bg">
-            {/* SIDEBAR CON HOVER EXPAND */}
+            {/* SIDEBAR CON HOVER EXPAND CON ESTILO DE INICIO DE SESIÓN */}
             <aside
                 onMouseEnter={() => setIsCollapsed(false)}
                 onMouseLeave={() => setIsCollapsed(true)}
-                className={`bg-sidebar-bg text-white transition-[width] duration-300 ease-in-out flex flex-col z-30 shadow-2xl ${isCollapsed ? "w-[70px]" : "w-64"
+                className={`bg-[#07222c] text-white transition-[width] duration-300 ease-in-out flex flex-col z-30 shadow-2xl ${isCollapsed ? "w-[70px]" : "w-64"
                     }`}
             >
                 {/* Logo Section */}
-                <div className="h-20 flex items-center justify-center border-b border-white/5 overflow-hidden px-4">
+                <div className="h-20 flex items-center justify-center border-b border-white/10 overflow-hidden px-4">
                     <div className="w-full flex items-center justify-center">
                         {isCollapsed ? (
                             <div className="bg-white p-1.5 rounded-xl shadow-lg border border-white/10 flex items-center justify-center w-11 h-11 transition-all duration-300">
@@ -148,16 +148,16 @@ export default function DashboardLayout({
                                 key={index}
                                 href={item.href}
                                 className={`flex items-center p-3 rounded-xl transition-all duration-200 group relative ${isActive
-                                    ? "bg-sara-red text-white shadow-lg shadow-sara-red/30"
-                                    : "text-gray-400 hover:bg-white/5 hover:text-white"
+                                    ? "bg-[#0c4357] text-[#c9a84c] shadow-lg shadow-black/20"
+                                    : "text-gray-300 hover:bg-white/5 hover:text-white"
                                     }`}
                             >
                                 {/* Indicador visual para modo colapsado */}
                                 {isActive && isCollapsed && (
-                                    <div className="absolute left-0 w-1 h-6 bg-sara-gold rounded-r-full" />
+                                    <div className="absolute left-0 w-1 h-6 bg-[#c9a84c] rounded-r-full" />
                                 )}
 
-                                <div className={`${isActive ? "text-white" : "group-hover:text-sara-gold"} shrink-0`}>
+                                <div className={`${isActive ? "text-[#c9a84c]" : "group-hover:text-[#c9a84c]"} shrink-0`}>
                                     {item.icon}
                                 </div>
 
@@ -174,10 +174,10 @@ export default function DashboardLayout({
                 </nav>
 
                 {/* Bottom Actions */}
-                <div className="p-4 border-t border-white/5">
+                <div className="p-4 border-t border-white/10">
                     <button
                         onClick={() => { cerrarSesion(); router.push("/"); }}
-                        className="w-full flex items-center p-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-all group"
+                        className="w-full flex items-center p-3 rounded-xl text-gray-300 hover:bg-red-500/10 hover:text-red-400 transition-all group"
                     >
                         <div className="shrink-0"><LogOut size={20} /></div>
                         <span className={`ml-4 text-sm font-medium transition-all duration-300 ${

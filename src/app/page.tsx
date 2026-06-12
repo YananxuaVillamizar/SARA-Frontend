@@ -35,18 +35,18 @@ export default function LoginPage() {
   const isEmailValid = email.toLowerCase().endsWith("@unipamplona.edu.co");
 
   return (
-    /* Fondo claro con patrón de circuitos impresos sutil */
+    /* Fondo oscuro institucional premium con patrón de circuitos impresos sutil */
     <div
-      className="min-h-screen flex items-center justify-center p-4 relative bg-[#f8fafc] overflow-hidden"
+      className="min-h-screen flex items-center justify-center p-4 relative bg-gradient-to-br from-[#07222c] via-[#0c4357] to-[#041319] overflow-hidden"
     >
-      {/* Círculos difuminados con colores suaves para el fondo premium */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#e0f2fe] opacity-50 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#fef3c7] opacity-40 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[10%] w-[35%] h-[35%] rounded-full bg-[#fee2e2] opacity-40 blur-[100px] pointer-events-none" />
+      {/* Círculos difuminados con colores de identidad para dar brillo y profundidad premium */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#c9a84c] opacity-[0.12] blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#0ea5e9] opacity-[0.1] blur-[130px] pointer-events-none" />
+      <div className="absolute top-[30%] right-[10%] w-[35%] h-[35%] rounded-full bg-[#0c4357] opacity-[0.25] blur-[100px] pointer-events-none" />
 
       {/* Patrón de circuitos impresos de fondo como marca de agua */}
-      <div className="absolute inset-0 opacity-[0.06] pointer-events-none overflow-hidden">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" className="text-[#0c4357]">
+      <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" className="text-white/[0.035]">
           <pattern id="circuito-fondo" width="240" height="240" patternUnits="userSpaceOnUse">
             <path d="M 10 10 L 80 10 L 100 30 L 160 30 L 180 50 L 240 50" fill="none" stroke="currentColor" strokeWidth="2.5" />
             <circle cx="10" cy="10" r="4.5" fill="currentColor" />
@@ -68,20 +68,20 @@ export default function LoginPage() {
       </div>
 
       {/* Tarjeta Principal */}
-      <div className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 z-10">
+      <div className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100/50 z-10 transition-all duration-300">
 
-        {/* Encabezado Institucional Premium a ancho completo */}
-        <div className="w-full bg-[#07222c] overflow-hidden">
+        {/* Encabezado Institucional Premium a ancho completo sin recortar */}
+        <div className="w-full bg-[#07222c]">
           <img 
             src="/banner_sara.png" 
             alt="SARA Banner Logo" 
-            className="w-full aspect-[1080/316] object-cover select-none block" 
+            className="w-full h-auto select-none block" 
           />
         </div>
 
-        {/* Formulario */}
-        <div className="p-8 bg-white">
-          <h2 className="text-2xl font-medium mb-6 text-[#0c4357]">
+        {/* Formulario corrido más abajo con padding-top extra para dar aire y espacio al banner */}
+        <div className="pt-10 pb-8 px-8 bg-white">
+          <h2 className="text-2xl font-bold mb-6 text-[#0c4357]">
             Iniciar Sesión
           </h2>
 

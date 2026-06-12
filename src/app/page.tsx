@@ -37,12 +37,12 @@ export default function LoginPage() {
   return (
     /* Fondo oscuro institucional premium con patrón de circuitos impresos sutil */
     <div
-      className="min-h-screen flex items-center justify-center p-4 relative bg-gradient-to-br from-[#07222c] via-[#0c4357] to-[#041319] overflow-hidden"
+      className="min-h-screen flex items-center justify-center p-4 relative bg-gradient-to-br from-[#0a475a] via-[#0e5d75] to-[#052833] overflow-hidden"
     >
       {/* Círculos difuminados con colores de identidad para dar brillo y profundidad premium */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#c9a84c] opacity-[0.12] blur-[130px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#0ea5e9] opacity-[0.1] blur-[130px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[10%] w-[35%] h-[35%] rounded-full bg-[#0c4357] opacity-[0.25] blur-[100px] pointer-events-none" />
+      <div className="absolute top-[30%] right-[10%] w-[35%] h-[35%] rounded-full bg-[#187e9e] opacity-[0.25] blur-[100px] pointer-events-none" />
 
       {/* Patrón de circuitos impresos de fondo como marca de agua */}
       <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
@@ -71,7 +71,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100/50 z-10 transition-all duration-300">
 
         {/* Encabezado Institucional Premium a ancho completo sin recortar */}
-        <div className="w-full bg-[#07222c]">
+        <div className="w-full bg-[#0a475a]">
           <img 
             src="/banner_sara.png" 
             alt="SARA Banner Logo" 
@@ -81,14 +81,14 @@ export default function LoginPage() {
 
         {/* Formulario corrido más abajo con padding-top extra para dar aire y espacio al banner */}
         <div className="pt-10 pb-8 px-8 bg-white">
-          <h2 className="text-2xl font-bold mb-6 text-[#0c4357]">
+          <h2 className="text-2xl font-bold mb-6 text-[#0e5d75]">
             Iniciar Sesión
           </h2>
 
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Campo Email */}
             <div>
-              <label className="text-sm font-medium text-[#1a4454] block mb-1.5">
+              <label className="text-sm font-medium text-[#1e6177] block mb-1.5">
                 Correo Institucional
               </label>
               <div className="relative group">
@@ -100,7 +100,7 @@ export default function LoginPage() {
                   type="email"
                   required
                   placeholder="usuario@unipamplona.edu.co"
-                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 outline-none transition-all focus:border-[#0c4357] text-[#1a1a2e]"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 outline-none transition-all focus:border-[#0e5d75] text-[#1a1a2e]"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                 />
@@ -116,7 +116,7 @@ export default function LoginPage() {
 
             {/* Campo Password */}
             <div>
-              <label className="text-sm font-medium text-[#1a4454] block mb-1.5">
+              <label className="text-sm font-medium text-[#1e6177] block mb-1.5">
                 Contraseña
               </label>
               <div className="relative group">
@@ -128,7 +128,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 outline-none transition-all focus:border-[#0c4357] text-[#1a1a2e]"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 outline-none transition-all focus:border-[#0e5d75] text-[#1a1a2e]"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                 />
@@ -153,11 +153,11 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70 font-semibold tracking-wide"
               style={{ 
-                background: "linear-gradient(to right, #082d3b, #0c4357)",
+                background: "linear-gradient(to right, #0a475a, #0e5d75)",
                 color: "#c9a84c"
               }}
-              onMouseEnter={e => !loading && ((e.target as HTMLElement).style.background = "linear-gradient(to right, #0c4357, #135d78)")}
-              onMouseLeave={e => !loading && ((e.target as HTMLElement).style.background = "linear-gradient(to right, #082d3b, #0c4357)")}
+              onMouseEnter={e => !loading && ((e.target as HTMLElement).style.background = "linear-gradient(to right, #0e5d75, #187e9e)")}
+              onMouseLeave={e => !loading && ((e.target as HTMLElement).style.background = "linear-gradient(to right, #0a475a, #0e5d75)")}
             >
               {loading ? (
                 <span>Verificando...</span>

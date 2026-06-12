@@ -277,8 +277,8 @@ export default function UsuariosPage() {
                 </div>
                 <button
                     onClick={() => { setMostrarForm(true); setErrorForm(""); }}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold shadow-lg transition-all hover:opacity-90"
-                    style={{ background: "#8B1A1A", boxShadow: "0 4px 12px #8B1A1A40" }}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    style={{ background: "#0e5d75", boxShadow: "0 4px 12px rgba(14, 93, 117, 0.25)" }}
                 >
                     <Plus size={18} /> Nuevo Usuario
                 </button>
@@ -458,7 +458,7 @@ export default function UsuariosPage() {
                     <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 shadow-2xl flex flex-col">
                         {/* Header del panel */}
                         <div className="p-6 border-b border-gray-100 flex items-center justify-between"
-                            style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
+                            style={{ background: "linear-gradient(135deg, #0e5d75, #0a475a)" }}>
                             <div>
                                 <h2 className="text-white font-bold text-lg">Nuevo Usuario</h2>
                                 <p className="text-white/60 text-xs mt-0.5">Completa todos los campos obligatorios</p>
@@ -552,7 +552,7 @@ export default function UsuariosPage() {
                             </button>
                             <button onClick={handleCrear} disabled={guardando}
                                 className="flex-1 py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90 disabled:opacity-60"
-                                style={{ background: "#8B1A1A" }}>
+                                style={{ background: "#0e5d75" }}>
                                 {guardando ? "Guardando..." : "Crear Usuario"}
                             </button>
                         </div>
@@ -570,7 +570,8 @@ export default function UsuariosPage() {
                     {/* Panel */}
                     <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 shadow-2xl flex flex-col">
                         {/* Header del panel */}
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-blue-600">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between"
+                            style={{ background: "linear-gradient(135deg, #0e5d75, #0a475a)" }}>
                             <div>
                                 <h2 className="text-white font-bold text-lg">Editar Usuario</h2>
                                 <p className="text-white/60 text-xs mt-0.5">Modifica los campos necesarios</p>
@@ -769,7 +770,8 @@ export default function UsuariosPage() {
                                         Cancelar
                                     </button>
                                     <button onClick={(e) => handleEditarSubmit(e)} disabled={guardando}
-                                        className="flex-1 py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90 disabled:opacity-60 bg-blue-600">
+                                        className="flex-1 py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90 disabled:opacity-60"
+                                        style={{ background: "#0e5d75" }}>
                                         {guardando ? "Guardando..." : "Guardar Cambios"}
                                     </button>
                                 </div>
@@ -790,7 +792,7 @@ export default function UsuariosPage() {
                         
                         {/* Header del Modal (Oculto al imprimir) */}
                         <div className="p-6 border-b border-gray-100 flex items-center justify-between no-print"
-                            style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
+                            style={{ background: "linear-gradient(135deg, #0e5d75, #0a475a)" }}>
                             <div>
                                 <h2 className="text-white font-black text-lg flex items-center gap-2">
                                     <Calendar size={20} /> Horario Semanal de Clases
@@ -814,7 +816,7 @@ export default function UsuariosPage() {
                         </div>
 
                         {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
-                        <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#8B1A1A] flex justify-between items-center px-4 pt-4">
+                        <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#0e5d75] flex justify-between items-center px-4 pt-4">
                             <div className="flex items-center gap-4">
                                 <img src="/logo_sara.png" alt="Logo SARA" className="h-12 w-auto" />
                                 <div>
@@ -832,7 +834,7 @@ export default function UsuariosPage() {
                         <div className="flex-1 overflow-y-auto p-6 bg-page-bg print:bg-white print:p-0">
                             {cargandoHorario ? (
                                 <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                                    <div className="w-10 h-10 border-4 border-[#8B1A1A] border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-10 h-10 border-4 border-[#0e5d75] border-t-transparent rounded-full animate-spin" />
                                     <p className="text-gray-400 text-sm font-medium animate-pulse">Cargando horario semanal...</p>
                                 </div>
                             ) : (() => {
@@ -913,7 +915,7 @@ export default function UsuariosPage() {
                                                                     <p className="text-[10px] font-black text-sidebar-bg uppercase leading-tight print:text-black">{fila.asignatura}</p>
                                                                     <p className="text-[9px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
                                                                     {horarioUsuario.rol === "Estudiante" && (
-                                                                        <p className="text-[8px] text-[#8B1A1A] font-bold mt-1 uppercase" title={fila.docente}>
+                                                                        <p className="text-[8px] text-[#0e5d75] font-bold mt-1 uppercase" title={fila.docente}>
                                                                             Docente: {fila.docente}
                                                                         </p>
                                                                     )}

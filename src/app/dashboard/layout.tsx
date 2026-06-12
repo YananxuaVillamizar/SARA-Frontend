@@ -113,7 +113,7 @@ export default function DashboardLayout({
             <aside
                 onMouseEnter={() => setIsCollapsed(false)}
                 onMouseLeave={() => setIsCollapsed(true)}
-                className={`bg-[#07222c] text-white transition-[width] duration-300 ease-in-out flex flex-col z-30 shadow-2xl ${isCollapsed ? "w-[70px]" : "w-64"
+                className={`bg-sidebar-bg text-white transition-[width] duration-300 ease-in-out flex flex-col z-30 shadow-2xl ${isCollapsed ? "w-[70px]" : "w-64"
                     }`}
             >
                 {/* Logo Section */}
@@ -148,8 +148,8 @@ export default function DashboardLayout({
                                 key={index}
                                 href={item.href}
                                 className={`flex items-center p-3 rounded-xl transition-all duration-200 group relative ${isActive
-                                    ? "bg-[#0c4357] text-[#c9a84c] shadow-lg shadow-black/20"
-                                    : "text-gray-300 hover:bg-white/5 hover:text-white"
+                                    ? "bg-[#187e9e]/20 text-[#c9a84c] border-l-4 border-[#c9a84c] rounded-r-xl rounded-l-none shadow-md shadow-black/10"
+                                    : "text-gray-300 hover:bg-white/5 hover:text-[#c9a84c]"
                                     }`}
                             >
                                 {/* Indicador visual para modo colapsado */}

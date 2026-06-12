@@ -470,12 +470,14 @@ export default function ConfigPage() {
         const asig = asignaturas.find(a => a.id === nuevaAsigMat.asignatura_id);
         setAsigsMat([...asigsMat, { asignatura_id: nuevaAsigMat.asignatura_id, asignatura: asig?.nombre ?? "", grupo: nuevaAsigMat.grupo }]);
         setNuevaAsigMat({ asignatura_id: "", grupo: "" }); setErrorAsigMat("");
+        setError("");
     };
 
     const quitarAsigMat = (i: number) => {
         const a = asigsMat[i];
         if (a.id) setAsigMatAEliminar([...asigMatAEliminar, a.id]);
         setAsigsMat(asigsMat.filter((_, j) => j !== i));
+        setError("");
     };
 
     function quitarSesion(i: number) {
@@ -565,10 +567,15 @@ export default function ConfigPage() {
                     setHorarios(await listarHorarios()); break;
                 case "matriculas":
                     if (editandoId) {
+                        // 1. Ejecutar primero las eliminaciones de matrícula de manera secuencial/paralela aislada
+                        if (asigMatAEliminar.length > 0) {
+                            await Promise.all(asigMatAEliminar.map(id => eliminarMatricula(id)));
+                        }
+                        
+                        // 2. Posteriormente, crear y actualizar las matrículas restantes
                         await Promise.all([
                             ...asigsMat.filter(a => !a.id).map(a => crearMatricula({ usuario_id: editMatStudent.id, programa_id: editMatStudent.programa_id, asignatura_id: a.asignatura_id, grupo: a.grupo, semestre: fMat.semestre, fecha_inicio: fMat.fecha_inicio, estado: (a as any).estado || "activa" })),
-                            ...asigsMat.filter(a => a.id).map(a => actualizarMatricula(a.id!, { grupo: a.grupo, estado: (a as any).estado || "activa", semestre: fMat.semestre })),
-                            ...asigMatAEliminar.map(id => eliminarMatricula(id))
+                            ...asigsMat.filter(a => a.id).map(a => actualizarMatricula(a.id!, { grupo: a.grupo, estado: (a as any).estado || "activa", semestre: fMat.semestre }))
                         ]);
                     } else {
                         if (!fMat.usuario_id || !fMat.programa_id || asigsMat.length === 0)

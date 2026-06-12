@@ -2138,6 +2138,7 @@ export default function ConfigPage() {
                             </div>
                         </div>
                     </div>
+                </>
             )}
 
             {/* MODAL DE HORARIO SEMANAL */}

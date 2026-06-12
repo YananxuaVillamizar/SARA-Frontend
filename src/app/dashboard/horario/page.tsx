@@ -94,7 +94,7 @@ export default function HorarioPage() {
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-                <div className="w-12 h-12 border-4 border-[#8B1A1A] border-t-transparent rounded-full animate-spin" />
+                <div className="w-12 h-12 border-4 border-[#0e5d75] border-t-transparent rounded-full animate-spin" />
                 <p className="text-gray-400 text-sm font-medium animate-pulse">Cargando tu horario semanal...</p>
             </div>
         );
@@ -106,7 +106,7 @@ export default function HorarioPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm no-print">
                 <div>
                     <h1 className="text-2xl font-black text-sidebar-bg flex items-center gap-3">
-                        <Calendar className="text-[#8B1A1A]" size={28} /> Mi Horario Semanal
+                        <Calendar className="text-[#c9a84c]" size={28} /> Mi Horario Semanal
                     </h1>
                     <p className="text-xs text-gray-400 mt-1">
                         Formato oficial e institucional de asignación académica semanal.
@@ -123,7 +123,7 @@ export default function HorarioPage() {
             </div>
 
             {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
-            <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#8B1A1A] flex justify-between items-center">
+            <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#0e5d75] flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <img src="/logo_unipamplona.png" alt="Logo UniPamplona" className="h-14 w-auto" />
                     <div>
@@ -173,10 +173,10 @@ export default function HorarioPage() {
                                         <td className="py-4 px-4 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[220px]">
                                             <div className="space-y-1">
                                                 <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
-                                                <p className="text-[11px] font-black text-sidebar-bg uppercase leading-tight print:text-black">{fila.asignatura}</p>
+                                                <p className="text-[11px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
                                                 <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
                                                 {sesion.rol === "Estudiante" && (
-                                                    <p className="text-[9px] text-[#8B1A1A] font-bold mt-1 uppercase" title={fila.docente}>
+                                                    <p className="text-[9px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
                                                         Docente: {fila.docente}
                                                     </p>
                                                 )}
@@ -190,7 +190,7 @@ export default function HorarioPage() {
                                                 <td key={dia} className="p-2 text-center border border-gray-200/80 align-middle w-[110px] min-h-[60px]">
                                                     {clases.map((clase, cIdx) => (
                                                         <div key={cIdx} className="space-y-1 py-1">
-                                                            <p className="font-extrabold text-sidebar-bg text-[10px] tracking-tight print:text-black">
+                                                            <p className="font-extrabold text-black text-[10px] tracking-tight print:text-black">
                                                                 {clase.hora_inicio}-{clase.hora_fin}
                                                             </p>
                                                             <p className="text-[9px] text-gray-500 font-semibold leading-tight">

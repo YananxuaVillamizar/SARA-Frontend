@@ -86,10 +86,10 @@ const HorariosDropdown = ({ matricula, horarios }: { matricula: { asignatura_id:
                 type="button"
                 onClick={() => setOpen(!open)}
                 onBlur={() => setTimeout(() => setOpen(false), 200)}
-                className="inline-flex items-center justify-center p-1 rounded-lg text-gray-400 hover:text-[#8B1A1A] hover:bg-gray-50 transition-all cursor-pointer animate-pulse"
+                className="inline-flex items-center justify-center p-1 rounded-lg text-gray-400 hover:text-sara-red hover:bg-gray-50 transition-all cursor-pointer animate-pulse"
                 title="Ver Horarios"
             >
-                <CalendarDays size={14} className="text-gray-500 hover:text-[#8B1A1A]" />
+                <CalendarDays size={14} className="text-gray-500 hover:text-sara-red" />
             </button>
             
             {open && (
@@ -1673,7 +1673,7 @@ export default function ConfigPage() {
 
                                     <div className="flex items-center justify-between py-1">
                                         <span className={lbl}>Clases a la semana</span>
-                                        <span className="text-xl font-black" style={{ color: "#8B1A1A" }}>{sesiones.length}</span>
+                                        <span className="text-xl font-black text-sara-red">{sesiones.length}</span>
                                     </div>
                                     {sesiones.length > 0 && (
                                         <div className="space-y-2">
@@ -1839,7 +1839,7 @@ export default function ConfigPage() {
                                                         })}
                                                     </select></div>
                                             </div>
-                                            <button type="button" onClick={agregarSesion} className="w-full py-2 rounded-xl border-2 border-dashed text-sm font-bold transition-colors flex items-center justify-center gap-2 hover:bg-red-50" style={{ borderColor: "#8B1A1A", color: "#8B1A1A" }}>
+                                            <button type="button" onClick={agregarSesion} className="w-full py-2 rounded-xl border-2 border-dashed text-sm font-bold transition-colors flex items-center justify-center gap-2 hover:bg-blue-50/50" style={{ borderColor: "var(--color-sara-red)", color: "var(--color-sara-red)" }}>
                                                 <Plus size={15} /> Agregar Sesión
                                             </button>
                                         </div>
@@ -1935,7 +1935,7 @@ export default function ConfigPage() {
                                 {/* Contador y lista de asignaturas */}
                                 <div className="flex items-center justify-between py-1">
                                     <span className={lbl}>Asignaturas matriculadas</span>
-                                    <span className="text-xl font-black" style={{ color: "#8B1A1A" }}>{asigsMat.length}</span>
+                                    <span className="text-xl font-black text-sara-red">{asigsMat.length}</span>
                                 </div>
                                 {asigsMat.length > 0 && (
                                     <div className="space-y-2">
@@ -1984,7 +1984,7 @@ export default function ConfigPage() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setHorariosExpansibles(prev => ({ ...prev, [a.asignatura_id]: !prev[a.asignatura_id] }))}
-                                                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-500 hover:text-[#8B1A1A] hover:bg-red-50 hover:border-red-100 transition-all cursor-pointer"
+                                                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-500 hover:text-sara-red hover:bg-blue-50/50 hover:border-blue-100 transition-all cursor-pointer"
                                                             >
                                                                 <span>Horarios programados</span>
                                                                 <ChevronDown size={14} className={`transform transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
@@ -2044,7 +2044,7 @@ export default function ConfigPage() {
                                             return null;
                                         })()}
                                     </div>
-                                    <button type="button" onClick={agregarAsigMat} className="w-full py-2 rounded-xl border-2 border-dashed text-sm font-bold transition-colors flex items-center justify-center gap-2 hover:bg-red-50" style={{ borderColor: "#8B1A1A", color: "#8B1A1A" }}>
+                                    <button type="button" onClick={agregarAsigMat} className="w-full py-2 rounded-xl border-2 border-dashed text-sm font-bold transition-colors flex items-center justify-center gap-2 hover:bg-blue-50/50" style={{ borderColor: "var(--color-sara-red)", color: "var(--color-sara-red)" }}>
                                         <Plus size={15} /> Agregar Asignatura
                                     </button>
                                 </div>
@@ -2085,7 +2085,7 @@ export default function ConfigPage() {
                                     <span>{error}</span>
                                 </div>
                             )}
-                            <button onClick={guardar} disabled={loading} className="w-full py-4 rounded-2xl text-white font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100" style={{ background: "linear-gradient(135deg, #8B1A1A, #6B1212)" }}>
+                            <button onClick={guardar} disabled={loading} className="w-full py-4 rounded-2xl text-white font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100" style={{ background: "linear-gradient(135deg, var(--color-sara-red), var(--color-sara-red-dark))" }}>
                                 {loading ? "Guardando..." : "Guardar Cambios"}
                             </button>
                         </div>
@@ -2286,10 +2286,10 @@ export default function ConfigPage() {
                                                                 <td className="py-3 px-3 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[200px]">
                                                                     <div className="space-y-1">
                                                                         <p className="text-gray-400 font-extrabold tracking-wider text-[8px]">{fila.cod_asignatura}</p>
-                                                                        <p className="text-[10px] font-black text-[#0e5d75] uppercase leading-tight print:text-black">{fila.asignatura}</p>
+                                                                        <p className="text-[10px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
                                                                         <p className="text-[9px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
                                                                         {horarioUsuario.rol === "Estudiante" && (
-                                                                            <p className="text-[8px] text-[#0e5d75] font-bold mt-1 uppercase" title={fila.docente}>
+                                                                            <p className="text-[8px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
                                                                                 Docente: {fila.docente}
                                                                             </p>
                                                                         )}
@@ -2303,7 +2303,7 @@ export default function ConfigPage() {
                                                                         <td key={dia} className="p-1.5 text-center border border-gray-200/80 align-middle w-[100px] min-h-[50px]">
                                                                             {clases.map((clase: any, cIdx: number) => (
                                                                                 <div key={cIdx} className="space-y-0.5 py-0.5">
-                                                                                    <p className="font-extrabold text-[#0e5d75] text-[9px] tracking-tight print:text-black">
+                                                                                    <p className="font-extrabold text-black text-[9px] tracking-tight print:text-black">
                                                                                         {clase.hora_inicio}-{clase.hora_fin}
                                                                                     </p>
                                                                                     <p className="text-[8px] text-gray-500 font-semibold leading-tight">

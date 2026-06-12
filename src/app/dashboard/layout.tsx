@@ -208,7 +208,7 @@ export default function DashboardLayout({
                             >
                                 <Bell size={20} />
                                 {alertas.length > 0 && (
-                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-sara-red rounded-full border-2 border-white animate-pulse"></span>
+                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
                                 )}
                             </button>
 
@@ -223,7 +223,7 @@ export default function DashboardLayout({
                                              <div className="flex items-center gap-2">
                                                  <h3 className="font-bold text-gray-800 text-sm">Notificaciones</h3>
                                                  {alertas.length > 0 && (
-                                                     <span className="text-[10px] bg-sara-red/10 text-sara-red font-black px-2 py-0.5 rounded-full">
+                                                     <span className="text-[10px] bg-red-100 text-red-700 font-black px-2 py-0.5 rounded-full">
                                                          {alertas.length}
                                                      </span>
                                                  )}
@@ -231,8 +231,7 @@ export default function DashboardLayout({
                                              {alertas.length > 0 && (
                                                  <button 
                                                      onClick={handleLimpiarNotificaciones}
-                                                     className="text-[10px] text-sara-red font-bold hover:underline bg-transparent border-0 cursor-pointer focus:outline-none flex items-center gap-1 transition-all"
-                                                     style={{ color: "#8B1A1A" }}
+                                                     className="text-[10px] text-red-600 font-bold hover:underline bg-transparent border-0 cursor-pointer focus:outline-none flex items-center gap-1 transition-all"
                                                  >
                                                      Limpiar todo
                                                  </button>
@@ -272,11 +271,11 @@ export default function DashboardLayout({
                         <div className="flex items-center gap-3 pl-4 border-l border-gray-100">
                             <div className="text-right hidden sm:block">
                                 <p className="text-xs font-bold text-sidebar-bg">{sesion.nombre}</p>
-                                <p className="text-[9px] text-sara-red font-black uppercase">{sesion.rol}</p>
+                                <p className="text-[9px] text-[#c9a84c] font-black uppercase">{sesion.rol}</p>
                             </div>
                             {(() => {
                                 const config: Record<string, { color: string; bg: string }> = {
-                                    Administrativo: { color: "#8B1A1A", bg: "#FFF5F5" },
+                                    Administrativo: { color: "#0e5d75", bg: "#E2F1F4" },
                                     Docente: { color: "#1D4ED8", bg: "#EFF6FF" },
                                     Estudiante: { color: "#065F46", bg: "#ECFDF5" },
                                 };

@@ -41,9 +41,9 @@ function AccesoDenegadoBanner() {
     const searchParams = useSearchParams();
     if (searchParams.get("acceso") !== "denegado") return null;
     return (
-        <div className="flex items-center gap-4 p-4 rounded-2xl border" style={{ background: "#FFF5F5", borderColor: "#8B1A1A40" }}>
-            <ShieldAlert size={20} style={{ color: "#8B1A1A" }} className="shrink-0" />
-            <p className="text-sm font-semibold" style={{ color: "#8B1A1A" }}>
+        <div className="flex items-center gap-4 p-4 rounded-2xl border border-red-200 bg-red-50">
+            <ShieldAlert size={20} className="shrink-0 text-red-600" />
+            <p className="text-sm font-semibold text-red-700">
                 No tienes permiso para acceder a esa sección.
             </p>
         </div>
@@ -237,7 +237,7 @@ export default function DashboardPage() {
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-                <div className="w-12 h-12 border-4 border-[#8B1A1A] border-t-transparent rounded-full animate-spin" />
+                <div className="w-12 h-12 border-4 border-[#0e5d75] border-t-transparent rounded-full animate-spin" />
                 <p className="text-gray-400 text-sm font-medium animate-pulse">Cargando estadísticas en tiempo real...</p>
             </div>
         );
@@ -276,9 +276,9 @@ export default function DashboardPage() {
                 label: "Cumplimiento Docente",
                 value: adminStats?.metricas.cumplimiento_docente ?? "100%",
                 icon: <UserCheck size={26} />,
-                bg: "#8B1A1A",
+                bg: "#0e5d75",
                 trend: "Tasa de clases dictadas",
-                trendColor: "#8B1A1A",
+                trendColor: "#0e5d75",
             },
         ] : [
             {
@@ -309,9 +309,9 @@ export default function DashboardPage() {
                 label: "Cumplimiento Docente",
                 value: adminStats?.metricas.cumplimiento_docente ?? "100%",
                 icon: <UserCheck size={26} />,
-                bg: "#8B1A1A",
+                bg: "#0e5d75",
                 trend: "Tasa de clases dictadas",
-                trendColor: "#8B1A1A",
+                trendColor: "#0e5d75",
             },
         ];
 
@@ -322,13 +322,13 @@ export default function DashboardPage() {
                 </Suspense>
 
                 {/* REPORTE PRINT HEADER */}
-                <div className="only-print w-full bg-white border-b-2 border-sara-red pb-4 mb-6" style={{ borderColor: "#8B1A1A" }}>
-                    <div className="h-1.5 bg-gradient-to-r from-[#8B1A1A] via-[#C9A84C] to-[#003366] mb-6 -mx-6" />
+                <div className="only-print w-full bg-white border-b-2 border-sara-red pb-4 mb-6" style={{ borderColor: "#0e5d75" }}>
+                    <div className="h-1.5 bg-gradient-to-r from-[#0e5d75] via-[#C9A84C] to-[#1e1e30] mb-6 -mx-6" />
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <img src="/logo_unipamplona.png" alt="Logo Universidad de Pamplona" className="h-16 w-auto shrink-0" />
                             <div className="flex flex-col">
-                                <h1 className="text-lg font-extrabold tracking-tight uppercase" style={{ color: "#8B1A1A", fontFamily: "Inter, sans-serif" }}>
+                                <h1 className="text-lg font-extrabold tracking-tight uppercase" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
                                     UNIVERSIDAD DE PAMPLONA
                                 </h1>
                                 <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "#C9A84C", fontFamily: "Inter, sans-serif" }}>
@@ -337,7 +337,7 @@ export default function DashboardPage() {
                             </div>
                         </div>
                         <div className="text-right">
-                            <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: "#8B1A1A", fontFamily: "Inter, sans-serif" }}>
+                            <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
                                 REPORTE OFICIAL DE ESTADÍSTICAS Y ASISTENCIA
                             </h2>
                             <p className="text-[10px] text-gray-500 font-bold mt-1">
@@ -414,8 +414,8 @@ export default function DashboardPage() {
                         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
                     >
                         <div>
-                            <h3 className="font-bold text-base mb-1 flex items-center gap-2" style={{ color: "#1A1A2E" }}>
-                                <AlertTriangle size={16} className="text-sara-red" style={{ color: "#8B1A1A" }} /> Alertas de Deserción
+                            <h3 className="font-bold text-base mb-1 flex items-center gap-2 text-[#1A1A2E]">
+                                <AlertTriangle size={16} className="text-red-600" /> Alertas de Deserción
                             </h3>
                             <p className="text-xs text-gray-400 mb-4">Riesgos y ausentismo crítico detectados</p>
                         </div>
@@ -430,11 +430,10 @@ export default function DashboardPage() {
                                 adminStats.alertas_desercion.map((al, idx) => (
                                     <div
                                         key={idx}
-                                        className="flex flex-col gap-1.5 p-3 rounded-xl border transition-all"
-                                        style={{ background: "#FFF5F5", borderColor: "#8B1A1A20" }}
+                                        className="flex flex-col gap-1.5 p-3 rounded-xl border border-red-200 bg-red-50/50 transition-all"
                                     >
                                         <div className="flex justify-between items-center">
-                                            <p className="font-extrabold text-xs" style={{ color: "#8B1A1A" }}>
+                                            <p className="font-extrabold text-xs text-red-700">
                                                 {al.apellidos}, {al.nombres}
                                             </p>
                                             <span className="text-[8px] bg-red-100 text-red-700 font-extrabold px-2 py-0.5 rounded-full uppercase">Crítico</span>
@@ -599,7 +598,7 @@ export default function DashboardPage() {
                                         />
                                         <Bar dataKey="a_tiempo" stackId="asistencia" name="A tiempo" fill="#10B981" radius={[6, 6, 0, 0]} maxBarSize={16} />
                                         <Bar dataKey="tardes" stackId="asistencia" name="Tarde" fill="#F59E0B" radius={[6, 6, 0, 0]} maxBarSize={16} />
-                                        <Bar dataKey="ausentes" name="Inasistencias" fill="#8B1A1A" radius={[6, 6, 0, 0]} maxBarSize={16} />
+                                        <Bar dataKey="ausentes" name="Inasistencias" fill="#EF4444" radius={[6, 6, 0, 0]} maxBarSize={16} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             )}
@@ -872,13 +871,13 @@ export default function DashboardPage() {
         return (
             <div className="space-y-6">
                 {/* REPORTE PRINT HEADER */}
-                <div className="only-print w-full bg-white border-b-2 border-sara-red pb-4 mb-6" style={{ borderColor: "#8B1A1A" }}>
-                    <div className="h-1.5 bg-gradient-to-r from-[#8B1A1A] via-[#C9A84C] to-[#003366] mb-6 -mx-6" />
+                <div className="only-print w-full bg-white border-b-2 border-sara-red pb-4 mb-6" style={{ borderColor: "#0e5d75" }}>
+                    <div className="h-1.5 bg-gradient-to-r from-[#0e5d75] via-[#C9A84C] to-[#1e1e30] mb-6 -mx-6" />
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <img src="/logo_unipamplona.png" alt="Logo Universidad de Pamplona" className="h-16 w-auto shrink-0" />
                             <div className="flex flex-col">
-                                <h1 className="text-lg font-extrabold tracking-tight uppercase" style={{ color: "#8B1A1A", fontFamily: "Inter, sans-serif" }}>
+                                <h1 className="text-lg font-extrabold tracking-tight uppercase" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
                                     UNIVERSIDAD DE PAMPLONA
                                 </h1>
                                 <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "#C9A84C", fontFamily: "Inter, sans-serif" }}>
@@ -887,7 +886,7 @@ export default function DashboardPage() {
                             </div>
                         </div>
                         <div className="text-right">
-                            <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: "#8B1A1A", fontFamily: "Inter, sans-serif" }}>
+                            <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
                                 REPORTE OFICIAL DE RENDIMIENTO Y ASISTENCIA
                             </h2>
                             <p className="text-[10px] text-gray-500 font-bold mt-1">
@@ -961,8 +960,8 @@ export default function DashboardPage() {
                         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
                     >
                         <div className="flex justify-between items-center mb-1">
-                            <h3 className="font-bold text-xs flex items-center gap-2" style={{ color: "#1A1A2E" }}>
-                                <AlertTriangle size={14} className="text-sara-red" style={{ color: "#8B1A1A" }} /> Mis Alertas de Asistencia
+                            <h3 className="font-bold text-xs flex items-center gap-2 text-[#1A1A2E]">
+                                <AlertTriangle size={14} className="text-red-600" /> Mis Alertas de Asistencia
                             </h3>
                             <span className="text-[9px] text-gray-400 font-bold">Límite permitido: 80%</span>
                         </div>
@@ -977,11 +976,10 @@ export default function DashboardPage() {
                                 studentAlerts.map((al, idx) => (
                                     <div
                                         key={idx}
-                                        className="flex flex-col gap-1 p-2 rounded-xl border transition-all"
-                                        style={{ background: "#FFF5F5", borderColor: "#8B1A1A20" }}
+                                        className="flex flex-col gap-1 p-2 rounded-xl border border-red-200 bg-red-50/50 transition-all"
                                     >
                                         <div className="flex justify-between items-center">
-                                            <p className="font-extrabold text-[11px] truncate max-w-[70%]" style={{ color: "#8B1A1A" }}>
+                                            <p className="font-extrabold text-[11px] truncate max-w-[70%] text-red-700">
                                                 {al.materia}
                                             </p>
                                             <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase ${al.isCritical ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
@@ -1296,7 +1294,7 @@ export default function DashboardPage() {
                                         />
                                         <Bar dataKey="a_tiempo" stackId="asistencia" name="A tiempo" fill="#10B981" radius={[6, 6, 0, 0]} maxBarSize={16} />
                                         <Bar dataKey="tardes" stackId="asistencia" name="Tarde" fill="#F59E0B" radius={[6, 6, 0, 0]} maxBarSize={16} />
-                                        <Bar dataKey="ausentes" name="Inasistencias" fill="#8B1A1A" radius={[6, 6, 0, 0]} maxBarSize={16} />
+                                        <Bar dataKey="ausentes" name="Inasistencias" fill="#EF4444" radius={[6, 6, 0, 0]} maxBarSize={16} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             )}

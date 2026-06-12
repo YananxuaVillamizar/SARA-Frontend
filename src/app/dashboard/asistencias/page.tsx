@@ -1195,7 +1195,7 @@ export default function AsistenciasPage() {
                                         return facEntries.map(([facultad, programas]: [string, any]) => (
                                             <div key={facultad} className="space-y-4">
                                                 <h3 className="text-lg font-black text-sidebar-bg flex items-center gap-2 border-b border-gray-100 pb-2">
-                                                    <School size={20} className="text-sara-red" /> {facultad}
+                                                    <School size={20} className="text-sara-gold" /> {facultad}
                                                 </h3>
 
                                                 <div className="space-y-6 ml-2 md:ml-6">
@@ -1265,7 +1265,7 @@ export default function AsistenciasPage() {
 
                                                                                                                 return (
                                                                                                                     <div className="flex flex-col items-center justify-center bg-gray-50/80 px-2 py-1.5 rounded-xl border border-gray-100 min-w-[85px] shadow-sm text-center">
-                                                                                                                        <p className="text-[8px] font-black text-sidebar-bg uppercase tracking-wider mb-1">Sesiones</p>
+                                                                                                                        <p className="text-[8px] font-black text-black uppercase tracking-wider mb-1">Sesiones</p>
                                                                                                                         <div className="relative w-9 h-9 shrink-0">
                                                                                                                             <svg className="w-full h-full -rotate-90" viewBox="0 0 32 32">
                                                                                                                                 <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="2.5" fill="transparent" className="text-gray-100" />
@@ -1280,7 +1280,7 @@ export default function AsistenciasPage() {
 
                                                                                                             {/* Card 2: Progreso de Asistencia */}
                                                                                                             <div className="flex flex-col items-center justify-center bg-gray-50/80 px-2 py-1.5 rounded-xl border border-gray-100 min-w-[85px] shadow-sm text-center">
-                                                                                                                <p className="text-[8px] font-black text-sidebar-bg uppercase tracking-wider mb-1">Asistencia</p>
+                                                                                                                <p className="text-[8px] font-black text-black uppercase tracking-wider mb-1">Asistencia</p>
                                                                                                                 <div className="relative w-9 h-9 shrink-0">
                                                                                                                     <svg className="w-full h-full -rotate-90" viewBox="0 0 32 32">
                                                                                                                         <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="2.5" fill="transparent" className="text-gray-100" />
@@ -1404,7 +1404,7 @@ export default function AsistenciasPage() {
                                                                                                                                       )
                                                                                                                                   )}
                                                                                                                                   <div>
-                                                                                                                                      <span className="text-xs font-black text-sidebar-bg block">
+                                                                                                                                      <span className="text-xs font-black text-black block">
                                                                                                                                           {(() => {
                                                                                                                                               const dateObj = sesionData.fecha ? (() => {
                                                                                                                                                   const [y, m, d] = sesionData.fecha.split('-').map(Number);

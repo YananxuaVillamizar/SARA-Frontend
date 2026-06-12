@@ -23,7 +23,7 @@ const DIA_MAP: Record<string, string> = {
 // ── Helpers visuales ──────────────────────────────────────────
 const RolBadge = ({ rol }: { rol: string }) => {
     const config: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
-        Administrativo: { color: "#8B1A1A", bg: "#FFF5F5", icon: <Shield size={11} /> },
+        Administrativo: { color: "#0e5d75", bg: "#E2F1F4", icon: <Shield size={11} /> },
         Docente: { color: "#1D4ED8", bg: "#EFF6FF", icon: <BookOpen size={11} /> },
         Estudiante: { color: "#065F46", bg: "#ECFDF5", icon: <GraduationCap size={11} /> },
     };
@@ -388,11 +388,11 @@ export default function UsuariosPage() {
                                             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
                                                 style={{
                                                     background: 
-                                                        u.rol === "Administrativo" ? "#FFF5F5" : 
+                                                        u.rol === "Administrativo" ? "#E2F1F4" : 
                                                         u.rol === "Docente" ? "#EFF6FF" : 
                                                         u.rol === "Estudiante" ? "#ECFDF5" : "#F3F4F6",
                                                     color:
-                                                        u.rol === "Administrativo" ? "#8B1A1A" : 
+                                                        u.rol === "Administrativo" ? "#0e5d75" : 
                                                         u.rol === "Docente" ? "#1D4ED8" : 
                                                         u.rol === "Estudiante" ? "#065F46" : "#374151"
                                                 }}>
@@ -472,8 +472,7 @@ export default function UsuariosPage() {
                         {/* Formulario */}
                         <form onSubmit={handleCrear} className="flex-1 overflow-y-auto p-6 space-y-4">
                             {errorForm && (
-                                <p className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm font-medium"
-                                    style={{ color: "#8B1A1A" }}>{errorForm}</p>
+                                <p className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm font-medium text-red-700">{errorForm}</p>
                             )}
 
                             <div>
@@ -585,8 +584,7 @@ export default function UsuariosPage() {
                         {/* Formulario */}
                         <form onSubmit={handleEditarSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
                             {errorForm && (
-                                <p className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm font-medium"
-                                    style={{ color: "#8B1A1A" }}>{errorForm}</p>
+                                <p className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm font-medium text-red-700">{errorForm}</p>
                             )}
 
                             <div className="grid grid-cols-2 gap-3">
@@ -912,10 +910,10 @@ export default function UsuariosPage() {
                                                             <td className="py-3 px-3 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[200px]">
                                                                 <div className="space-y-1">
                                                                     <p className="text-gray-400 font-extrabold tracking-wider text-[8px]">{fila.cod_asignatura}</p>
-                                                                    <p className="text-[10px] font-black text-sidebar-bg uppercase leading-tight print:text-black">{fila.asignatura}</p>
+                                                                    <p className="text-[10px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
                                                                     <p className="text-[9px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
                                                                     {horarioUsuario.rol === "Estudiante" && (
-                                                                        <p className="text-[8px] text-[#0e5d75] font-bold mt-1 uppercase" title={fila.docente}>
+                                                                        <p className="text-[8px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
                                                                             Docente: {fila.docente}
                                                                         </p>
                                                                     )}
@@ -929,7 +927,7 @@ export default function UsuariosPage() {
                                                                     <td key={dia} className="p-1.5 text-center border border-gray-200/80 align-middle w-[100px] min-h-[50px]">
                                                                         {clases.map((clase: any, cIdx: number) => (
                                                                             <div key={cIdx} className="space-y-0.5 py-0.5">
-                                                                                <p className="font-extrabold text-sidebar-bg text-[9px] tracking-tight print:text-black">
+                                                                                <p className="font-extrabold text-black text-[9px] tracking-tight print:text-black">
                                                                                     {clase.hora_inicio}-{clase.hora_fin}
                                                                                 </p>
                                                                                 <p className="text-[8px] text-gray-500 font-semibold leading-tight">

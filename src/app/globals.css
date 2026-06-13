@@ -61,6 +61,11 @@
 
 /* 4. Estilos de Impresión (PDF) */
 @media print {
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
   .only-print {
     display: block !important;
   }

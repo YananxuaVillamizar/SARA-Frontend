@@ -19,6 +19,7 @@ import {
     obtenerUsuariosFiltro, obtenerAsignaturasFiltro, obtenerPermanenciaStats,
     UsuarioFiltro, AsignaturaFiltro, PermanenciaStats
 } from "@/services/dashboard";
+import PrintHeader from "@/components/PrintHeader";
 
 // ── Tooltip personalizado para la gráfica de barras ──────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -309,33 +310,13 @@ export default function DashboardPage() {
                 </Suspense>
 
                 {/* REPORTE PRINT HEADER */}
-                <div className="only-print w-full bg-white border-b-2 border-sara-red pb-4 mb-6" style={{ borderColor: "#0e5d75" }}>
-                    <div className="h-1.5 bg-gradient-to-r from-[#0e5d75] via-[#C9A84C] to-[#1e1e30] mb-6 -mx-6" />
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <img src="/logo_unipamplona.png" alt="Logo Universidad de Pamplona" className="h-16 w-auto shrink-0" />
-                            <div className="flex flex-col">
-                                <h1 className="text-lg font-extrabold tracking-tight uppercase" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
-                                    UNIVERSIDAD DE PAMPLONA
-                                </h1>
-                                <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "#C9A84C", fontFamily: "Inter, sans-serif" }}>
-                                    SISTEMA AUTOMATIZADO DE REGISTRO DE ASISTENCIA (SARA)
-                                </p>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
-                                REPORTE OFICIAL DE ESTADÍSTICAS Y ASISTENCIA
-                            </h2>
-                            <p className="text-[10px] text-gray-500 font-bold mt-1">
-                                Generado el {fechaImpresion || new Date().toLocaleString()}
-                            </p>
-                            <p className="text-[10px] text-gray-500 font-bold mt-0.5">
-                                Generado por: {sesion.nombre} ({sesion.rol})
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <PrintHeader 
+                    titulo="Reporte Oficial de Estadísticas y Asistencia"
+                    nombreUsuario={sesion.nombre}
+                    rol={sesion.rol}
+                    semestre={adminStats?.semestre_actual}
+                    fecha={fechaImpresion}
+                />
 
 
                 {/* BIENVENIDA */}
@@ -359,9 +340,9 @@ export default function DashboardPage() {
                 </div>
 
                 {/* FILA DE RESUMEN: KPIs (Matriz 2x2) + ALERTAS DE DESERCIÓN (con ancho de cuadrícula ajustado) */}
-                <div className="grid grid-cols-1 lg:grid-cols-[540px_1fr] gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[540px_1fr] print:grid-cols-[1.25fr_1fr] gap-6">
                     {/* Matriz 2x2 de KPIs (ocupa exactamente 540px de ancho) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 w-full">
                         {metricasGrid.map((stat, i) => (
                             <div
                                 key={i}
@@ -407,7 +388,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-gray-400 mb-4">Riesgos y ausentismo crítico detectados</p>
                         </div>
 
-                        <div className="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[160px] scrollbar-thin">
+                        <div className="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[160px] print:max-h-none print:overflow-visible scrollbar-thin">
                             {!adminStats || adminStats.alertas_desercion.length === 0 ? (
                                 <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100">
                                     <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
@@ -595,9 +576,9 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 print:grid-cols-5 gap-6 items-start">
                         {/* Lado izquierdo: Filtros + Gráfico de Barras (3/5 de ancho) */}
-                        <div className="lg:col-span-3 space-y-4">
+                        <div className="lg:col-span-3 print:col-span-3 space-y-4">
                             {/* Filtros colocados directamente sobre la gráfica de barras */}
                             <div className="flex flex-wrap items-center gap-3">
                                 {/* Filtro de Rol */}
@@ -726,7 +707,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Lado derecho: Gráfico Radial Concéntrico (2/5 de ancho, ampliado masivamente al quitar el titulo interno) */}
-                        <div className="lg:col-span-2 flex flex-col items-center justify-center border-t lg:border-t-0 lg:border-l border-gray-100 pt-6 lg:pt-0 lg:pl-6 w-full">
+                        <div className="lg:col-span-2 print:col-span-2 flex flex-col items-center justify-center border-t lg:border-t-0 lg:border-l border-gray-100 pt-6 lg:pt-0 lg:pl-6 w-full">
                             {/* RadialBarChart con Recharts - Ampliado a height: 270 para máximo aprovechamiento de espacio */}
                             <div className="relative w-full flex items-center justify-center" style={{ height: 270 }}>
                                 {showCharts && (
@@ -992,33 +973,14 @@ export default function DashboardPage() {
         return (
             <div className="space-y-6">
                 {/* REPORTE PRINT HEADER */}
-                <div className="only-print w-full bg-white border-b-2 border-sara-red pb-4 mb-6" style={{ borderColor: "#0e5d75" }}>
-                    <div className="h-1.5 bg-gradient-to-r from-[#0e5d75] via-[#C9A84C] to-[#1e1e30] mb-6 -mx-6" />
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <img src="/logo_unipamplona.png" alt="Logo Universidad de Pamplona" className="h-16 w-auto shrink-0" />
-                            <div className="flex flex-col">
-                                <h1 className="text-lg font-extrabold tracking-tight uppercase" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
-                                    UNIVERSIDAD DE PAMPLONA
-                                </h1>
-                                <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "#C9A84C", fontFamily: "Inter, sans-serif" }}>
-                                    SISTEMA AUTOMATIZADO DE REGISTRO DE ASISTENCIA (SARA)
-                                </p>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
-                                REPORTE OFICIAL DE RENDIMIENTO Y ASISTENCIA
-                            </h2>
-                            <p className="text-[10px] text-gray-500 font-bold mt-1">
-                                Generado el {fechaImpresion || new Date().toLocaleString()}
-                            </p>
-                            <p className="text-[10px] text-gray-500 font-bold mt-0.5">
-                                Estudiante: {sesion.nombre} ({sesion.num_doc})
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <PrintHeader 
+                    titulo="Reporte Oficial de Rendimiento y Asistencia"
+                    nombreUsuario={sesion.nombre}
+                    rol={sesion.rol}
+                    documento={sesion.num_doc}
+                    semestre={estudianteStats?.semestre_actual}
+                    fecha={fechaImpresion}
+                />
                 {/* BIENVENIDA ESTUDIANTE */}
                 <div className="welcome-card bg-gradient-to-r from-sidebar-bg to-black text-white p-6 rounded-3xl relative overflow-hidden shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print" style={{ background: "linear-gradient(135deg, #1e1e30 0%, #11111d 100%)" }}>
                     <div className="relative z-10 space-y-1">
@@ -1039,9 +1001,9 @@ export default function DashboardPage() {
                 </div>
 
                 {/* FILA DE RESUMEN DEL ESTUDIANTE: KPIs + Alertas de Asistencia */}
-                <div className="grid grid-cols-1 lg:grid-cols-[540px_1fr] gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[540px_1fr] print:grid-cols-[1.25fr_1fr] gap-6">
                     {/* KPIs (ancho aproximado de 540px) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 w-full">
                         {studentMetricas.map((stat, i) => (
                             <div
                                 key={i}
@@ -1087,7 +1049,7 @@ export default function DashboardPage() {
                             <span className="text-[9px] text-gray-400 font-bold">Límite permitido: 80%</span>
                         </div>
 
-                        <div className="space-y-2 overflow-y-auto pr-1 flex-1 max-h-[85px] scrollbar-thin">
+                        <div className="space-y-2 overflow-y-auto pr-1 flex-1 max-h-[85px] print:max-h-none print:overflow-visible scrollbar-thin font-semibold bg-red-50/50">
                             {studentAlerts.length === 0 ? (
                                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100 h-full">
                                     <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
@@ -1118,7 +1080,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* FILA DE DETALLES DEL RENDIMIENTO: Rendimiento por Asignatura + Desglose de puntualidad */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 print:grid-cols-2 gap-6 mt-6">
                     {/* Columna 1: Rendimiento por Asignatura */}
                     <div
                         className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-[296px] w-full"
@@ -1130,7 +1092,7 @@ export default function DashboardPage() {
                             </h3>
                             <p className="text-[11px] text-gray-400 mt-0.5 mb-4">Porcentaje de asistencia por materia.</p>
 
-                            <div className="space-y-3 max-h-[170px] overflow-y-auto pr-1 scrollbar-thin">
+                            <div className="space-y-3 max-h-[170px] print:max-h-none overflow-y-auto print:overflow-visible pr-1 scrollbar-thin">
                                 {estudianteStats.asignaturas_asistencias.map((asig, i) => {
                                     const isRisk = asig.porcentaje < 80;
                                     const isCritical = asig.porcentaje < 70;
@@ -1381,9 +1343,9 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 print:grid-cols-5 gap-6 items-start">
                         {/* Lado izquierdo: Filtro + Gráfico de Barras */}
-                        <div className="lg:col-span-3 space-y-4">
+                        <div className="lg:col-span-3 print:col-span-3 space-y-4">
                             <div className="flex flex-wrap items-center gap-3">
                                 {/* Filtro de Semanas */}
                                 <div className="flex flex-wrap items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8 print:hidden">
@@ -1475,7 +1437,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Lado derecho: Radial concéntrico */}
-                        <div className="lg:col-span-2 flex flex-col items-center justify-center border-t lg:border-t-0 lg:border-l border-gray-100 pt-6 lg:pt-0 lg:pl-6 w-full">
+                        <div className="lg:col-span-2 print:col-span-2 flex flex-col items-center justify-center border-t lg:border-t-0 lg:border-l border-gray-100 pt-6 lg:pt-0 lg:pl-6 w-full">
                             <div className="relative w-full flex items-center justify-center" style={{ height: 270 }}>
                                 {showCharts && (
                                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>

@@ -783,12 +783,24 @@ export default function AsistenciasPage() {
                         }
                         
                         .header {
+                            width: 100%;
+                            margin-bottom: 25px;
+                            padding-bottom: 16px;
+                            border-bottom: 2.5px solid #0e5d75;
+                        }
+                        
+                        .header-row {
                             display: flex;
                             align-items: center;
                             justify-content: space-between;
-                            padding-bottom: 12px;
-                            margin-bottom: 25px;
-                            border-bottom: 2.5px solid #ad3333;
+                        }
+                        
+                        .accent-bar {
+                            width: 100%;
+                            height: 4px;
+                            background-color: #c9a84c;
+                            margin-top: 10px;
+                            border-radius: 9999px;
                         }
                         
                         .header-logo {
@@ -810,7 +822,7 @@ export default function AsistenciasPage() {
                         .header-title-main {
                             font-size: 18px;
                             font-weight: 800;
-                            color: #ad3333;
+                            color: #0e5d75;
                             text-transform: uppercase;
                             letter-spacing: 0.5px;
                             margin: 0;
@@ -819,7 +831,7 @@ export default function AsistenciasPage() {
                         .header-title-sub {
                             font-size: 10.5px;
                             font-weight: 600;
-                            color: #eab308;
+                            color: #c9a84c;
                             text-transform: uppercase;
                             margin: 2px 0 0 0;
                             letter-spacing: 0.5px;
@@ -832,7 +844,7 @@ export default function AsistenciasPage() {
                         .header-meta-doc {
                             font-size: 13px;
                             font-weight: 800;
-                            color: #ad3333;
+                            color: #0e5d75;
                             text-transform: uppercase;
                             margin: 0 0 4px 0;
                         }
@@ -882,13 +894,14 @@ export default function AsistenciasPage() {
                         }
                         
                         .horizontal-table th {
-                            background: #CCCCCC;
-                            color: #000000;
+                            background: #0e5d75;
+                            color: #ffffff;
                             font-size: 10.5px;
                             font-weight: 800;
                             text-transform: uppercase;
                             padding: 8px 6px;
-                            border: 0.5px solid #333333;
+                            border: 0.5px solid #0e5d75;
+                            border-bottom: 3px solid #c9a84c;
                             text-align: center;
                         }
                         
@@ -905,18 +918,21 @@ export default function AsistenciasPage() {
                 </head>
                 <body>
                     <div class='header'>
-                        <div class='header-logo'>
-                            <img src='${logoUrl}' alt='Universidad de Pamplona' />
-                            <div class='header-title-container'>
-                                <h1 class='header-title-main'>Universidad de Pamplona</h1>
-                                <p class='header-title-sub'>Sistema Automatizado de Registro de Asistencia (SARA)</p>
+                        <div class='header-row'>
+                            <div class='header-logo'>
+                                <img src='${logoUrl}' alt='Universidad de Pamplona' />
+                                <div class='header-title-container'>
+                                    <h1 class='header-title-main'>Universidad de Pamplona</h1>
+                                    <p class='header-title-sub'>Sistema Automatizado de Registro de Asistencia (SARA)</p>
+                                </div>
+                            </div>
+                            <div class='header-meta'>
+                                <h2 class='header-meta-doc'>Reporte Oficial de Asistencia</h2>
+                                <p class='header-meta-date'>${generationDateStrFormatted}</p>
+                                <p class='header-meta-by'>Generado por:<br/><strong>${sesion.nombre}</strong> (${sesion.rol})</p>
                             </div>
                         </div>
-                        <div class='header-meta'>
-                            <h2 class='header-meta-doc'>Reporte Oficial de Asistencia</h2>
-                            <p class='header-meta-date'>${generationDateStrFormatted}</p>
-                            <p class='header-meta-by'>Generado por:<br/>${sesion.nombre} (${sesion.rol})</p>
-                        </div>
+                        <div class='accent-bar'></div>
                     </div>
                     
                     <table class='meta-table'>

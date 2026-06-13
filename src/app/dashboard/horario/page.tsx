@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getSesion } from "@/services/auth";
 import { obtenerHorarioSemanal, HorarioSemanal } from "@/services/dashboard";
 import { Calendar, Clock, MapPin, Printer } from "lucide-react";
+import PrintHeader from "@/components/PrintHeader";
 
 const DIAS = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
 const DIA_MAP: Record<string, string> = {
@@ -123,19 +124,11 @@ export default function HorarioPage() {
             </div>
 
             {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
-            <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#0e5d75] flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                    <img src="/logo_unipamplona.png" alt="Logo UniPamplona" className="h-14 w-auto" />
-                    <div>
-                        <h2 className="text-md font-black text-sidebar-bg">UNIVERSIDAD DE PAMPLONA</h2>
-                        <p className="text-[10px] text-[#C9A84C] font-bold tracking-widest uppercase">SARA - REGISTRO DE ASISTENCIA</p>
-                    </div>
-                </div>
-                <div className="text-right">
-                    <p className="text-xs font-black text-sidebar-bg uppercase">{sesion.rol}: {sesion.nombre}</p>
-                    <p className="text-[9px] text-gray-500 font-medium">Semestre Activo • {new Date().toLocaleDateString()}</p>
-                </div>
-            </div>
+            <PrintHeader 
+                titulo="Horario Semanal de Clases"
+                nombreUsuario={sesion.nombre}
+                rol={sesion.rol}
+            />
 
             {/* Tabla Principal */}
             {filas.length === 0 ? (
@@ -152,10 +145,10 @@ export default function HorarioPage() {
                 <div className="w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none">
                     <table className="w-full border-collapse min-w-[1000px] print:min-w-full">
                         <thead>
-                            <tr className="bg-[#5A6268] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#5A6268] print:text-white">
-                                <th className="py-3 px-4 text-center border border-gray-300/40 w-[220px]">Materia</th>
+                            <tr className="bg-[#0e5d75] border-b-[3px] border-[#c9a84c] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#0e5d75] print:border-b-[3px] print:border-[#c9a84c] print:text-white">
+                                <th className="py-3 px-4 text-center border-r border-gray-300/40 w-[220px]">Materia</th>
                                 {DIAS.map(dia => (
-                                    <th key={dia} className="py-3 px-3 text-center border border-gray-300/40 font-bold">{dia}</th>
+                                    <th key={dia} className="py-3 px-3 text-center border-r border-gray-300/40 last:border-r-0 font-bold">{dia}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -187,23 +180,30 @@ export default function HorarioPage() {
                                         {DIAS.map(dia => {
                                             const clases = fila.clasesPorDia[dia] || [];
                                             return (
-                                                <td key={dia} className="p-2 text-center border border-gray-200/80 align-middle w-[110px] min-h-[60px]">
-                                                    {clases.map((clase, cIdx) => (
-                                                        <div key={cIdx} className="space-y-1 py-1">
-                                                            <p className="font-extrabold text-black text-[10px] tracking-tight print:text-black">
-                                                                {clase.hora_inicio}-{clase.hora_fin}
-                                                            </p>
-                                                            <p className="text-[9px] text-gray-500 font-semibold leading-tight">
-                                                                {clase.aula}
-                                                            </p>
+                                                <td key={dia} className="p-2 border border-gray-200/80 align-top w-[110px] min-w-[110px]">
+                                                    <div className="flex flex-col gap-2">
+                                                        {clases.map((clase, cIdx) => (
                                                             <div 
-                                                                className="inline-block px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5"
-                                                                title={fila.docente}
+                                                                key={cIdx} 
+                                                                className="bg-slate-50 border-l-4 border-[#0e5d75] p-2 rounded-r-lg shadow-sm text-left flex flex-col gap-1 transition-all hover:bg-slate-100/80 print:bg-slate-50 print:border-[#0e5d75]"
                                                             >
-                                                                {fila.cod_asignatura}
+                                                                <div className="flex items-center gap-1 text-black font-extrabold text-[9px] tracking-tight print:text-black">
+                                                                    <Clock size={10} className="text-[#0e5d75] shrink-0" />
+                                                                    <span>{clase.hora_inicio} - {clase.hora_fin}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 text-[9px] text-gray-600 font-bold leading-tight">
+                                                                    <MapPin size={10} className="text-gray-400 shrink-0" />
+                                                                    <span>{clase.aula}</span>
+                                                                </div>
+                                                                <div 
+                                                                    className="inline-block self-start px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5 print:bg-gray-100"
+                                                                    title={fila.docente}
+                                                                >
+                                                                    {fila.cod_asignatura}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        ))}
+                                                    </div>
                                                 </td>
                                             );
                                         })}

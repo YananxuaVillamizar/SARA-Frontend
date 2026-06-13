@@ -1,68 +1,70 @@
-"use client";
-
 import React from "react";
 
 interface PrintHeaderProps {
-    tituloReporte: string;
+    titulo: string;
     nombreUsuario: string;
-    rolUsuario: string;
-    identificadorUsuario?: string;
-    semestreActual?: string;
-    fechaImpresion?: string;
+    rol: string;
+    documento?: string;
+    semestre?: string;
+    fecha?: string;
 }
 
 export default function PrintHeader({
-    tituloReporte,
+    titulo,
     nombreUsuario,
-    rolUsuario,
-    identificadorUsuario,
-    semestreActual,
-    fechaImpresion,
+    rol,
+    documento,
+    semestre,
+    fecha
 }: PrintHeaderProps) {
-    const fecha = fechaImpresion || new Date().toLocaleString("es-CO", {
-        dateStyle: "medium",
-        timeStyle: "short"
+    const defaultFecha = fecha || new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
     });
+    
+    // Capitalize first letter of date
+    const formattedFecha = defaultFecha.charAt(0).toUpperCase() + defaultFecha.slice(1);
 
     return (
-        <div className="only-print w-full bg-white border-b-2 pb-4 mb-6" style={{ borderColor: "#0e5d75" }}>
-            {/* Barra de color superior */}
-            <div className="h-1.5 bg-gradient-to-r from-[#0e5d75] via-[#C9A84C] to-[#1e1e30] mb-6 -mx-6" />
-            <div className="flex items-center justify-between">
+        <div className="only-print w-full mb-6 pb-4 border-b-[2.5px] border-[#0e5d75]">
+            <div className="flex justify-between items-center">
+                {/* Logo and Institution Info */}
                 <div className="flex items-center gap-4">
                     <img 
                         src="/logo_unipamplona.png" 
-                        alt="Logo Universidad de Pamplona" 
-                        className="h-16 w-auto shrink-0" 
+                        alt="Universidad de Pamplona" 
+                        className="h-16 w-auto object-contain"
                     />
                     <div className="flex flex-col">
-                        <h1 className="text-lg font-black tracking-tight uppercase animate-fade-in" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
-                            UNIVERSIDAD DE PAMPLONA
+                        <h1 className="text-base font-extrabold text-[#0e5d75] uppercase tracking-wide leading-tight">
+                            Universidad de Pamplona
                         </h1>
-                        <p className="text-[9px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: "#C9A84C", fontFamily: "Inter, sans-serif" }}>
-                            SISTEMA AUTOMATIZADO DE REGISTRO DE ASISTENCIA (SARA)
+                        <p className="text-[10px] font-bold text-[#c9a84c] uppercase tracking-wider mt-0.5">
+                            Sistema Automatizado de Registro de Asistencia (SARA)
                         </p>
                     </div>
                 </div>
-                <div className="text-right flex flex-col justify-end items-end">
-                    <h2 className="text-xs font-black uppercase tracking-wider max-w-[320px]" style={{ color: "#0e5d75", fontFamily: "Inter, sans-serif" }}>
-                        {tituloReporte}
+
+                {/* Report Metadata */}
+                <div className="text-right">
+                    <h2 className="text-sm font-black text-[#0e5d75] uppercase tracking-wide">
+                        {titulo}
                     </h2>
-                    <p className="text-[10px] text-gray-500 font-bold mt-1">
-                        Generado el {fecha}
+                    <p className="text-[10px] text-gray-600 font-medium mt-1">
+                        {formattedFecha}
                     </p>
-                    <p className="text-[10px] text-gray-500 font-bold mt-0.5">
-                        {identificadorUsuario 
-                            ? `${rolUsuario}: ${nombreUsuario} (${identificadorUsuario})` 
-                            : `${rolUsuario}: ${nombreUsuario}`}
+                    <p className="text-[9px] text-gray-500 font-medium mt-0.5 leading-tight">
+                        Generado por: <span className="font-bold text-gray-800">{nombreUsuario}</span> ({rol})
+                        {documento && <><br />Documento: <span className="font-bold text-gray-800">{documento}</span></>}
+                        {semestre && <><br />Semestre: <span className="font-bold text-gray-800">{semestre}</span></>}
                     </p>
-                    {semestreActual && (
-                        <p className="text-[9px] text-[#C9A84C] font-extrabold uppercase tracking-wider mt-0.5">
-                            Semestre Activo • {semestreActual}
-                        </p>
-                    )}
                 </div>
             </div>
+            
+            {/* Elegant institutional double line accent */}
+            <div className="w-full h-1 bg-[#c9a84c] mt-2.5 rounded-full" />
         </div>
     );
 }

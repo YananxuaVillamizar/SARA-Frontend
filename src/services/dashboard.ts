@@ -48,7 +48,11 @@ export interface EstudianteStats {
         hora_fin: string;
         grupo: string;
         sesion_id?: string | null;
+        sesion_estado?: string | null;
+        docente_asistio?: boolean | null;
         asistencia_estado?: string | null;
+        hora_entrada?: string | null;
+        hora_salida?: string | null;
     }[];
     semestre_actual?: string;
 }

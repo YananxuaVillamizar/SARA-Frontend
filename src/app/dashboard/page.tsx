@@ -1120,7 +1120,14 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             estudianteStats.horarios_hoy.map((h, i) => {
-                                const estadoClase = (() => {
+                                const badges = (() => {
+                                    if (h.docente_asistio === false) {
+                                        return {
+                                            clase: { label: "Clase cancelada: Docente no asistió", bg: "bg-red-50 text-red-600 border border-red-100 font-bold w-full text-center text-[10px] py-1" },
+                                            asistencia: null
+                                        };
+                                    }
+
                                     const now = new Date();
                                     const [hiHours, hiMinutes] = h.hora_inicio.split(":").map(Number);
                                     const [hfHours, hfMinutes] = h.hora_fin.split(":").map(Number);
@@ -1130,25 +1137,75 @@ export default function DashboardPage() {
                                     
                                     const end = new Date(now);
                                     end.setHours(hfHours, hfMinutes, 0, 0);
-                                    
-                                    if (now < start) {
-                                        return { label: "No ha comenzado", bg: "bg-gray-50 text-gray-400 border border-gray-100" };
-                                    } else if (now >= start && now <= end) {
-                                        return { label: "En curso", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 animate-pulse font-bold" };
-                                    } else {
-                                        return { label: "Finalizada", bg: "bg-gray-100 text-gray-500 border border-gray-200/50" };
-                                    }
-                                })();
 
-                                const asistioClase = (() => {
-                                    const estNorm = h.asistencia_estado ? h.asistencia_estado.toLowerCase().trim() : null;
-                                    if (estNorm === "presente" || estNorm === "tarde") {
-                                        return { label: "Asistido", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" };
+                                    const hasSession = !!h.sesion_id;
+                                    const sesionEstado = h.sesion_estado;
+                                    const hasEntry = !!h.hora_entrada;
+                                    const hasExit = !!h.hora_salida;
+
+                                    if (now < start) {
+                                        // Antes de la hora teórica: no mostrar badges
+                                        return { clase: null, asistencia: null };
+                                    } else if (now >= start && now <= end) {
+                                        // Durante la clase
+                                        if (!hasSession) {
+                                            return {
+                                                clase: { label: "Pendiente: Esperando llegada del docente.", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 animate-pulse font-bold" },
+                                                asistencia: { label: "Asistencia pendiente", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" }
+                                            };
+                                        } else {
+                                            const asistenciaBadge = (() => {
+                                                if (!hasEntry) {
+                                                    return { label: "Asistencia pendiente", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" };
+                                                } else if (!hasExit) {
+                                                    return { label: "Asistencia no completada", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" };
+                                                } else {
+                                                    return { label: "Asistencia completada", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" };
+                                                }
+                                            })();
+                                            return {
+                                                clase: { label: "Clase en curso", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 animate-pulse font-bold" },
+                                                asistencia: asistenciaBadge
+                                            };
+                                        }
+                                    } else {
+                                        // Después de la clase (now > end)
+                                        if (!hasSession) {
+                                            return {
+                                                clase: { label: "Clase cancelada: Docente no asistió", bg: "bg-red-50 text-red-600 border border-red-100 font-bold w-full text-center text-[10px] py-1" },
+                                                asistencia: null
+                                            };
+                                        } else if (sesionEstado === "abierta") {
+                                            const asistenciaBadge = (() => {
+                                                if (!hasEntry) {
+                                                    return { label: "Asistencia pendiente", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" };
+                                                } else if (!hasExit) {
+                                                    return { label: "Asistencia no completada", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" };
+                                                } else {
+                                                    return { label: "Asistencia completada", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" };
+                                                }
+                                            })();
+                                            return {
+                                                clase: { label: "Clase en curso", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 animate-pulse font-bold" },
+                                                asistencia: asistenciaBadge
+                                            };
+                                        } else {
+                                            // Sesión completa
+                                            const asistenciaBadge = (() => {
+                                                if (!hasEntry) {
+                                                    return { label: "Inasistencia", bg: "bg-red-50 text-red-600 border border-red-200/60 font-bold" };
+                                                } else if (!hasExit) {
+                                                    return { label: "Asistencia no completa: Inasistencia", bg: "bg-red-50 text-red-600 border border-red-200/60 font-bold" };
+                                                } else {
+                                                    return { label: "Asistencia completada", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" };
+                                                }
+                                            })();
+                                            return {
+                                                clase: { label: "Clase terminada", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" },
+                                                asistencia: asistenciaBadge
+                                            };
+                                        }
                                     }
-                                    if (h.sesion_id) {
-                                        return { label: "Falta/Inasistencia", bg: "bg-red-50 text-red-600 border border-red-200/60 font-bold" };
-                                    }
-                                    return { label: "Pendiente de registro", bg: "bg-gray-50 text-gray-400 border border-gray-100" };
                                 })();
 
                                 return (
@@ -1163,19 +1220,15 @@ export default function DashboardPage() {
                                             <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">Grupo {h.grupo} • {h.hora_inicio} - {h.hora_fin}</p>
                                         </div>
                                         <div className="border-t border-gray-50 pt-3 flex flex-wrap gap-2 justify-between items-center w-full">
-                                            {(h as any).docente_asistio === false ? (
-                                                <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-md bg-red-50 text-red-600 border border-red-100 w-full text-center">
-                                                    Clase cancelada: Docente no asistió
+                                            {badges.clase && (
+                                                <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${badges.clase.bg}`}>
+                                                    {badges.clase.label}
                                                 </span>
-                                            ) : (
-                                                <>
-                                                    <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${estadoClase.bg}`}>
-                                                        {estadoClase.label}
-                                                    </span>
-                                                    <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${asistioClase.bg}`}>
-                                                        {asistioClase.label}
-                                                    </span>
-                                                </>
+                                            )}
+                                            {badges.asistencia && (
+                                                <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${badges.asistencia.bg}`}>
+                                                    {badges.asistencia.label}
+                                                </span>
                                             )}
                                         </div>
                                     </div>

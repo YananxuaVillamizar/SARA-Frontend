@@ -22,22 +22,22 @@ export async function loginUsuario(
 }
 
 export function guardarSesion(data: LoginResponse) {
-    // localStorage para el frontend
-    localStorage.setItem("sara_token", data.access_token);
-    localStorage.setItem("sara_rol", data.rol);
-    localStorage.setItem("sara_nombre", data.nombres);
-    localStorage.setItem("sara_num_doc", data.num_doc);
-    localStorage.setItem("sara_id", data.id);
+    // sessionStorage para el frontend (aislado por pestaña)
+    sessionStorage.setItem("sara_token", data.access_token);
+    sessionStorage.setItem("sara_rol", data.rol);
+    sessionStorage.setItem("sara_nombre", data.nombres);
+    sessionStorage.setItem("sara_num_doc", data.num_doc);
+    sessionStorage.setItem("sara_id", data.id);
     // Cookie para que el Middleware del servidor pueda verificarla
     document.cookie = `sara_token=${data.access_token}; path=/; max-age=28800; SameSite=Strict`;
 }
 
 export function cerrarSesion() {
-    localStorage.removeItem("sara_token");
-    localStorage.removeItem("sara_rol");
-    localStorage.removeItem("sara_nombre");
-    localStorage.removeItem("sara_num_doc");
-    localStorage.removeItem("sara_id");
+    sessionStorage.removeItem("sara_token");
+    sessionStorage.removeItem("sara_rol");
+    sessionStorage.removeItem("sara_nombre");
+    sessionStorage.removeItem("sara_num_doc");
+    sessionStorage.removeItem("sara_id");
     // Eliminar la cookie también
     document.cookie = "sara_token=; path=/; max-age=0";
 }
@@ -45,10 +45,10 @@ export function cerrarSesion() {
 export const getSesion = () => {
     if (typeof window === "undefined") return { token: null, rol: null, nombre: null, num_doc: null, id: null };
     return {
-        token: localStorage.getItem("sara_token"),
-        rol: localStorage.getItem("sara_rol"),
-        nombre: localStorage.getItem("sara_nombre"),
-        num_doc: localStorage.getItem("sara_num_doc"),
-        id: localStorage.getItem("sara_id"),
+        token: sessionStorage.getItem("sara_token"),
+        rol: sessionStorage.getItem("sara_rol"),
+        nombre: sessionStorage.getItem("sara_nombre"),
+        num_doc: sessionStorage.getItem("sara_num_doc"),
+        id: sessionStorage.getItem("sara_id"),
     };
 };

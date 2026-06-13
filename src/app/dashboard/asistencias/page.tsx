@@ -252,6 +252,7 @@ export default function AsistenciasPage() {
                     docente_estado_asistencia: docEstado,
                     estado_sesion: a.estado_sesion,
                     tipo_sesion: a.tipo_sesion,
+                    dia_semana: a.dia_semana,
                     records: []
                 };
             }
@@ -751,7 +752,11 @@ export default function AsistenciasPage() {
             r.estado === 'asistencia' || r.estado === 'asistencia con retraso'
         );
 
-        const tipoSesionFormatted = (sesionData.tipo_sesion || '').toLowerCase() === 'extraordinaria' ? 'Extraordinaria' : 'Ordinaria';
+        const diaReemplazado = sesionData.dia_semana || grupoData.horarios.find((h: any) => h.id === sesionData.horario_id)?.dia || '';
+        const diaReemplazadoCapitalized = diaReemplazado ? diaReemplazado.charAt(0).toUpperCase() + diaReemplazado.slice(1).toLowerCase() : '';
+        const tipoSesionFormatted = (sesionData.tipo_sesion || '').toLowerCase() === 'extraordinaria'
+            ? `Extraordinaria ${diaReemplazadoCapitalized ? `(Remplaza al ${diaReemplazadoCapitalized})` : ''}`
+            : 'Ordinaria';
 
         const logoUrl = window.location.origin + '/logo_unipamplona.png';
 
@@ -1418,15 +1423,22 @@ export default function AsistenciasPage() {
                                                                                                                                               }
                                                                                                                                               const formattedDate = parts.join(' ');
  
+                                                                                                                                              const getExtraordinaryTag = () => {
+                                                                                                                                                  if (sesionData.tipo_sesion !== 'extraordinaria') return null;
+                                                                                                                                                  const diaReemplazado = sesionData.dia_semana || grupoData.horarios.find((h: any) => h.id === sesionData.horario_id)?.dia || '';
+                                                                                                                                                  const diaReemplazadoCapitalized = diaReemplazado ? diaReemplazado.charAt(0).toUpperCase() + diaReemplazado.slice(1).toLowerCase() : '';
+                                                                                                                                                  return (
+                                                                                                                                                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-purple-50 text-purple-700 border border-purple-200 align-middle">
+                                                                                                                                                          Sesión Extraordinaria {diaReemplazadoCapitalized ? `(Remplaza al ${diaReemplazadoCapitalized})` : ''}
+                                                                                                                                                      </span>
+                                                                                                                                                  );
+                                                                                                                                              };
+
                                                                                                                                               if (isSessionAbierta) {
                                                                                                                                                   return (
                                                                                                                                                       <>
                                                                                                                                                           Sesión Abierta: {formattedDate} (Semana {sesionData.semana})
-                                                                                                                                                          {sesionData.tipo_sesion === 'extraordinaria' && (
-                                                                                                                                                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-purple-50 text-purple-700 border border-purple-200 align-middle">
-                                                                                                                                                                  Sesión Extraordinaria
-                                                                                                                                                              </span>
-                                                                                                                                                          )}
+                                                                                                                                                          {getExtraordinaryTag()}
                                                                                                                                                           <br />
                                                                                                                                                           <span className="text-blue-500 font-bold">Aula: {sesionData.aula_sesion || "Sin Aula"}</span>
                                                                                                                                                       </>
@@ -1436,17 +1448,14 @@ export default function AsistenciasPage() {
                                                                                                                                               return isSessionCompleta ? (
                                                                                                                                                   <>
                                                                                                                                                       Sesión Completada: {formattedDate} (Semana {sesionData.semana})
-                                                                                                                                                      {sesionData.tipo_sesion === 'extraordinaria' && (
-                                                                                                                                                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-purple-50 text-purple-700 border border-purple-200 align-middle">
-                                                                                                                                                              Sesión Extraordinaria
-                                                                                                                                                          </span>
-                                                                                                                                                      )}
+                                                                                                                                                      {getExtraordinaryTag()}
                                                                                                                                                       <br />
                                                                                                                                                       <span className="text-gray-500 font-medium">Aula: {sesionData.aula_sesion || "Sin Aula"}</span>
                                                                                                                                                   </>
                                                                                                                                               ) : (
                                                                                                                                                   <>
                                                                                                                                                       Sesión No Completada: {formattedDate} (Semana {sesionData.semana})
+                                                                                                                                                      {getExtraordinaryTag()}
                                                                                                                                                       <br />
                                                                                                                                                       <span className="text-gray-500">Motivo: {sesionData.isVirtual ? sesionData.reason : "Docente no asistió"}</span>
                                                                                                                                                   </>

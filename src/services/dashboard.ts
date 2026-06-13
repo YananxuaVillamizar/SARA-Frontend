@@ -74,6 +74,31 @@ export async function obtenerEstudianteStats(usuarioId: string): Promise<Estudia
     return response.data;
 }
 
+export interface DocenteStats {
+    horarios_hoy: {
+        id: string;
+        asignatura: string;
+        aula: string;
+        dia_semana: string;
+        hora_inicio: string;
+        hora_fin: string;
+        grupo: string;
+        sesion_id?: string | null;
+        sesion_estado?: string | null;
+        docente_asistio?: boolean | null;
+        asistencia_estado?: string | null;
+        hora_entrada?: string | null;
+        hora_salida?: string | null;
+    }[];
+    semestre_actual?: string;
+}
+
+export async function obtenerDocenteStats(usuarioId: string): Promise<DocenteStats> {
+    const response = await api.get(`/dashboard/docente-stats/${usuarioId}`);
+    return response.data;
+}
+
+
 export interface UsuarioFiltro {
     id: string;
     nombres: string;

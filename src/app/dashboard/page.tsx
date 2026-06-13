@@ -15,7 +15,7 @@ import { getSesion } from "@/services/auth";
 import { listarHorarios, Horario } from "@/services/admin";
 import { crearSesion } from "@/services/contingencias";
 import {
-    obtenerAdminStats, obtenerEstudianteStats, AdminStats, EstudianteStats,
+    obtenerAdminStats, obtenerEstudianteStats, obtenerDocenteStats, AdminStats, EstudianteStats, DocenteStats,
     obtenerUsuariosFiltro, obtenerAsignaturasFiltro, obtenerPermanenciaStats,
     UsuarioFiltro, AsignaturaFiltro, PermanenciaStats
 } from "@/services/dashboard";
@@ -62,6 +62,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
     const [estudianteStats, setEstudianteStats] = useState<EstudianteStats | null>(null);
+    const [docenteStats, setDocenteStats] = useState<DocenteStats | null>(null);
     const [horarios, setHorarios] = useState<Horario[]>([]);
     const [filtroRol, setFiltroRol] = useState<string>("todos");
     const [filtroSemana, setFiltroSemana] = useState<string>("actual");
@@ -189,6 +190,8 @@ export default function DashboardPage() {
                     if (currentSession.rol === "Docente") {
                         const hor = await listarHorarios();
                         setHorarios(hor.filter((h: Horario) => h.docente_id === currentSession.id));
+                        const docStats = await obtenerDocenteStats(currentSession.id);
+                        setDocenteStats(docStats);
                     }
                 } else if (currentSession.rol === "Estudiante") {
                     const stats = await obtenerEstudianteStats(currentSession.id);
@@ -216,23 +219,7 @@ export default function DashboardPage() {
         }
     }, [loading]);
 
-    const registrarClase = async (h: Horario) => {
-        if (!confirm(`¿Confirmar que dictaste la clase de ${h.asignatura}?`)) return;
-        try {
-            await crearSesion({
-                horario_id: h.id,
-                fecha: new Date().toISOString().split('T')[0],
-                docente_asistio: true,
-                creado_por: sesion.id
-            });
-            alert("Sesión registrada con éxito");
-            // Refrescar estadísticas
-            const stats = await obtenerAdminStats(filtroRol, filtroSemana, sesion.id, sesion.rol);
-            setAdminStats(stats);
-        } catch (e: any) {
-            alert("Error: Posiblemente ya registraste esta sesión hoy.");
-        }
-    };
+
 
     if (loading) {
         return (
@@ -447,6 +434,140 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* HORARIO DEL DÍA (DOCENTE) */}
+                {sesion.rol === "Docente" && docenteStats && (
+                    <div className="space-y-3 mt-6">
+                        <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Calendar size={15} /> Tus Clases de Hoy
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {docenteStats.horarios_hoy.length === 0 ? (
+                                <div className="flex items-center gap-2 p-4 bg-gray-50 border border-gray-100 rounded-2xl col-span-full">
+                                    <Clock size={16} className="text-gray-400" />
+                                    <p className="text-xs text-gray-400 italic">No tienes clases agendadas para el día de hoy.</p>
+                                </div>
+                            ) : (
+                                docenteStats.horarios_hoy.map((h, i) => {
+                                    const badges = (() => {
+                                        const now = new Date();
+                                        const [hiHours, hiMinutes] = h.hora_inicio.split(":").map(Number);
+                                        const [hfHours, hfMinutes] = h.hora_fin.split(":").map(Number);
+                                        
+                                        const start = new Date(now);
+                                        start.setHours(hiHours, hiMinutes, 0, 0);
+                                        
+                                        const end = new Date(now);
+                                        end.setHours(hfHours, hfMinutes, 0, 0);
+
+                                        const hasSession = !!h.sesion_id;
+                                        const sesionEstado = h.sesion_estado;
+                                        const docenteAsistio = h.docente_asistio;
+                                        const hasExit = !!h.hora_salida;
+
+                                        // 1. Caso Cancelado (Any time condition, session exists, state 'no_completada', docente_asistio is False)
+                                        if (hasSession && sesionEstado === "no_completada" && docenteAsistio === false) {
+                                            return {
+                                                clase: { label: "Clase cancelada: Reportaste inasistencia", bg: "bg-red-50 text-red-600 border border-red-100 font-bold w-full text-center text-[10px] py-1" },
+                                                asistencia: null
+                                            };
+                                        }
+
+                                        // 2. Caso Antes de la clase
+                                        if (now < start) {
+                                            return {
+                                                clase: { label: "Pendiente: Por iniciar", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" },
+                                                asistencia: { label: "Registro de inicio pendiente", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" }
+                                            };
+                                        }
+
+                                        // 3. Caso Durante la clase (start <= now <= end)
+                                        if (now >= start && now <= end) {
+                                            if (!hasSession) {
+                                                return {
+                                                    clase: { label: "Pendiente: Por iniciar", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" },
+                                                    asistencia: { label: "Registro de inicio pendiente", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" }
+                                                };
+                                            } else if (sesionEstado === "abierta") {
+                                                return {
+                                                    clase: { label: "Clase en curso", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 animate-pulse font-bold" },
+                                                    asistencia: { label: "Inicio registrado", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" }
+                                                };
+                                            } else if (sesionEstado === "completa") {
+                                                if (!hasExit) {
+                                                    return {
+                                                        clase: { label: "Clase terminada", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" },
+                                                        asistencia: { label: "Asistencia incompleta (Sin salida)", bg: "bg-red-50 text-red-600 border border-red-200/60 font-bold" }
+                                                    };
+                                                } else {
+                                                    return {
+                                                        clase: { label: "Clase terminada", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" },
+                                                        asistencia: { label: "Clase dictada con éxito", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" }
+                                                    };
+                                                }
+                                            }
+                                        }
+
+                                        // 4. Caso Después de la clase (now > end)
+                                        if (now > end) {
+                                            if (!hasSession) {
+                                                return {
+                                                    clase: { label: "Clase no dictada: Sin registro", bg: "bg-red-50 text-red-600 border border-red-100 font-bold w-full text-center text-[10px] py-1" },
+                                                    asistencia: null
+                                                };
+                                            } else if (sesionEstado === "abierta") {
+                                                return {
+                                                    clase: { label: "Clase en curso (Hora finalizada)", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 animate-pulse font-bold" },
+                                                    asistencia: { label: "Inicio registrado", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" }
+                                                };
+                                            } else if (sesionEstado === "completa") {
+                                                if (!hasExit) {
+                                                    return {
+                                                        clase: { label: "Clase terminada", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" },
+                                                        asistencia: { label: "Asistencia incompleta (Sin salida)", bg: "bg-red-50 text-red-600 border border-red-200/60 font-bold" }
+                                                    };
+                                                } else {
+                                                    return {
+                                                        clase: { label: "Clase terminada", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" },
+                                                        asistencia: { label: "Clase dictada con éxito", bg: "bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold" }
+                                                    };
+                                                }
+                                            }
+                                        }
+
+                                        return { clase: null, asistencia: null };
+                                    })();
+
+                                    return (
+                                        <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 hover:shadow-md transition-all duration-300 flex flex-col justify-between space-y-4" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.02)" }}>
+                                            <div>
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <p className="font-bold text-sm text-[#1A1A2E] leading-tight truncate" title={h.asignatura}>{h.asignatura}</p>
+                                                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-lg bg-gray-100/80 text-gray-500 shrink-0">
+                                                        Aula {h.aula}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">Grupo {h.grupo} • {h.hora_inicio} - {h.hora_fin}</p>
+                                            </div>
+                                            <div className="border-t border-gray-50 pt-3 flex flex-wrap gap-2 justify-between items-center w-full">
+                                                {badges.clase && (
+                                                    <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${badges.clase.bg}`}>
+                                                        {badges.clase.label}
+                                                    </span>
+                                                )}
+                                                {badges.asistencia && (
+                                                    <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${badges.asistencia.bg}`}>
+                                                        {badges.asistencia.label}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                )}
 
 
 

@@ -1600,8 +1600,8 @@ export default function AsistenciasPage() {
                                                                                                                   {!isEstudiante && (isSessionCompleta || isSessionAbierta) && isSessionOpen && (
                                                                                                                        <div className="space-y-3 mt-1">
                                                                                                                            {/* PANEL PREMIUM DE DOCENTE */}
-                                                                                                                           <div className="bg-[#fafaf7] border border-[#f3efe7] shadow-sm rounded-2xl p-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                                                                                                                              <div className="md:col-span-4 flex items-center gap-3">
+                                                                                                                           <div className="bg-[#fafaf7] border border-[#f3efe7] shadow-sm rounded-2xl p-3 grid grid-cols-2 md:grid-cols-12 gap-4 items-center">
+                                                                                                                              <div className="col-span-2 md:col-span-4 flex items-center gap-3">
                                                                                                                                   <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 text-amber-700 font-black text-xs shrink-0 border border-amber-100 shadow-sm">
                                                                                                                                       DO
                                                                                                                                   </div>
@@ -1610,19 +1610,19 @@ export default function AsistenciasPage() {
                                                                                                                                       <p className="text-[10px] text-gray-500 font-bold mt-0.5 whitespace-nowrap">C.C. {sesionData.docente_num_doc || "—"}</p>
                                                                                                                                   </div>
                                                                                                                               </div>
-                                                                                                                              <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+                                                                                                                              <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center text-center">
                                                                                                                                   <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Entrada</span>
                                                                                                                                   <span className="font-bold text-gray-800 text-[10px] mt-0.5 whitespace-nowrap">
                                                                                                                                       {sesionData.docente_hora_entrada ? new Date(sesionData.docente_hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                                                                                                                                   </span>
                                                                                                                               </div>
-                                                                                                                              <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+                                                                                                                              <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center text-center">
                                                                                                                                   <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Salida</span>
                                                                                                                                   <span className="font-bold text-gray-800 text-[10px] mt-0.5 whitespace-nowrap">
                                                                                                                                       {sesionData.docente_hora_salida ? new Date(sesionData.docente_hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                                                                                                                                   </span>
                                                                                                                               </div>
-                                                                                                                              <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+                                                                                                                              <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center text-center">
                                                                                                                                   <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Método</span>
                                                                                                                                   <div className="mt-0.5 whitespace-nowrap">
                                                                                                                                       {!sesionData.docente_metodo_verificacion || sesionData.docente_metodo_verificacion === "N/A" || sesionData.docente_metodo_verificacion === "None" || sesionData.docente_metodo_verificacion.trim() === "" ? (
@@ -1638,7 +1638,7 @@ export default function AsistenciasPage() {
                                                                                                                                       )}
                                                                                                                                   </div>
                                                                                                                               </div>
-                                                                                                                              <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+                                                                                                                              <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center text-center">
                                                                                                                                   <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider">Estado</span>
                                                                                                                                   <span className={`mt-0.5 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full transition-all whitespace-nowrap ${
                                                                                                                                       sesionData.docente_estado_asistencia === "asistencia" ? "bg-green-50 text-green-700" :

@@ -210,8 +210,13 @@
 .recharts-wrapper,
 .recharts-surface,
 .recharts-container,
+.recharts-wrapper *,
+.recharts-surface *,
+.recharts-container *,
 .recharts-wrapper *:focus,
 .recharts-wrapper *:active,
 .recharts-wrapper *:focus-visible {
   outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }

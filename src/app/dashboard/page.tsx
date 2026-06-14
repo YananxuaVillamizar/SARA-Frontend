@@ -759,7 +759,13 @@ export default function DashboardPage() {
                                                 cornerRadius={6}
                                             />
                                             <Tooltip
-                                                formatter={(value) => [`${value}%`, "Asistencia"]}
+                                                labelFormatter={() => "Asistencia Semanal"}
+                                                formatter={(value, name, entry: any) => {
+                                                    const rawName = entry?.payload?.name || name;
+                                                    const nameStr = String(rawName);
+                                                    const capitalized = nameStr ? nameStr.charAt(0).toUpperCase() + nameStr.slice(1) : nameStr;
+                                                    return [`${value}%`, capitalized];
+                                                }}
                                                 contentStyle={{ fontSize: 10, borderRadius: 8 }}
                                             />
                                         </RadialBarChart>
@@ -1498,7 +1504,13 @@ export default function DashboardPage() {
                                                 cornerRadius={6}
                                             />
                                             <Tooltip
-                                                formatter={(value) => [`${value}%`, "Asistencia"]}
+                                                labelFormatter={() => "Asistencia Semanal"}
+                                                formatter={(value, name, entry: any) => {
+                                                    const rawName = entry?.payload?.name || name;
+                                                    const nameStr = String(rawName);
+                                                    const capitalized = nameStr ? nameStr.charAt(0).toUpperCase() + nameStr.slice(1) : nameStr;
+                                                    return [`${value}%`, capitalized];
+                                                }}
                                                 contentStyle={{ fontSize: 10, borderRadius: 8 }}
                                             />
                                         </RadialBarChart>

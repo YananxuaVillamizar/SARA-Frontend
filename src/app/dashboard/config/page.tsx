@@ -2172,7 +2172,7 @@ export default function ConfigPage() {
                             onClick={() => setMostrarHorarioModal(false)} />
 
                         {/* Contenedor del Modal */}
-                        <div className="fixed inset-4 md:inset-10 bg-white z-50 rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 print:absolute print:inset-0 print:rounded-none print:shadow-none print:border-0 print:h-screen print:w-screen">
+                        <div className="fixed inset-4 md:inset-10 bg-white z-50 rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 print:absolute print:inset-0 print:rounded-none print:shadow-none print:border-0 print:h-screen print:w-screen print:p-[15mm]">
                             
                             {/* Header del Modal (Oculto al imprimir) */}
                             <div className="p-6 border-b border-gray-100 flex items-center justify-between no-print"

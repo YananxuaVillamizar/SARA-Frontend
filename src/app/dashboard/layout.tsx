@@ -112,14 +112,25 @@ export default function DashboardLayout({
         <div className="flex h-screen bg-page-bg">
             {/* SIDEBAR CON HOVER EXPAND CON ESTILO DE INICIO DE SESIÓN */}
             <aside
-                onMouseEnter={() => setIsCollapsed(false)}
-                onMouseLeave={() => setIsCollapsed(true)}
+                onMouseEnter={() => {
+                    if (typeof window !== "undefined" && window.matchMedia('(hover: hover)').matches) {
+                        setIsCollapsed(false);
+                    }
+                }}
+                onMouseLeave={() => {
+                    if (typeof window !== "undefined" && window.matchMedia('(hover: hover)').matches) {
+                        setIsCollapsed(true);
+                    }
+                }}
                 className={`bg-sidebar-bg text-white transition-[width] duration-300 ease-in-out hidden md:flex flex-col z-30 shadow-2xl ${isCollapsed ? "w-[70px]" : "w-64"
                     }`}
             >
                 {/* Logo Section */}
-                <div className="h-20 flex items-center justify-center border-b border-white/10 overflow-hidden px-4">
-                    <div className="w-full flex items-center justify-center">
+                <div 
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="h-20 flex items-center justify-center border-b border-white/10 overflow-hidden px-4 cursor-pointer hover:bg-white/5 transition-colors"
+                >
+                    <div className="w-full flex items-center justify-center pointer-events-none">
                         {isCollapsed ? (
                             <div className="bg-white p-1.5 rounded-xl shadow-lg border border-white/10 flex items-center justify-center w-11 h-11 transition-all duration-300">
                                 <img 

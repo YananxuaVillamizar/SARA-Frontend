@@ -195,7 +195,7 @@ export default function DashboardLayout({
             {/* MAIN CONTENT AREA */}
             <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
                 {/* Top Header */}
-                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 z-10">
+                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 z-40">
                     <div>
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em]">SARA Ecosystem</p>
                         <h2 className="text-xl font-extrabold text-sidebar-bg tracking-tight">Panel de Control</h2>
@@ -272,7 +272,7 @@ export default function DashboardLayout({
                         <div className="relative">
                             <button
                                 onClick={() => setShowSessionMenu(!showSessionMenu)}
-                                className="flex items-center gap-3 pl-4 border-l border-gray-100 focus:outline-none cursor-pointer text-left"
+                                className="flex items-center gap-3 pl-3 pr-1 py-1 sm:pl-4 sm:pr-0 sm:py-0 border-l border-gray-100 focus:outline-none cursor-pointer text-left"
                             >
                                 <div className="text-right hidden sm:block">
                                     <p className="text-xs font-bold text-sidebar-bg">{sesion.nombre}</p>

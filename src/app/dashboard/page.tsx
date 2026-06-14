@@ -757,7 +757,7 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Leyenda Personalizada Concéntrica en la base (6 columnas para Lun - Sab) */}
-                            <div className="grid grid-cols-6 gap-x-2 gap-y-2 text-[9px] font-bold text-gray-500 w-full px-2 justify-center mt-3">
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-2 gap-y-2 text-[9px] font-bold text-gray-500 w-full px-2 justify-center mt-3">
                                 {(adminStats?.asistencia_semanal ?? []).map((d, index) => {
                                     const total = d.presentes + d.ausentes;
                                     const pct = total > 0 ? Math.round((d.presentes / total) * 100) : 0;
@@ -1145,9 +1145,9 @@ export default function DashboardPage() {
                                 ? estudianteStats.desglose_puntualidad 
                                 : [{ name: "Sin registros", value: 1, color: "#E5E7EB" }];
                             return (
-                                <div className="flex items-center justify-center gap-12 h-full w-full">
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-12 h-full w-full">
                                     {/* Referencias al lado izquierdo */}
-                                    <div className="flex flex-col gap-3 shrink-0">
+                                    <div className="flex flex-row sm:flex-col gap-4 sm:gap-3 justify-center shrink-0">
                                         {estudianteStats.desglose_puntualidad.map((entry, i) => (
                                             <div key={i} className="flex items-center gap-2">
                                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
@@ -1162,7 +1162,7 @@ export default function DashboardPage() {
                                     </div>
 
                                     {/* Gráfico a la derecha (más grande) */}
-                                    <div className="w-48 h-48 relative flex justify-center items-center shrink-0">
+                                    <div className="w-36 h-36 sm:w-48 sm:h-48 relative flex justify-center items-center shrink-0">
                                         {showCharts && (
                                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                                 <PieChart>
@@ -1170,8 +1170,8 @@ export default function DashboardPage() {
                                                         data={pieData}
                                                         cx="50%"
                                                         cy="50%"
-                                                        innerRadius={52}
-                                                        outerRadius={78}
+                                                        innerRadius="60%"
+                                                        outerRadius="90%"
                                                         paddingAngle={sumValues > 0 ? 4 : 0}
                                                         dataKey="value"
                                                     >
@@ -1486,7 +1486,7 @@ export default function DashboardPage() {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-6 gap-x-2 gap-y-2 text-[9px] font-bold text-gray-500 w-full px-2 justify-center mt-3">
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-2 gap-y-2 text-[9px] font-bold text-gray-500 w-full px-2 justify-center mt-3">
                                 {(adminStats?.asistencia_semanal ?? []).map((d, index) => {
                                     const total = d.presentes + d.ausentes;
                                     const pct = total > 0 ? Math.round((d.presentes / total) * 100) : 0;

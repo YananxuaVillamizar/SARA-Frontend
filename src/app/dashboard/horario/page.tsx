@@ -57,6 +57,335 @@ export default function HorarioPage() {
         }
     }, []);
 
+    const handleImprimirHorario = () => {
+        if (!sesion.nombre) return;
+
+        const DIA_MAP: Record<string, string> = {
+            "lunes": "Lunes",
+            "martes": "Martes",
+            "miercoles": "Miercoles",
+            "miércoles": "Miercoles",
+            "jueves": "Jueves",
+            "viernes": "Viernes",
+            "sabado": "Sabado",
+            "sábado": "Sabado",
+            "domingo": "Domingo"
+        };
+        const DIAS = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+
+        const filasMap: Record<string, any> = {};
+
+        horarios.forEach(h => {
+            const key = `${h.cod_asignatura}-${h.grupo}`;
+            if (!filasMap[key]) {
+                filasMap[key] = {
+                    cod_asignatura: h.cod_asignatura,
+                    asignatura: h.asignatura,
+                    grupo: h.grupo,
+                    docente: h.docente,
+                    clasesPorDia: {
+                        "Lunes": [],
+                        "Martes": [],
+                        "Miercoles": [],
+                        "Jueves": [],
+                        "Viernes": [],
+                        "Sabado": [],
+                        "Domingo": []
+                    }
+                };
+            }
+            
+            const diaNorm = DIA_MAP[h.dia_semana.toLowerCase()] || "Lunes";
+            if (filasMap[key].clasesPorDia[diaNorm]) {
+                filasMap[key].clasesPorDia[diaNorm].push({
+                    hora_inicio: h.hora_inicio.slice(0, 5),
+                    hora_fin: h.hora_fin.slice(0, 5),
+                    aula: h.aula
+                });
+            }
+        });
+
+        const filas = Object.values(filasMap);
+        const logoUrl = window.location.origin + '/logo_unipamplona.png';
+        const fechaPrintFormatted = new Date().toLocaleDateString('es-ES', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+
+        const propNombre = sesion.nombre;
+        const propRol = sesion.rol;
+        const propDoc = sesion.num_doc;
+        const genNombre = sesion.nombre;
+        const genRol = sesion.rol;
+
+        const htmlContent = `
+            <html>
+                <head>
+                    <title>Horario Semanal - ${propNombre}</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+                        
+                        @page {
+                            size: letter landscape;
+                            margin: 0mm;
+                        }
+                        
+                        body {
+                            font-family: 'Inter', sans-serif;
+                            color: #000000;
+                            margin: 0;
+                            padding: 15mm 10mm;
+                            background: #ffffff;
+                            font-size: 10px;
+                            line-height: 1.3;
+                        }
+                        
+                        .header {
+                            width: 100%;
+                            margin-bottom: 20px;
+                            padding-bottom: 12px;
+                            border-bottom: 2.5px solid #0e5d75;
+                        }
+                        
+                        .header-row {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                        }
+                        
+                        .accent-bar {
+                            width: 100%;
+                            height: 4px;
+                            background-color: #c9a84c;
+                            margin-top: 8px;
+                            border-radius: 9999px;
+                        }
+                        
+                        .header-logo {
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                        }
+                        
+                        .header-logo img {
+                            height: 60px;
+                            width: auto;
+                        }
+                        
+                        .header-title-container {
+                            display: flex;
+                            flex-direction: column;
+                        }
+                        
+                        .header-title-main {
+                            font-size: 16px;
+                            font-weight: 800;
+                            color: #0e5d75;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            margin: 0;
+                        }
+                        
+                        .header-title-sub {
+                            font-size: 9.5px;
+                            font-weight: 600;
+                            color: #c9a84c;
+                            text-transform: uppercase;
+                            margin: 2px 0 0 0;
+                            letter-spacing: 0.5px;
+                        }
+                        
+                        .header-meta {
+                            text-align: right;
+                        }
+                        
+                        .header-meta-doc {
+                            font-size: 12px;
+                            font-weight: 800;
+                            color: #0e5d75;
+                            text-transform: uppercase;
+                            margin: 0 0 3px 0;
+                        }
+                        
+                        .header-meta-date {
+                            font-size: 9px;
+                            color: #000000;
+                            font-weight: 500;
+                            margin: 0 0 6px 0;
+                        }
+                        
+                        .header-meta-by {
+                            font-size: 9px;
+                            color: #000000;
+                            font-weight: 500;
+                            margin: 0;
+                            line-height: 1.25;
+                        }
+                        
+                        .schedule-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 15px;
+                            background: #ffffff;
+                            border: 1px solid #000000;
+                        }
+                        
+                        .schedule-table th {
+                            background: #0e5d75 !important;
+                            color: #ffffff !important;
+                            font-size: 10px;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            padding: 6px 4px;
+                            border: 1px solid #000000;
+                            border-bottom: 3px solid #c9a84c !important;
+                            text-align: center;
+                            print-color-adjust: exact !important;
+                            -webkit-print-color-adjust: exact !important;
+                        }
+                        
+                        .schedule-table td {
+                            padding: 6px 4px;
+                            font-size: 9px;
+                            color: #000000;
+                            border: 1px solid #000000;
+                            font-weight: 500;
+                            vertical-align: top;
+                        }
+
+                        .materia-cell {
+                            font-weight: bold;
+                        }
+                        
+                        .materia-code {
+                            font-size: 8px;
+                            color: #666;
+                            font-weight: bold;
+                            text-transform: uppercase;
+                        }
+
+                        .materia-name {
+                            font-size: 9.5px;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            color: #000;
+                            margin: 2px 0;
+                        }
+
+                        .materia-info {
+                            font-size: 8px;
+                            color: #555;
+                        }
+                        
+                        .class-card {
+                            background: #f8fafc;
+                            border-left: 3px solid #0e5d75;
+                            padding: 4px;
+                            margin-bottom: 4px;
+                            border-radius: 0 4px 4px 0;
+                        }
+                        
+                        .class-time {
+                            font-weight: 800;
+                            font-size: 8px;
+                            color: #000;
+                        }
+                        
+                        .class-aula {
+                            font-size: 8px;
+                            color: #555;
+                            margin-top: 1px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class='header'>
+                        <div class='header-row'>
+                            <div class='header-logo'>
+                                <img src='${logoUrl}' alt='Universidad de Pamplona' />
+                                <div class='header-title-container'>
+                                    <h1 class='header-title-main'>Universidad de Pamplona</h1>
+                                    <p class='header-title-sub'>Sistema Automatizado de Registro de Asistencia (SARA)</p>
+                                </div>
+                            </div>
+                            <div class='header-meta'>
+                                <h2 class='header-meta-doc'>Horario Semanal de Clases</h2>
+                                <p class='header-meta-date'>${fechaPrintFormatted}</p>
+                                <p class='header-meta-by'>
+                                    Generado por: <strong>${genNombre}</strong> (${genRol})
+                                    <br/>
+                                    <strong>${propRol}:</strong> ${propNombre} ${propDoc ? `(C.C. ${propDoc})` : ''}
+                                </p>
+                            </div>
+                        </div>
+                        <div class='accent-bar'></div>
+                    </div>
+                    
+                    <table class='schedule-table'>
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Materia</th>
+                                ${DIAS.map(d => `<th style="width: 11.4%;">${d}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filas.map((fila: any) => `
+                                <tr>
+                                    <td class="materia-cell">
+                                        <div class="materia-code">${fila.cod_asignatura}</div>
+                                        <div class="materia-name">${fila.asignatura}</div>
+                                        <div class="materia-info">Grupo: ${fila.grupo}</div>
+                                        ${fila.docente ? `<div class="materia-info">Docente: ${fila.docente}</div>` : ''}
+                                    </td>
+                                    ${DIAS.map(dia => {
+                                        const clases = fila.clasesPorDia[dia] || [];
+                                        return `
+                                            <td>
+                                                ${clases.map((clase: any) => `
+                                                    <div class="class-card">
+                                                        <div class="class-time">⏱️ ${clase.hora_inicio} - ${clase.hora_fin}</div>
+                                                        <div class="class-aula">📍 Aula: ${clase.aula}</div>
+                                                    </div>
+                                                `).join('')}
+                                            </td>
+                                        `;
+                                    }).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </body>
+            </html>
+        `;
+
+        let iframe = document.getElementById('print-iframe') as HTMLIFrameElement;
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-iframe';
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            document.body.appendChild(iframe);
+        }
+
+        const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
+        if (!iframeDoc) return;
+
+        iframeDoc.open();
+        iframeDoc.write(htmlContent);
+        iframeDoc.close();
+
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+        }, 300);
+    };
+
     // Agrupar horarios por Asignatura + Grupo para formar las filas de la tabla
     const filasMap: Record<string, FilaHorario> = {};
 
@@ -115,23 +444,13 @@ export default function HorarioPage() {
                 </div>
                 <div>
                     <button
-                        onClick={() => window.print()}
+                        onClick={handleImprimirHorario}
                         className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md active:scale-95 flex items-center gap-2"
                     >
                         <Printer size={14} /> Imprimir Horario
                     </button>
                 </div>
             </div>
-
-            {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
-            <PrintHeader 
-                titulo="Horario Semanal de Clases"
-                propietarioNombre={sesion.nombre}
-                propietarioRol={sesion.rol}
-                propietarioDocumento={sesion.num_doc}
-                generadoPorNombre={sesion.nombre}
-                generadoPorRol={sesion.rol}
-            />
 
             {/* Tabla Principal */}
             {filas.length === 0 ? (

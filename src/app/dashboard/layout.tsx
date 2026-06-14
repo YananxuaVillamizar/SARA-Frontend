@@ -28,6 +28,7 @@ export default function DashboardLayout({
     const [sesion, setSesion] = useState({ nombre: "", rol: "" });
     const [alertas, setAlertas] = useState<{ tipo: string; titulo: string; descripcion: string; persistente?: boolean }[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showSessionMenu, setShowSessionMenu] = useState(false);
 
     const handleLimpiarNotificaciones = async () => {
         const { id } = getSesion();
@@ -113,7 +114,7 @@ export default function DashboardLayout({
             <aside
                 onMouseEnter={() => setIsCollapsed(false)}
                 onMouseLeave={() => setIsCollapsed(true)}
-                className={`bg-sidebar-bg text-white transition-[width] duration-300 ease-in-out flex flex-col z-30 shadow-2xl ${isCollapsed ? "w-[70px]" : "w-64"
+                className={`bg-sidebar-bg text-white transition-[width] duration-300 ease-in-out hidden md:flex flex-col z-30 shadow-2xl ${isCollapsed ? "w-[70px]" : "w-64"
                     }`}
             >
                 {/* Logo Section */}
@@ -192,9 +193,9 @@ export default function DashboardLayout({
             </aside>
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-1 flex flex-col overflow-hidden">
+            <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
                 {/* Top Header */}
-                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10">
+                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 z-10">
                     <div>
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em]">SARA Ecosystem</p>
                         <h2 className="text-xl font-extrabold text-sidebar-bg tracking-tight">Panel de Control</h2>
@@ -268,36 +269,84 @@ export default function DashboardLayout({
                             )}
                         </div>
 
-                        <div className="flex items-center gap-3 pl-4 border-l border-gray-100">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-xs font-bold text-sidebar-bg">{sesion.nombre}</p>
-                                <p className="text-[9px] text-[#c9a84c] font-black uppercase">{sesion.rol}</p>
-                            </div>
-                            {(() => {
-                                const config: Record<string, { color: string; bg: string }> = {
-                                    Administrativo: { color: "#0e5d75", bg: "#E2F1F4" },
-                                    Docente: { color: "#1D4ED8", bg: "#EFF6FF" },
-                                    Estudiante: { color: "#065F46", bg: "#ECFDF5" },
-                                };
-                                const c = config[sesion.rol] ?? { color: "#374151", bg: "#F3F4F6" };
-                                return (
-                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
-                                        style={{ color: c.color, background: c.bg }}>
-                                        {sesion.nombre.substring(0, 2).toUpperCase()}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowSessionMenu(!showSessionMenu)}
+                                className="flex items-center gap-3 pl-4 border-l border-gray-100 focus:outline-none cursor-pointer text-left"
+                            >
+                                <div className="text-right hidden sm:block">
+                                    <p className="text-xs font-bold text-sidebar-bg">{sesion.nombre}</p>
+                                    <p className="text-[9px] text-[#c9a84c] font-black uppercase">{sesion.rol}</p>
+                                </div>
+                                {(() => {
+                                    const config: Record<string, { color: string; bg: string }> = {
+                                        Administrativo: { color: "#0e5d75", bg: "#E2F1F4" },
+                                        Docente: { color: "#1D4ED8", bg: "#EFF6FF" },
+                                        Estudiante: { color: "#065F46", bg: "#ECFDF5" },
+                                    };
+                                    const c = config[sesion.rol] ?? { color: "#374151", bg: "#F3F4F6" };
+                                    return (
+                                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
+                                            style={{ color: c.color, background: c.bg }}>
+                                            {sesion.nombre.substring(0, 2).toUpperCase()}
+                                        </div>
+                                    );
+                                })()}
+                            </button>
+
+                            {showSessionMenu && (
+                                <>
+                                    <div 
+                                        className="fixed inset-0 z-40" 
+                                        onClick={() => setShowSessionMenu(false)}
+                                    />
+                                    <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                                        <div className="p-4 border-b border-gray-50 bg-gray-50/30 text-left">
+                                            <p className="text-xs font-bold text-gray-800 break-words">{sesion.nombre}</p>
+                                            <p className="text-[10px] text-[#c9a84c] font-black uppercase mt-0.5">{sesion.rol}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => { cerrarSesion(); router.push("/"); }}
+                                            className="w-full flex items-center gap-2 p-3 text-left text-xs font-bold text-red-600 hover:bg-red-50/50 transition-colors focus:outline-none"
+                                        >
+                                            <LogOut size={14} />
+                                            <span>Cerrar Sesión</span>
+                                        </button>
                                     </div>
-                                );
-                            })()}
+                                </>
+                            )}
                         </div>
                     </div>
                 </header>
 
                 {/* Page Content */}
-                <section className="flex-1 overflow-y-auto p-8 bg-page-bg">
+                <section className="flex-1 overflow-y-auto p-4 md:p-8 bg-page-bg">
                     <div className="max-w-7xl mx-auto">
                         {children}
                     </div>
                 </section>
             </main>
+
+            {/* BOTTOM NAVIGATION FOR MOBILE */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-sidebar-bg border-t border-white/10 flex items-center justify-around z-30 px-2 shadow-[0_-4px_16px_rgba(0,0,0,0.15)]">
+                {menuItems.map((item, index) => {
+                    const isActive = pathname === item.href;
+                    return (
+                        <Link
+                            key={index}
+                            href={item.href}
+                            className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all duration-200 ${
+                                isActive ? "text-[#c9a84c]" : "text-gray-400 hover:text-gray-200"
+                            }`}
+                        >
+                            <div className="shrink-0">{item.icon}</div>
+                            <span className="text-[10px] font-medium mt-1 select-none">
+                                {item.label}
+                            </span>
+                        </Link>
+                    );
+                })}
+            </nav>
         </div>
     );
 }

@@ -380,7 +380,7 @@ export default function DashboardPage() {
 
                     {/* Alertas Críticas de Deserción (ocupa la mitad derecha, alineada a 296px de alto) */}
                     <div
-                        className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-auto md:h-[296px] w-full"
+                        className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col justify-between h-auto md:h-[296px] landscape:h-[296px] w-full"
                         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
                     >
                         <div>
@@ -390,7 +390,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-gray-400 mb-4">Riesgos y ausentismo crítico detectados</p>
                         </div>
 
-                        <div className="space-y-3 overflow-visible md:overflow-y-auto pr-1 flex-1 max-h-none md:max-h-[160px] print:max-h-none print:overflow-visible scrollbar-thin">
+                        <div className="space-y-3 overflow-visible md:overflow-y-auto landscape:overflow-y-auto pr-1 flex-1 max-h-none md:max-h-[160px] landscape:max-h-[160px] print:max-h-none print:overflow-visible scrollbar-thin">
                             {!adminStats || adminStats.alertas_desercion.length === 0 ? (
                                 <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100">
                                     <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
@@ -619,29 +619,8 @@ export default function DashboardPage() {
                                     </>
                                 ) : null}
 
-                                {/* Filtro de Semanas para Móviles */}
-                                <select
-                                    value={filtroSemana}
-                                    onChange={(e) => setFiltroSemana(e.target.value)}
-                                    className="sm:hidden text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-sara-red transition-all cursor-pointer h-8 print:hidden"
-                                    style={{ color: "#1A1A2E" }}
-                                >
-                                    <option value="actual">Semana Actual</option>
-                                    <option value="ultimas_5">Últimas 5</option>
-                                    <option value="ultimas_10">Últimas 10</option>
-                                    <option value="todo">Todo</option>
-                                    {Array.from({ length: adminStats?.semana_actual ?? 1 }, (_, i) => {
-                                        const w = i + 1;
-                                        return (
-                                            <option key={w} value={String(w)}>
-                                                Semana {w}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-
                                 {/* Filtro de Semanas */}
-                                <div className="hidden sm:flex items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8 print:hidden">
+                                <div className="flex flex-wrap items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-auto min-h-8 print:hidden">
                                     {quickWeeks.map(qw => (
                                         <button
                                             key={qw.val}
@@ -814,10 +793,10 @@ export default function DashboardPage() {
                                 Analiza el porcentaje de tiempo real de permanencia de estudiantes o docentes en el aula
                             </p>
                         </div>
-                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+                        <div className="flex flex-wrap items-center gap-3 w-full">
                             {/* Filtro de Rol */}
                             {sesion.rol === "Administrativo" ? (
-                                <div className="flex flex-col gap-1 w-full sm:w-[240px]">
+                                <div className="flex flex-col gap-1 w-full sm:flex-1 sm:min-w-[200px] lg:max-w-[240px]">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rol</label>
                                     <select
                                         value={selectedRolPerm}
@@ -833,7 +812,7 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
                             ) : sesion.rol === "Docente" ? (
-                                <div className="flex flex-col gap-1 w-full sm:w-[240px]">
+                                <div className="flex flex-col gap-1 w-full sm:flex-1 sm:min-w-[200px] lg:max-w-[240px]">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rol</label>
                                     <select
                                         value={selectedRolPerm}
@@ -851,7 +830,7 @@ export default function DashboardPage() {
                             ) : null}
 
                             {/* Filtro de Persona/Usuario */}
-                            <div className="flex flex-col gap-1 w-full sm:w-[300px]">
+                            <div className="flex flex-col gap-1 w-full sm:flex-1 sm:min-w-[240px]">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Persona</label>
                                 <select
                                     value={selectedUsuarioPerm}
@@ -871,7 +850,7 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Filtro de Asignatura */}
-                            <div className="flex flex-col gap-1 w-full sm:w-[300px]">
+                            <div className="flex flex-col gap-1 w-full sm:flex-1 sm:min-w-[240px]">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Asignatura</label>
                                 <select
                                     value={selectedAsignaturaPerm}
@@ -1064,7 +1043,7 @@ export default function DashboardPage() {
 
                     {/* Alertas del Estudiante (altura fija de 140px a juego con los KPIs) */}
                     <div
-                        className="bg-white p-5 rounded-3xl border border-gray-100 flex flex-col justify-between h-auto md:h-[140px] w-full"
+                        className="bg-white p-5 rounded-3xl border border-gray-100 flex flex-col justify-between h-auto md:h-[140px] landscape:h-[140px] w-full"
                         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}
                     >
                         <div className="flex justify-between items-center mb-1">
@@ -1074,7 +1053,7 @@ export default function DashboardPage() {
                             <span className="text-[9px] text-gray-400 font-bold">Límite permitido: 80%</span>
                         </div>
 
-                        <div className="space-y-2 overflow-visible md:overflow-y-auto pr-1 flex-1 max-h-none md:max-h-[85px] print:max-h-none print:overflow-visible scrollbar-thin font-semibold">
+                        <div className="space-y-2 overflow-visible md:overflow-y-auto landscape:overflow-y-auto pr-1 flex-1 max-h-none md:max-h-[85px] landscape:max-h-[85px] print:max-h-none print:overflow-visible scrollbar-thin font-semibold">
                             {studentAlerts.length === 0 ? (
                                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100 h-full">
                                     <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
@@ -1372,29 +1351,8 @@ export default function DashboardPage() {
                         {/* Lado izquierdo: Filtro + Gráfico de Barras */}
                         <div className="lg:col-span-3 print:col-span-3 space-y-4">
                             <div className="flex flex-wrap items-center gap-3">
-                                {/* Filtro de Semanas para Móviles */}
-                                <select
-                                    value={filtroSemana}
-                                    onChange={(e) => setFiltroSemana(e.target.value)}
-                                    className="sm:hidden text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-sara-red transition-all cursor-pointer h-8 print:hidden"
-                                    style={{ color: "#1A1A2E" }}
-                                >
-                                    <option value="actual">Semana Actual</option>
-                                    <option value="ultimas_5">Últimas 5</option>
-                                    <option value="ultimas_10">Últimas 10</option>
-                                    <option value="todo">Todo</option>
-                                    {Array.from({ length: adminStats?.semana_actual ?? 1 }, (_, i) => {
-                                        const w = i + 1;
-                                        return (
-                                            <option key={w} value={String(w)}>
-                                                Semana {w}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-
                                 {/* Filtro de Semanas */}
-                                <div className="hidden sm:flex items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8 print:hidden">
+                                <div className="flex flex-wrap items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-auto min-h-8 print:hidden">
                                     {quickWeeks.map(qw => (
                                         <button
                                             key={qw.val}

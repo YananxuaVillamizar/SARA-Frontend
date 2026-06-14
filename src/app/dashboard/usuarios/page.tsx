@@ -182,7 +182,7 @@ export default function UsuariosPage() {
                             margin: 0;
                             padding: 15mm 10mm;
                             background: #ffffff;
-                            font-size: 10px;
+                            font-size: 11px;
                             line-height: 1.3;
                         }
                         
@@ -214,7 +214,7 @@ export default function UsuariosPage() {
                         }
                         
                         .header-logo img {
-                            height: 60px;
+                            height: 80px;
                             width: auto;
                         }
                         
@@ -224,7 +224,7 @@ export default function UsuariosPage() {
                         }
                         
                         .header-title-main {
-                            font-size: 16px;
+                            font-size: 22px;
                             font-weight: 800;
                             color: #0e5d75;
                             text-transform: uppercase;
@@ -233,7 +233,7 @@ export default function UsuariosPage() {
                         }
                         
                         .header-title-sub {
-                            font-size: 9.5px;
+                            font-size: 12px;
                             font-weight: 600;
                             color: #c9a84c;
                             text-transform: uppercase;
@@ -246,7 +246,7 @@ export default function UsuariosPage() {
                         }
                         
                         .header-meta-doc {
-                            font-size: 12px;
+                            font-size: 16px;
                             font-weight: 800;
                             color: #0e5d75;
                             text-transform: uppercase;
@@ -254,14 +254,14 @@ export default function UsuariosPage() {
                         }
                         
                         .header-meta-date {
-                            font-size: 9px;
+                            font-size: 11px;
                             color: #000000;
                             font-weight: 500;
                             margin: 0 0 6px 0;
                         }
                         
                         .header-meta-by {
-                            font-size: 9px;
+                            font-size: 11px;
                             color: #000000;
                             font-weight: 500;
                             margin: 0;
@@ -279,7 +279,7 @@ export default function UsuariosPage() {
                         .schedule-table th {
                             background: #0e5d75 !important;
                             color: #ffffff !important;
-                            font-size: 10px;
+                            font-size: 12px;
                             font-weight: 800;
                             text-transform: uppercase;
                             padding: 6px 4px;
@@ -292,7 +292,7 @@ export default function UsuariosPage() {
                         
                         .schedule-table td {
                             padding: 6px 4px;
-                            font-size: 9px;
+                            font-size: 11px;
                             color: #000000;
                             border: 1px solid #000000;
                             font-weight: 500;
@@ -304,7 +304,7 @@ export default function UsuariosPage() {
                         }
                         
                         .materia-code {
-                            font-size: 8px;
+                            font-size: 11px;
                             color: #666;
                             font-weight: bold;
                             text-transform: uppercase;
@@ -319,7 +319,7 @@ export default function UsuariosPage() {
                         }
 
                         .materia-info {
-                            font-size: 8px;
+                            font-size: 11px;
                             color: #555;
                         }
                         
@@ -333,12 +333,12 @@ export default function UsuariosPage() {
                         
                         .class-time {
                             font-weight: 800;
-                            font-size: 8px;
+                            font-size: 11px;
                             color: #000;
                         }
                         
                         .class-aula {
-                            font-size: 8px;
+                            font-size: 11px;
                             color: #555;
                             margin-top: 1px;
                         }

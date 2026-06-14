@@ -34,13 +34,13 @@ interface FilaHorario {
 
 
 export default function HorarioPage() {
-    const [sesion, setSesion] = useState({ id: "", rol: "", nombre: "" });
+    const [sesion, setSesion] = useState({ id: "", rol: "", nombre: "", num_doc: "" });
     const [horarios, setHorarios] = useState<HorarioSemanal[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const s = getSesion();
-        setSesion({ id: s.id || "", rol: s.rol || "", nombre: s.nombre || "" });
+        setSesion({ id: s.id || "", rol: s.rol || "", nombre: s.nombre || "", num_doc: s.num_doc || "" });
         
         if (s.id && s.rol) {
             obtenerHorarioSemanal(s.id, s.rol)

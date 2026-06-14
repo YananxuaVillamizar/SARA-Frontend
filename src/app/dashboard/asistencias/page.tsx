@@ -176,7 +176,18 @@ export default function AsistenciasPage() {
         } catch (e: any) { alert(e.message); }
     };
     // --- OPTIMIZACIONES DE RENDIMIENTO (useMemo) PARA PREVENIR CRASHES Y EXCESO DE MEMORIA ---
-    const normalizar = (s: string) => s ? s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") : "";
+    const normalizar = (s: string) => {
+        if (!s) return "";
+        return s.toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/á/g, "a")
+            .replace(/é/g, "e")
+            .replace(/í/g, "i")
+            .replace(/ó/g, "o")
+            .replace(/ú/g, "u")
+            .trim();
+    };
 
     const currentWeek = useMemo(() => {
         if (fechaInicioSemestre) {
@@ -418,11 +429,18 @@ export default function AsistenciasPage() {
     };
 
     const normalizeDia = (dia: string) => {
-        return dia ? dia.toLowerCase()
-                        .normalize("NFD")
-                        .replace(/[̀-ͯ]/g, "")
-                        .replace("miercoles", "miercoles")
-                        .replace("sabado", "sabado") : "";
+        if (!dia) return "";
+        return dia.toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/á/g, "a")
+            .replace(/é/g, "e")
+            .replace(/í/g, "i")
+            .replace(/ó/g, "o")
+            .replace(/ú/g, "u")
+            .replace("miércoles", "miercoles")
+            .replace("sábado", "sabado")
+            .trim();
     };
 
     const { filteredFaculties, filteredCount } = useMemo(() => {
@@ -619,11 +637,18 @@ export default function AsistenciasPage() {
             };
             
             const normalizeDia = (dia: string) => {
-                return dia ? dia.toLowerCase()
-                                .normalize("NFD")
-                                .replace(/[̀-ͯ]/g, "")
-                                .replace("miercoles", "miercoles")
-                                .replace("sabado", "sabado") : "";
+                if (!dia) return "";
+                return dia.toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/á/g, "a")
+                    .replace(/é/g, "e")
+                    .replace(/í/g, "i")
+                    .replace(/ó/g, "o")
+                    .replace(/ú/g, "u")
+                    .replace("miércoles", "miercoles")
+                    .replace("sábado", "sabado")
+                    .trim();
             };
 
             const sessionDia = getDiaDeLaSemana(sesionData.fecha);
@@ -891,6 +916,7 @@ export default function AsistenciasPage() {
                             border-collapse: collapse;
                             margin-bottom: 25px;
                             background: #ffffff;
+                            border: 1px solid #000000;
                         }
                         
                         .horizontal-table th {
@@ -900,8 +926,7 @@ export default function AsistenciasPage() {
                             font-weight: 800;
                             text-transform: uppercase;
                             padding: 8px 6px;
-                            border: 0.5px solid #0e5d75;
-                            border-bottom: 3px solid #c9a84c;
+                            border: 1px solid #000000;
                             text-align: center;
                         }
                         
@@ -909,7 +934,7 @@ export default function AsistenciasPage() {
                             padding: 8px 6px;
                             font-size: 10px;
                             color: #000000;
-                            border: 0.5px solid #333333;
+                            border: 1px solid #000000;
                             font-weight: 500;
                             text-align: center;
                             vertical-align: middle;
@@ -1127,7 +1152,7 @@ export default function AsistenciasPage() {
                                             {filtAMetodo && <button type="button" onClick={() => setFiltAMetodo("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
                                             {showAMetodoSugg && (
                                                 <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
-                                                    {["Biometría", "Firma Electrónica", "Supervisado"].map(m => (
+                                                    {["Biometría", "PIN docente", "Supervisado"].map(m => (
                                                         <button key={m} type="button" onMouseDown={() => { setFiltAMetodo(m); setShowAMetodoSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer">{m}</button>
                                                     ))}
                                                 </div>

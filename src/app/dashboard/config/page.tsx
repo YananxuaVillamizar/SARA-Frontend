@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, X, Pencil, Building2, BookOpen, GraduationCap, CalendarDays, Users, ChevronDown, AlertTriangle, Calendar, Printer } from "lucide-react";
+import { Plus, Trash2, X, Pencil, Building2, BookOpen, GraduationCap, CalendarDays, Users, ChevronDown, AlertTriangle, Calendar, Printer, Clock, MapPin } from "lucide-react";
 import {
     listarFacultades, crearFacultad, actualizarFacultad, eliminarFacultad, Facultad,
     listarProgramas, crearPrograma, actualizarPrograma, eliminarPrograma, Programa,
@@ -13,6 +13,7 @@ import {
     listarMatriculas, crearMatricula, actualizarMatricula, eliminarMatricula, Matricula
 } from "@/services/matriculas";
 import { obtenerHorarioSemanal } from "@/services/dashboard";
+import PrintHeader from "@/components/PrintHeader";
 
 type Tab = "facultades" | "programas" | "asignaturas" | "horarios" | "matriculas" | "semestres";
 
@@ -2196,20 +2197,12 @@ export default function ConfigPage() {
                                 </div>
                             </div>
 
-                            {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
-                            <div className="only-print w-full bg-white pb-4 mb-6 border-b-2 border-[#0e5d75] flex justify-between items-center px-4 pt-4">
-                                <div className="flex items-center gap-4">
-                                    <img src="/logo_sara.png" alt="Logo SARA" className="h-12 w-auto" />
-                                    <div>
-                                        <h2 className="text-sm font-black text-[#0e5d75]">UNIVERSIDAD DE PAMPLONA</h2>
-                                        <p className="text-[9px] text-[#C9A84C] font-bold tracking-widest uppercase">SARA - REGISTRO DE ASISTENCIA</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xs font-black text-[#0e5d75] uppercase">{horarioUsuario.rol}: {horarioUsuario.nombres} {horarioUsuario.apellidos}</p>
-                                    <p className="text-[9px] text-gray-500 font-medium">Documento: {horarioUsuario.num_doc} • {new Date().toLocaleDateString()}</p>
-                                </div>
-                            </div>
+                            <PrintHeader 
+                                titulo="Horario Semanal de Clases"
+                                nombreUsuario={`${horarioUsuario.nombres} ${horarioUsuario.apellidos}`}
+                                rol={horarioUsuario.rol}
+                                documento={horarioUsuario.num_doc}
+                            />
 
                             {/* Contenido / Tabla del Horario */}
                             <div className="flex-1 overflow-y-auto p-6 bg-gray-50 print:bg-white print:p-0">
@@ -2270,12 +2263,12 @@ export default function ConfigPage() {
 
                                     return (
                                         <div className="w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none">
-                                            <table className="w-full border-collapse min-w-[900px] print:min-w-full">
+                                            <table className="w-full border-collapse min-w-[1000px] print:min-w-full">
                                                 <thead>
-                                                    <tr className="bg-[#5A6268] text-white text-[10px] font-black uppercase tracking-wider print:bg-[#5A6268] print:text-white">
-                                                        <th className="py-2.5 px-3 text-center border border-gray-300/40 w-[200px]">Materia</th>
+                                                    <tr className="bg-[#0e5d75] border-b-[3px] border-[#c9a84c] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#0e5d75] print:border-b-[3px] print:border-[#c9a84c] print:text-white">
+                                                        <th className="py-3 px-4 text-center border-r border-gray-300/40 w-[220px]">Materia</th>
                                                         {DIAS_SEMANA.map(dia => (
-                                                            <th key={dia} className="py-2.5 px-2 text-center border border-gray-300/40 font-bold">{dia}</th>
+                                                            <th key={dia} className="py-3 px-3 text-center border-r border-gray-300/40 last:border-r-0 font-bold">{dia}</th>
                                                         ))}
                                                     </tr>
                                                 </thead>
@@ -2285,18 +2278,18 @@ export default function ConfigPage() {
                                                         return (
                                                             <tr 
                                                                 key={idx} 
-                                                                className={`text-[9px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
+                                                                className={`text-[10px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
                                                                     esPar ? "bg-gray-100/70" : "bg-white"
                                                                 } print:bg-white`}
                                                             >
                                                                 {/* Columna Materia */}
-                                                                <td className="py-3 px-3 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[200px]">
+                                                                <td className="py-4 px-4 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[220px]">
                                                                     <div className="space-y-1">
-                                                                        <p className="text-gray-400 font-extrabold tracking-wider text-[8px]">{fila.cod_asignatura}</p>
-                                                                        <p className="text-[10px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
-                                                                        <p className="text-[9px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
+                                                                        <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
+                                                                        <p className="text-[11px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
+                                                                        <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
                                                                         {horarioUsuario.rol === "Estudiante" && (
-                                                                            <p className="text-[8px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
+                                                                            <p className="text-[9px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
                                                                                 Docente: {fila.docente}
                                                                             </p>
                                                                         )}
@@ -2307,22 +2300,30 @@ export default function ConfigPage() {
                                                                 {DIAS_SEMANA.map(dia => {
                                                                     const clases = fila.clasesPorDia[dia] || [];
                                                                     return (
-                                                                        <td key={dia} className="p-1.5 text-center border border-gray-200/80 align-middle w-[100px] min-h-[50px]">
-                                                                            {clases.map((clase: any, cIdx: number) => (
-                                                                                <div key={cIdx} className="space-y-0.5 py-0.5">
-                                                                                    <p className="font-extrabold text-black text-[9px] tracking-tight print:text-black">
-                                                                                        {clase.hora_inicio}-{clase.hora_fin}
-                                                                                    </p>
-                                                                                    <p className="text-[8px] text-gray-500 font-semibold leading-tight">
-                                                                                        {clase.aula}
-                                                                                    </p>
+                                                                        <td key={dia} className="p-2 border border-gray-200/80 align-top w-[110px] min-w-[110px]">
+                                                                            <div className="flex flex-col gap-2">
+                                                                                {clases.map((clase: any, cIdx: number) => (
                                                                                     <div 
-                                                                                        className="inline-block px-1 py-0.2 bg-gray-200/60 rounded-md text-[7px] font-black text-gray-600 tracking-wider mt-0.5"
+                                                                                        key={cIdx} 
+                                                                                        className="bg-slate-50 border-l-4 border-[#0e5d75] p-2 rounded-r-lg shadow-sm text-left flex flex-col gap-1 transition-all hover:bg-slate-100/80 print:bg-slate-50 print:border-[#0e5d75]"
                                                                                     >
-                                                                                        {fila.cod_asignatura}
+                                                                                        <div className="flex items-center gap-1 text-black font-extrabold text-[9px] tracking-tight print:text-black">
+                                                                                            <Clock size={10} className="text-[#0e5d75] shrink-0" />
+                                                                                            <span>{clase.hora_inicio} - {clase.hora_fin}</span>
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-1 text-[9px] text-gray-600 font-bold leading-tight">
+                                                                                            <MapPin size={10} className="text-gray-400 shrink-0" />
+                                                                                            <span>{clase.aula}</span>
+                                                                                        </div>
+                                                                                        <div 
+                                                                                            className="inline-block self-start px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5 print:bg-gray-100"
+                                                                                            title={fila.docente}
+                                                                                        >
+                                                                                            {fila.cod_asignatura}
+                                                                                        </div>
                                                                                     </div>
-                                                                                </div>
-                                                                            ))}
+                                                                                ))}
+                                                                            </div>
                                                                         </td>
                                                                     );
                                                                 })}

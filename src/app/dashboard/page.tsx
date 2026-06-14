@@ -1049,7 +1049,7 @@ export default function DashboardPage() {
                             <span className="text-[9px] text-gray-400 font-bold">Límite permitido: 80%</span>
                         </div>
 
-                        <div className="space-y-2 overflow-y-auto pr-1 flex-1 max-h-[85px] print:max-h-none print:overflow-visible scrollbar-thin font-semibold bg-red-50/50">
+                        <div className="space-y-2 overflow-y-auto pr-1 flex-1 max-h-[85px] print:max-h-none print:overflow-visible scrollbar-thin font-semibold">
                             {studentAlerts.length === 0 ? (
                                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100 h-full">
                                     <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
@@ -1221,7 +1221,7 @@ export default function DashboardPage() {
                                     const end = new Date(now);
                                     end.setHours(hfHours, hfMinutes, 0, 0);
 
-                                    const hasSession = !!h.sesion_id;
+                                    const hasSession = !!(h.sesion_id && h.sesion_id !== "null" && h.sesion_id !== "undefined");
                                     const sesionEstado = h.sesion_estado;
                                     const hasEntry = !!h.hora_entrada;
                                     const hasExit = !!h.hora_salida;
@@ -1233,7 +1233,7 @@ export default function DashboardPage() {
                                         // Durante la clase
                                         if (!hasSession) {
                                             return {
-                                                clase: { label: "Pendiente: Esperando llegada del docente.", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 animate-pulse font-bold" },
+                                                clase: { label: "Pendiente", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" },
                                                 asistencia: { label: "Asistencia pendiente", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" }
                                             };
                                         } else {

@@ -205,3 +205,13 @@
     color: #1a1a2e !important;
   }
 }
+
+/* Quitar el contorno de enfoque (focus outline) en los gráficos de Recharts */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-container,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:active,
+.recharts-wrapper *:focus-visible {
+  outline: none !important;
+}

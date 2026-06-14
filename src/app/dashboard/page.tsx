@@ -69,6 +69,8 @@ export default function DashboardPage() {
     const [filtroSemana, setFiltroSemana] = useState<string>("actual");
     const [fechaImpresion, setFechaImpresion] = useState<string>("");
     const [showCharts, setShowCharts] = useState(false);
+    const [openWeekDropdown, setOpenWeekDropdown] = useState(false);
+    const [openWeekDropdownEstudiante, setOpenWeekDropdownEstudiante] = useState(false);
 
     const handlePrint = () => {
         const now = new Date();
@@ -635,9 +637,13 @@ export default function DashboardPage() {
                                         </button>
                                     ))}
 
-                                    <div className="relative group/week h-6">
+                                    <div 
+                                        className="relative h-6"
+                                        onMouseLeave={() => setOpenWeekDropdown(false)}
+                                    >
                                         <button
                                             type="button"
+                                            onClick={() => setOpenWeekDropdown(!openWeekDropdown)}
                                             className={`text-[10px] font-extrabold px-2.5 h-6 rounded-lg transition-all flex items-center gap-1 ${filtroSemana !== "actual" && filtroSemana !== "ultimas_5" && filtroSemana !== "ultimas_10" && filtroSemana !== "todo"
                                                     ? "bg-white text-sara-red shadow-sm"
                                                     : "text-gray-500 hover:text-gray-700"
@@ -647,24 +653,29 @@ export default function DashboardPage() {
                                                 ? `Sem. ${filtroSemana}`
                                                 : "Otra..."}
                                         </button>
-                                        <div className="absolute right-0 top-full pt-1.5 hidden group-hover/week:block z-30">
-                                            <div className="bg-white border border-gray-100 rounded-xl shadow-lg py-1 max-h-40 overflow-y-auto w-28 scrollbar-thin">
-                                                {Array.from({ length: adminStats?.semana_actual ?? 1 }, (_, i) => {
-                                                    const w = i + 1;
-                                                    return (
-                                                        <button
-                                                            key={w}
-                                                            type="button"
-                                                            onClick={() => setFiltroSemana(String(w))}
-                                                            className={`w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[10px] font-bold border-b border-gray-50 last:border-0 ${filtroSemana === String(w) ? "text-sara-red" : "text-gray-600"
-                                                                }`}
-                                                        >
-                                                            Semana {w}
-                                                        </button>
-                                                    );
-                                                })}
+                                        {openWeekDropdown && (
+                                            <div className="absolute right-0 top-full pt-1.5 z-30">
+                                                <div className="bg-white border border-gray-100 rounded-xl shadow-lg py-1 max-h-40 overflow-y-auto w-28 scrollbar-thin">
+                                                    {Array.from({ length: adminStats?.semana_actual ?? 1 }, (_, i) => {
+                                                        const w = i + 1;
+                                                        return (
+                                                            <button
+                                                                key={w}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFiltroSemana(String(w));
+                                                                    setOpenWeekDropdown(false);
+                                                                }}
+                                                                className={`w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[10px] font-bold border-b border-gray-50 last:border-0 ${filtroSemana === String(w) ? "text-sara-red" : "text-gray-600"
+                                                                    }`}
+                                                            >
+                                                                Semana {w}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="hidden print:flex items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8">
@@ -1367,9 +1378,13 @@ export default function DashboardPage() {
                                         </button>
                                     ))}
 
-                                    <div className="relative group/week h-6">
+                                    <div 
+                                        className="relative h-6"
+                                        onMouseLeave={() => setOpenWeekDropdownEstudiante(false)}
+                                    >
                                         <button
                                             type="button"
+                                            onClick={() => setOpenWeekDropdownEstudiante(!openWeekDropdownEstudiante)}
                                             className={`text-[10px] font-extrabold px-2.5 h-6 rounded-lg transition-all flex items-center gap-1 ${filtroSemana !== "actual" && filtroSemana !== "ultimas_5" && filtroSemana !== "ultimas_10" && filtroSemana !== "todo"
                                                     ? "bg-white text-sara-red shadow-sm"
                                                     : "text-gray-500 hover:text-gray-700"
@@ -1379,24 +1394,29 @@ export default function DashboardPage() {
                                                 ? `Sem. ${filtroSemana}`
                                                 : "Otra..."}
                                         </button>
-                                        <div className="absolute right-0 top-full pt-1.5 hidden group-hover/week:block z-30">
-                                            <div className="bg-white border border-gray-100 rounded-xl shadow-lg py-1 max-h-40 overflow-y-auto w-28 scrollbar-thin">
-                                                {Array.from({ length: adminStats?.semana_actual ?? 1 }, (_, i) => {
-                                                    const w = i + 1;
-                                                    return (
-                                                        <button
-                                                            key={w}
-                                                            type="button"
-                                                            onClick={() => setFiltroSemana(String(w))}
-                                                            className={`w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[10px] font-bold border-b border-gray-50 last:border-0 ${filtroSemana === String(w) ? "text-sara-red" : "text-gray-600"
-                                                                }`}
-                                                        >
-                                                            Semana {w}
-                                                        </button>
-                                                    );
-                                                })}
+                                        {openWeekDropdownEstudiante && (
+                                            <div className="absolute right-0 top-full pt-1.5 z-30">
+                                                <div className="bg-white border border-gray-100 rounded-xl shadow-lg py-1 max-h-40 overflow-y-auto w-28 scrollbar-thin">
+                                                    {Array.from({ length: adminStats?.semana_actual ?? 1 }, (_, i) => {
+                                                        const w = i + 1;
+                                                        return (
+                                                            <button
+                                                                key={w}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFiltroSemana(String(w));
+                                                                    setOpenWeekDropdownEstudiante(false);
+                                                                }}
+                                                                className={`w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[10px] font-bold border-b border-gray-50 last:border-0 ${filtroSemana === String(w) ? "text-sara-red" : "text-gray-600"
+                                                                    }`}
+                                                            >
+                                                                Semana {w}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="hidden print:flex items-center gap-1 bg-gray-100/60 p-1 rounded-xl border border-gray-200/50 h-8">

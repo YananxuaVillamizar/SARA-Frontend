@@ -498,14 +498,16 @@ export default function AsistenciasPage() {
                                 const actualSessionDia = sData.fecha ? getDiaDeLaSemana(sData.fecha) : (sData.dia_virtual || "");
                                 const matchDiaSesion = !filtADia || normalizeDia(actualSessionDia) === normalizeDia(filtADia);
 
+                                const sessionMatchesMethod = !!(filtAMetodo && sData.docente_metodo_verificacion && sData.docente_metodo_verificacion.toLowerCase() === filtAMetodo.toLowerCase());
+
                                 const filteredRecords = sData.records.filter((r: any) => {
                                     const matchEst = !filtAEstudiante || normalizar(`${r.nombre} ${r.apellido} ${r.num_doc}`).includes(normalizar(filtAEstudiante));
-                                    const matchMetodo = !filtAMetodo || (r.metodo_verificacion && r.metodo_verificacion.toLowerCase() === filtAMetodo.toLowerCase());
+                                    const matchMetodo = !filtAMetodo || sessionMatchesMethod || (r.metodo_verificacion && r.metodo_verificacion.toLowerCase() === filtAMetodo.toLowerCase());
                                     const matchEstado = !filtAEstado || (r.estado && r.estado.toLowerCase() === filtAEstado.toLowerCase());
                                     return matchEst && matchMetodo && matchEstado;
                                 });
 
-                                const hasStudentFilters = filtAEstudiante || filtAMetodo || filtAEstado;
+                                const hasStudentFilters = filtAEstudiante || (filtAMetodo && !sessionMatchesMethod) || filtAEstado;
                                 if (matchSemana && matchFecha && matchDiaSesion && (filteredRecords.length > 0 || !hasStudentFilters)) {
                                     const sTotal = filteredRecords.length;
                                     const sPresentes = filteredRecords.filter((r: any) => r.estado === "asistencia" || r.estado === "asistencia con retraso").length;
@@ -920,14 +922,17 @@ export default function AsistenciasPage() {
                         }
                         
                         .horizontal-table th {
-                            background: #0e5d75;
-                            color: #ffffff;
+                            background: #0e5d75 !important;
+                            color: #ffffff !important;
                             font-size: 10.5px;
                             font-weight: 800;
                             text-transform: uppercase;
                             padding: 8px 6px;
                             border: 1px solid #000000;
+                            border-bottom: 3px solid #c9a84c !important;
                             text-align: center;
+                            print-color-adjust: exact !important;
+                            -webkit-print-color-adjust: exact !important;
                         }
                         
                         .horizontal-table td {

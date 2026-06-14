@@ -54,6 +54,7 @@ const FORM_INICIAL = {
 };
 
 export default function UsuariosPage() {
+    const sesion = getSesion();
     const [usuarios, setUsuarios] = useState<Usuario[]>([]);
     const [cargando, setCargando] = useState(true);
     const [busqueda, setBusqueda] = useState("");
@@ -817,9 +818,11 @@ export default function UsuariosPage() {
                         {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
                         <PrintHeader 
                             titulo="Horario Semanal de Clases"
-                            nombreUsuario={`${horarioUsuario.nombres} ${horarioUsuario.apellidos}`}
-                            rol={horarioUsuario.rol}
-                            documento={horarioUsuario.num_doc}
+                            propietarioNombre={`${horarioUsuario.nombres} ${horarioUsuario.apellidos}`}
+                            propietarioRol={horarioUsuario.rol}
+                            propietarioDocumento={horarioUsuario.num_doc}
+                            generadoPorNombre={sesion.nombre || ""}
+                            generadoPorRol={sesion.rol || ""}
                         />
 
                         {/* Contenido / Tabla del Horario */}

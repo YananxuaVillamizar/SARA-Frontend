@@ -61,6 +61,16 @@
 
 /* 4. Estilos de Impresión (PDF) */
 @media print {
+  @page {
+    size: auto;
+    margin: 0mm;
+  }
+
+  body {
+    padding: 15mm !important;
+    background: white !important;
+  }
+
   * {
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;

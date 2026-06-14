@@ -14,6 +14,7 @@ import {
 } from "@/services/matriculas";
 import { obtenerHorarioSemanal } from "@/services/dashboard";
 import PrintHeader from "@/components/PrintHeader";
+import { getSesion } from "@/services/auth";
 
 type Tab = "facultades" | "programas" | "asignaturas" | "horarios" | "matriculas" | "semestres";
 
@@ -127,6 +128,7 @@ const HorariosDropdown = ({ matricula, horarios }: { matricula: { asignatura_id:
 };
 
 export default function ConfigPage() {
+    const sesion = getSesion();
     const [tab, setTab] = useState<Tab>("facultades");
     const [panel, setPanel] = useState(false);
     const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -2199,9 +2201,11 @@ export default function ConfigPage() {
 
                             <PrintHeader 
                                 titulo="Horario Semanal de Clases"
-                                nombreUsuario={`${horarioUsuario.nombres} ${horarioUsuario.apellidos}`}
-                                rol={horarioUsuario.rol}
-                                documento={horarioUsuario.num_doc}
+                                propietarioNombre={`${horarioUsuario.nombres} ${horarioUsuario.apellidos}`}
+                                propietarioRol={horarioUsuario.rol}
+                                propietarioDocumento={horarioUsuario.num_doc}
+                                generadoPorNombre={sesion?.nombre || ""}
+                                generadoPorRol={sesion?.rol || ""}
                             />
 
                             {/* Contenido / Tabla del Horario */}

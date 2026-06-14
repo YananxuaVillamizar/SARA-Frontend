@@ -126,8 +126,11 @@ export default function HorarioPage() {
             {/* Cabecera institucional al imprimir (Oculta en pantalla) */}
             <PrintHeader 
                 titulo="Horario Semanal de Clases"
-                nombreUsuario={sesion.nombre}
-                rol={sesion.rol}
+                propietarioNombre={sesion.nombre}
+                propietarioRol={sesion.rol}
+                propietarioDocumento={sesion.num_doc}
+                generadoPorNombre={sesion.nombre}
+                generadoPorRol={sesion.rol}
             />
 
             {/* Tabla Principal */}

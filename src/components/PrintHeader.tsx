@@ -2,11 +2,18 @@ import React from "react";
 
 interface PrintHeaderProps {
     titulo: string;
-    nombreUsuario: string;
-    rol: string;
-    documento?: string;
+    nombreUsuario?: string; // Kept for backwards compatibility
+    rol?: string; // Kept for backwards compatibility
+    documento?: string; // Kept for backwards compatibility
     semestre?: string;
     fecha?: string;
+
+    // New distinct fields
+    propietarioNombre?: string;
+    propietarioRol?: string;
+    propietarioDocumento?: string;
+    generadoPorNombre?: string;
+    generadoPorRol?: string;
 }
 
 export default function PrintHeader({
@@ -15,7 +22,12 @@ export default function PrintHeader({
     rol,
     documento,
     semestre,
-    fecha
+    fecha,
+    propietarioNombre,
+    propietarioRol,
+    propietarioDocumento,
+    generadoPorNombre,
+    generadoPorRol
 }: PrintHeaderProps) {
     const defaultFecha = fecha || new Date().toLocaleDateString('es-ES', {
         weekday: 'long',
@@ -26,6 +38,16 @@ export default function PrintHeader({
     
     // Capitalize first letter of date
     const formattedFecha = defaultFecha.charAt(0).toUpperCase() + defaultFecha.slice(1);
+
+    const finalGeneradoPorNombre = generadoPorNombre || nombreUsuario || "Sistema";
+    const finalGeneradoPorRol = generadoPorRol || rol || "";
+    
+    const finalPropietarioNombre = propietarioNombre || "";
+    const finalPropietarioRol = propietarioRol || "";
+    const finalPropietarioDocumento = propietarioDocumento || "";
+    
+    // Check if the owner is distinct from the generator
+    const showDistinctPropietario = !!(finalPropietarioNombre && (finalPropietarioNombre !== finalGeneradoPorNombre || finalPropietarioRol !== finalGeneradoPorRol));
 
     return (
         <div className="only-print w-full mb-6 pb-4 border-b-[2.5px] border-[#0e5d75]">
@@ -56,8 +78,19 @@ export default function PrintHeader({
                         {formattedFecha}
                     </p>
                     <p className="text-[9px] text-gray-500 font-medium mt-0.5 leading-tight">
-                        Generado por: <span className="font-bold text-gray-800">{nombreUsuario}</span> ({rol})
-                        {documento && <><br />Documento: <span className="font-bold text-gray-800">{documento}</span></>}
+                        Generado por: <span className="font-bold text-gray-800">{finalGeneradoPorNombre}</span> ({finalGeneradoPorRol})
+                        {showDistinctPropietario ? (
+                            <>
+                                <br />
+                                {finalPropietarioRol ? <span className="font-extrabold text-[#0e5d75]">{finalPropietarioRol}:</span> : <span className="font-extrabold text-[#0e5d75]">Usuario:</span>}{" "}
+                                <span className="font-bold text-gray-800">{finalPropietarioNombre}</span>
+                                {finalPropietarioDocumento && <><br />Documento: <span className="font-bold text-gray-800">{finalPropietarioDocumento}</span></>}
+                            </>
+                        ) : (
+                            <>
+                                {(propietarioDocumento || documento) && <><br />Documento: <span className="font-bold text-gray-800">{propietarioDocumento || documento}</span></>}
+                            </>
+                        )}
                         {semestre && <><br />Semestre: <span className="font-bold text-gray-800">{semestre}</span></>}
                     </p>
                 </div>

@@ -312,8 +312,10 @@ export default function DashboardPage() {
                 {/* REPORTE PRINT HEADER */}
                 <PrintHeader 
                     titulo="Reporte Oficial de Estadísticas y Asistencia"
-                    nombreUsuario={sesion.nombre}
-                    rol={sesion.rol}
+                    propietarioNombre={sesion.nombre}
+                    propietarioRol={sesion.rol}
+                    generadoPorNombre={sesion.nombre}
+                    generadoPorRol={sesion.rol}
                     semestre={adminStats?.semestre_actual}
                     fecha={fechaImpresion}
                 />
@@ -975,9 +977,11 @@ export default function DashboardPage() {
                 {/* REPORTE PRINT HEADER */}
                 <PrintHeader 
                     titulo="Reporte Oficial de Rendimiento y Asistencia"
-                    nombreUsuario={sesion.nombre}
-                    rol={sesion.rol}
-                    documento={sesion.num_doc}
+                    propietarioNombre={sesion.nombre}
+                    propietarioRol={sesion.rol}
+                    propietarioDocumento={sesion.num_doc}
+                    generadoPorNombre={sesion.nombre}
+                    generadoPorRol={sesion.rol}
                     semestre={estudianteStats?.semestre_actual}
                     fecha={fechaImpresion}
                 />

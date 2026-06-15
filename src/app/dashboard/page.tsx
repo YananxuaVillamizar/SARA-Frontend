@@ -814,37 +814,63 @@ export default function DashboardPage() {
 
                             ) : (
 
-                                alertasDesercion.map((al, idx) => (
+                                alertasDesercion.map((al, idx) => {
 
-                                    <div
+                                    const isDoc = al.isDocente;
 
-                                        key={idx}
+                                    return (
 
-                                        className="flex flex-col gap-1.5 p-3 rounded-xl border border-red-200 bg-red-50/50 transition-all"
+                                        <div
 
-                                    >
+                                            key={idx}
 
-                                        <div className="flex justify-between items-center">
+                                            className={`flex flex-col gap-1.5 p-3 rounded-xl border transition-all ${
 
-                                            <p className="font-extrabold text-xs text-red-700">
+                                                isDoc 
 
-                                                {al.apellidos}, {al.nombres}
+                                                    ? "border-amber-200 bg-amber-50/50" 
+
+                                                    : "border-red-200 bg-red-50/50"
+
+                                            }`}
+
+                                        >
+
+                                            <div className="flex justify-between items-center">
+
+                                                <p className={`font-extrabold text-xs ${isDoc ? "text-amber-700" : "text-red-700"}`}>
+
+                                                    {al.apellidos}, {al.nombres} {isDoc && "(Docente)"}
+
+                                                </p>
+
+                                                <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
+
+                                                    isDoc 
+
+                                                        ? "bg-amber-100 text-amber-700" 
+
+                                                        : "bg-red-100 text-red-700"
+
+                                                }`}>
+
+                                                    {isDoc ? "Docente" : "Crítico"}
+
+                                                </span>
+
+                                            </div>
+
+                                            <p className="text-[10px] text-gray-500 leading-normal">
+
+                                                Doc: {al.num_doc} · <span className={`font-medium ${isDoc ? "text-amber-700" : "text-red-700"}`}>{al.descripcion}</span>
 
                                             </p>
 
-                                            <span className="text-[8px] bg-red-100 text-red-700 font-extrabold px-2 py-0.5 rounded-full uppercase">Crítico</span>
-
                                         </div>
 
-                                        <p className="text-[10px] text-gray-500 leading-normal">
+                                    );
 
-                                            Doc: {al.num_doc} · <span className="font-medium text-red-700">{al.descripcion}</span>
-
-                                        </p>
-
-                                    </div>
-
-                                ))
+                                })
 
                             )}
 

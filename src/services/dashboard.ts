@@ -77,11 +77,13 @@ export interface AlertaDesercion {
     apellidos: string;
     num_doc: string;
     descripcion: string;
+    isDocente?: boolean;
 }
 
 export async function obtenerAlertasDesercion(docenteId?: string): Promise<AlertaDesercion[]> {
     const asisList = await listarAsistencias(docenteId ? { docente_id: docenteId } : undefined);
     
+    // 1. Alertas de Estudiantes
     const estudianteMateriaMap: Record<string, {
         num_doc: string;
         nombres: string;
@@ -92,47 +94,115 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         presentes: number;
     }> = {};
     
+    // 2. Alertas de Docentes
+    const docenteMateriaMap: Record<string, {
+        docente_num_doc: string;
+        nombres: string;
+        apellidos: string;
+        asignatura: string;
+        cod_asignatura: string;
+        grupo: string;
+        sesiones: Record<string, "presente" | "ausente">; // sesionKey -> estado
+    }> = {};
+
     asisList.forEach((a: any) => {
-        if (!a.num_doc) return;
-        if (a.docente_asistio === false) return;
-        
-        const key = `${a.num_doc}-${a.cod_asignatura}`;
-        if (!estudianteMateriaMap[key]) {
-            estudianteMateriaMap[key] = {
-                num_doc: a.num_doc,
-                nombres: a.nombre_estudiante || a.nombre || "",
-                apellidos: a.apellido_estudiante || a.apellido || "",
-                asignatura: a.asignatura || "",
-                cod_asignatura: a.cod_asignatura || "",
-                total: 0,
-                presentes: 0
-            };
+        // Estudiantes: solo si el docente asistió a la clase
+        if (a.num_doc && a.docente_asistio !== false) {
+            const key = `${a.num_doc}-${a.cod_asignatura}`;
+            const estadoNorm = (a.estado || "").toLowerCase();
+            
+            const isPresent = estadoNorm === "asistencia" || estadoNorm === "asistencia con retraso" || estadoNorm === "presente" || estadoNorm === "tarde";
+            const isAbsent = estadoNorm === "inasistencia" || estadoNorm === "ausente";
+            
+            if (isPresent || isAbsent) {
+                if (!estudianteMateriaMap[key]) {
+                    estudianteMateriaMap[key] = {
+                        num_doc: a.num_doc,
+                        nombres: a.nombre_estudiante || a.nombre || "",
+                        apellidos: a.apellido_estudiante || a.apellido || "",
+                        asignatura: a.asignatura || "",
+                        cod_asignatura: a.cod_asignatura || "",
+                        total: 0,
+                        presentes: 0
+                    };
+                }
+                
+                estudianteMateriaMap[key].total += 1;
+                if (isPresent) {
+                    estudianteMateriaMap[key].presentes += 1;
+                }
+            }
         }
-        
-        estudianteMateriaMap[key].total += 1;
-        const estadoNorm = (a.estado || "").toLowerCase();
-        if (estadoNorm === "asistencia" || estadoNorm === "asistencia con retraso" || estadoNorm === "presente" || estadoNorm === "tarde") {
-            estudianteMateriaMap[key].presentes += 1;
+
+        // Docentes
+        if (a.docente_num_doc) {
+            const sessionKey = a.sesion_id || a.fecha || "sin-sesion";
+            const groupKey = `${a.docente_num_doc}-${a.cod_asignatura}-${a.grupo}`;
+            
+            if (!docenteMateriaMap[groupKey]) {
+                docenteMateriaMap[groupKey] = {
+                    docente_num_doc: a.docente_num_doc,
+                    nombres: a.nombre_docente || a.docente_nombre || "",
+                    apellidos: a.apellido_docente || a.docente_apellido || "",
+                    asignatura: a.asignatura || "",
+                    cod_asignatura: a.cod_asignatura || "",
+                    grupo: a.grupo || "",
+                    sesiones: {}
+                };
+            }
+            
+            const docEstado = (a.docente_estado_asistencia || "").toLowerCase();
+            const isDocPresent = docEstado === "presente" || docEstado === "tarde" || docEstado === "asistencia" || docEstado === "asistencia con retraso" || a.docente_asistio === true;
+            const isDocAbsent = docEstado === "inasistencia" || docEstado === "ausente" || a.docente_asistio === false;
+            
+            if (isDocPresent) {
+                docenteMateriaMap[groupKey].sesiones[sessionKey] = "presente";
+            } else if (isDocAbsent) {
+                docenteMateriaMap[groupKey].sesiones[sessionKey] = "ausente";
+            }
         }
     });
     
-    const alertas: AlertaDesercion[] = [];
+    const studentAlertas: AlertaDesercion[] = [];
     Object.values(estudianteMateriaMap).forEach(em => {
         if (em.total > 0) {
             const porcentaje = Math.round((em.presentes / em.total) * 100);
             if (porcentaje < 80) {
-                alertas.push({
-                    id: `${em.num_doc}-${em.cod_asignatura}`,
+                studentAlertas.push({
+                    id: `est-${em.num_doc}-${em.cod_asignatura}`,
                     nombres: em.nombres,
                     apellidos: em.apellidos,
                     num_doc: em.num_doc,
-                    descripcion: `Asistencia de ${porcentaje}% en ${em.asignatura} (${em.cod_asignatura})`
+                    descripcion: `Asistencia de estudiante: ${porcentaje}% en ${em.asignatura} (${em.cod_asignatura})`,
+                    isDocente: false
+                });
+            }
+        }
+    });
+
+    const docenteAlertas: AlertaDesercion[] = [];
+    Object.values(docenteMateriaMap).forEach(dm => {
+        const sessionStates = Object.values(dm.sesiones);
+        const presentes = sessionStates.filter(state => state === "presente").length;
+        const ausentes = sessionStates.filter(state => state === "ausente").length;
+        const total = presentes + ausentes; // total = asistencias + inasistencias
+        
+        if (total > 0) {
+            const porcentaje = Math.round((presentes / total) * 100);
+            if (porcentaje < 80) {
+                docenteAlertas.push({
+                    id: `doc-${dm.docente_num_doc}-${dm.cod_asignatura}-${dm.grupo}`,
+                    nombres: dm.nombres,
+                    apellidos: dm.apellidos,
+                    num_doc: dm.docente_num_doc,
+                    descripcion: `Asistencia de docente: ${porcentaje}% en ${dm.asignatura} (Grupo ${dm.grupo})`,
+                    isDocente: true
                 });
             }
         }
     });
     
-    return alertas;
+    return [...studentAlertas, ...docenteAlertas];
 }
 
 

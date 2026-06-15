@@ -36,7 +36,9 @@ import {
 
     obtenerUsuariosFiltro, obtenerAsignaturasFiltro, obtenerPermanenciaStats,
 
-    UsuarioFiltro, AsignaturaFiltro, PermanenciaStats
+    UsuarioFiltro, AsignaturaFiltro, PermanenciaStats,
+
+    obtenerAlertasDesercion, AlertaDesercion
 
 } from "@/services/dashboard";
 
@@ -125,6 +127,8 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
 
     const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+
+    const [alertasDesercion, setAlertasDesercion] = useState<AlertaDesercion[]>([]);
 
     const [estudianteStats, setEstudianteStats] = useState<EstudianteStats | null>(null);
 
@@ -381,6 +385,16 @@ export default function DashboardPage() {
                     const stats = await obtenerAdminStats(filtroRol, filtroSemana, currentSession.id, currentSession.rol);
 
                     setAdminStats(stats);
+
+                    // Cargar alertas de deserción: para Docente solo sus estudiantes; para Admin todas.
+                    try {
+                        const alertas = await obtenerAlertasDesercion(
+                            currentSession.rol === "Docente" ? currentSession.id : undefined
+                        );
+                        setAlertasDesercion(alertas);
+                    } catch {
+                        setAlertasDesercion([]);
+                    }
 
                     if (currentSession.rol === "Docente") {
 
@@ -788,7 +802,7 @@ export default function DashboardPage() {
 
                         <div className="space-y-3 overflow-visible md:overflow-y-auto landscape:overflow-y-auto pr-1 flex-1 max-h-none md:max-h-[160px] landscape:max-h-[160px] print:max-h-none print:overflow-visible scrollbar-thin">
 
-                            {!adminStats || adminStats.alertas_desercion.length === 0 ? (
+                            {alertasDesercion.length === 0 ? (
 
                                 <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100">
 
@@ -800,7 +814,7 @@ export default function DashboardPage() {
 
                             ) : (
 
-                                adminStats.alertas_desercion.map((al, idx) => (
+                                alertasDesercion.map((al, idx) => (
 
                                     <div
 

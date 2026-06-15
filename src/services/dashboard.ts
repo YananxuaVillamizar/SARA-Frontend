@@ -69,6 +69,24 @@ export async function obtenerAdminStats(rol?: string, semana?: string, usuarioAu
     return response.data;
 }
 
+export interface AlertaDesercion {
+    id: string;
+    nombres: string;
+    apellidos: string;
+    num_doc: string;
+    descripcion: string;
+}
+
+export async function obtenerAlertasDesercion(docenteId?: string): Promise<AlertaDesercion[]> {
+    const response = await api.get("/dashboard/alertas-desercion", {
+        params: {
+            ...(docenteId ? { docente_id: docenteId } : {})
+        }
+    });
+    return response.data;
+}
+
+
 export async function obtenerEstudianteStats(usuarioId: string): Promise<EstudianteStats> {
     const response = await api.get(`/dashboard/estudiante-stats/${usuarioId}`);
     return response.data;

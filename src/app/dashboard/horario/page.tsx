@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { getSesion } from "@/services/auth";
 import { obtenerHorarioSemanal, HorarioSemanal } from "@/services/dashboard";
-import { Calendar, Clock, MapPin, Printer } from "lucide-react";
+import { Calendar, Clock, MapPin, Printer, ChevronDown, ChevronUp } from "lucide-react";
 import PrintHeader from "@/components/PrintHeader";
 
 const DIAS = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
@@ -420,6 +420,59 @@ export default function HorarioPage() {
 
     const filas = Object.values(filasMap);
 
+    const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({
+        "Lunes": true,
+        "Martes": true,
+        "Miercoles": true,
+        "Jueves": true,
+        "Viernes": true,
+        "Sabado": true,
+        "Domingo": true
+    });
+
+    const toggleDay = (dia: string) => {
+        setExpandedDays(prev => ({ ...prev, [dia]: !prev[dia] }));
+    };
+
+    const clasesPorDiaMovi: Record<string, {
+        cod_asignatura: string;
+        asignatura: string;
+        grupo: string;
+        docente: string;
+        hora_inicio: string;
+        hora_fin: string;
+        aula: string;
+    }[]> = {
+        "Lunes": [],
+        "Martes": [],
+        "Miercoles": [],
+        "Jueves": [],
+        "Viernes": [],
+        "Sabado": [],
+        "Domingo": []
+    };
+
+    horarios.forEach(h => {
+        const diaNorm = DIA_MAP[h.dia_semana.toLowerCase()] || "Lunes";
+        if (clasesPorDiaMovi[diaNorm]) {
+            clasesPorDiaMovi[diaNorm].push({
+                cod_asignatura: h.cod_asignatura,
+                asignatura: h.asignatura,
+                grupo: h.grupo,
+                docente: h.docente,
+                hora_inicio: h.hora_inicio,
+                hora_fin: h.hora_fin,
+                aula: h.aula
+            });
+        }
+    });
+
+    Object.keys(clasesPorDiaMovi).forEach(dia => {
+        clasesPorDiaMovi[dia].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+    });
+
+    const formatHora = (h: string) => h && h.length > 5 ? h.slice(0, 5) : h;
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
@@ -463,77 +516,149 @@ export default function HorarioPage() {
                     </div>
                 </div>
             ) : (
-                <div className="w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none">
-                    <table className="w-full border-collapse min-w-[1000px] print:min-w-full">
-                        <thead>
-                            <tr className="bg-[#0e5d75] border-b-[3px] border-[#c9a84c] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#0e5d75] print:border-b-[3px] print:border-[#c9a84c] print:text-white">
-                                <th className="py-3 px-4 text-center border-r border-gray-300/40 w-[220px]">Materia</th>
-                                {DIAS.map(dia => (
-                                    <th key={dia} className="py-3 px-3 text-center border-r border-gray-300/40 last:border-r-0 font-bold">{dia}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filas.map((fila, idx) => {
-                                const esPar = idx % 2 === 1;
-                                return (
-                                    <tr 
-                                        key={idx} 
-                                        className={`text-[10px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
-                                            esPar ? "bg-gray-100/70" : "bg-white"
-                                        } print:bg-white`}
-                                    >
-                                        {/* Columna Materia */}
-                                        <td className="py-4 px-4 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[220px]">
-                                            <div className="space-y-1">
-                                                <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
-                                                <p className="text-[11px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
-                                                <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
-                                                {sesion.rol === "Estudiante" && (
-                                                    <p className="text-[9px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
-                                                        Docente: {fila.docente}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </td>
-                                        
-                                        {/* Columnas de Días */}
-                                        {DIAS.map(dia => {
-                                            const clases = fila.clasesPorDia[dia] || [];
-                                            return (
-                                                <td key={dia} className="p-2 border border-gray-200/80 align-top w-[110px] min-w-[110px]">
-                                                    <div className="flex flex-col gap-2">
-                                                        {clases.map((clase, cIdx) => (
-                                                            <div 
-                                                                key={cIdx} 
-                                                                className="bg-slate-50 border-l-4 border-[#0e5d75] p-2 rounded-r-lg shadow-sm text-left flex flex-col gap-1 transition-all hover:bg-slate-100/80 print:bg-slate-50 print:border-[#0e5d75]"
-                                                            >
-                                                                <div className="flex items-center gap-1 text-black font-extrabold text-[9px] tracking-tight print:text-black">
-                                                                    <Clock size={10} className="text-[#0e5d75] shrink-0" />
-                                                                    <span>{clase.hora_inicio} - {clase.hora_fin}</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1 text-[9px] text-gray-600 font-bold leading-tight">
-                                                                    <MapPin size={10} className="text-gray-400 shrink-0" />
-                                                                    <span>{clase.aula}</span>
-                                                                </div>
+                <>
+                    {/* Vista Escritorio (Tabla original) */}
+                    <div className="hidden md:block w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none">
+                        <table className="w-full border-collapse min-w-[1000px] print:min-w-full">
+                            <thead>
+                                <tr className="bg-[#0e5d75] border-b-[3px] border-[#c9a84c] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#0e5d75] print:border-b-[3px] print:border-[#c9a84c] print:text-white">
+                                    <th className="py-3 px-4 text-center border-r border-gray-300/40 w-[220px]">Materia</th>
+                                    {DIAS.map(dia => (
+                                        <th key={dia} className="py-3 px-3 text-center border-r border-gray-300/40 last:border-r-0 font-bold">{dia}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filas.map((fila, idx) => {
+                                    const esPar = idx % 2 === 1;
+                                    return (
+                                        <tr 
+                                            key={idx} 
+                                            className={`text-[10px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
+                                                esPar ? "bg-gray-100/70" : "bg-white"
+                                            } print:bg-white`}
+                                        >
+                                            {/* Columna Materia */}
+                                            <td className="py-4 px-4 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[220px]">
+                                                <div className="space-y-1">
+                                                    <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
+                                                    <p className="text-[11px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
+                                                    <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
+                                                    {sesion.rol === "Estudiante" && (
+                                                        <p className="text-[9px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
+                                                            Docente: {fila.docente}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            
+                                            {/* Columnas de Días */}
+                                            {DIAS.map(dia => {
+                                                const clases = fila.clasesPorDia[dia] || [];
+                                                return (
+                                                    <td key={dia} className="p-2 border border-gray-200/80 align-top w-[110px] min-w-[110px]">
+                                                        <div className="flex flex-col gap-2">
+                                                            {clases.map((clase, cIdx) => (
                                                                 <div 
-                                                                    className="inline-block self-start px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5 print:bg-gray-100"
-                                                                    title={fila.docente}
+                                                                    key={cIdx} 
+                                                                    className="bg-slate-50 border-l-4 border-[#0e5d75] p-2 rounded-r-lg shadow-sm text-left flex flex-col gap-1 transition-all hover:bg-slate-100/80 print:bg-slate-50 print:border-[#0e5d75]"
                                                                 >
-                                                                    {fila.cod_asignatura}
+                                                                    <div className="flex items-center gap-1 text-black font-extrabold text-[9px] tracking-tight print:text-black">
+                                                                        <Clock size={10} className="text-[#0e5d75] shrink-0" />
+                                                                        <span>{clase.hora_inicio} - {clase.hora_fin}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 text-[9px] text-gray-600 font-bold leading-tight">
+                                                                        <MapPin size={10} className="text-gray-400 shrink-0" />
+                                                                        <span>{clase.aula}</span>
+                                                                    </div>
+                                                                    <div 
+                                                                        className="inline-block self-start px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5 print:bg-gray-100"
+                                                                        title={fila.docente}
+                                                                    >
+                                                                        {fila.cod_asignatura}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        ))}
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Vista Móvil (Acordeón de Clases por Día) */}
+                    <div className="block md:hidden space-y-4 no-print">
+                        {DIAS.map(dia => {
+                            const clases = clasesPorDiaMovi[dia] || [];
+                            if (clases.length === 0) return null;
+
+                            const isExpanded = !!expandedDays[dia];
+
+                            return (
+                                <div key={dia} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
+                                    {/* Cabecera del Día (Acordeón) */}
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleDay(dia)}
+                                        className="w-full flex justify-between items-center p-4 bg-gray-50/50 hover:bg-gray-50 transition-colors border-b border-gray-100/50 cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#0e5d75]" />
+                                            <span className="font-black text-sm text-[#1A1A2E]">{dia}</span>
+                                            <span className="px-2 py-0.5 bg-gray-200/60 text-gray-600 rounded-md text-[10px] font-black tracking-wide">
+                                                {clases.length} {clases.length === 1 ? 'clase' : 'clases'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            {isExpanded ? (
+                                                <ChevronUp size={16} className="text-gray-400" />
+                                            ) : (
+                                                <ChevronDown size={16} className="text-gray-400" />
+                                            )}
+                                        </div>
+                                    </button>
+
+                                    {/* Contenido Colapsable */}
+                                    {isExpanded && (
+                                        <div className="p-4 space-y-3 bg-white divide-y divide-gray-50">
+                                            {clases.map((clase, cIdx) => (
+                                                <div key={cIdx} className="pt-3 first:pt-0 space-y-2">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div>
+                                                            <p className="text-[10px] text-gray-400 font-extrabold tracking-wider">{clase.cod_asignatura}</p>
+                                                            <p className="text-xs font-black text-black uppercase leading-snug">{clase.asignatura}</p>
+                                                            <p className="text-[10px] text-gray-500 font-bold mt-0.5">Grupo: {clase.grupo}</p>
+                                                        </div>
+                                                        <span className="px-2 py-0.5 bg-slate-50 border-l-2 border-[#0e5d75] rounded text-[9px] font-black text-gray-600 tracking-wider">
+                                                            Aula: {clase.aula}
+                                                        </span>
                                                     </div>
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+
+                                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px]">
+                                                        <div className="flex items-center gap-1.5 text-gray-700 font-bold">
+                                                            <Clock size={12} className="text-[#0e5d75] shrink-0" />
+                                                            <span>{formatHora(clase.hora_inicio)} - {formatHora(clase.hora_fin)}</span>
+                                                        </div>
+                                                        {sesion.rol === "Estudiante" && clase.docente && (
+                                                            <div className="flex items-center gap-1.5 text-gray-500 font-bold">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                                                <span>Docente: {clase.docente}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </>
             )}
         </div>
     );

@@ -26,6 +26,42 @@ const Badge = ({ children, color }: { children: React.ReactNode, color: string }
     </span>
 );
 
+const normalizar = (s: string) => {
+    if (!s) return "";
+    return s.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/á/g, "a")
+        .replace(/é/g, "e")
+        .replace(/í/g, "i")
+        .replace(/ó/g, "o")
+        .replace(/ú/g, "u")
+        .trim();
+};
+
+const getDiaDeLaSemana = (fechaStr: string) => {
+    if (!fechaStr) return "";
+    const [y, m, d] = fechaStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const dias = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+    return dias[date.getDay()];
+};
+
+const normalizeDia = (dia: string) => {
+    if (!dia) return "";
+    return dia.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/á/g, "a")
+        .replace(/é/g, "e")
+        .replace(/í/g, "i")
+        .replace(/ó/g, "o")
+        .replace(/ú/g, "u")
+        .replace("miércoles", "miercoles")
+        .replace("sábado", "sabado")
+        .trim();
+};
+
 export default function AsistenciasPage() {
     const [sesion, setSesion] = useState({ id: "", num_doc: "", rol: "", nombre: "" });
     const [loading, setLoading] = useState(true);
@@ -176,19 +212,6 @@ export default function AsistenciasPage() {
         } catch (e: any) { alert(e.message); }
     };
     // --- OPTIMIZACIONES DE RENDIMIENTO (useMemo) PARA PREVENIR CRASHES Y EXCESO DE MEMORIA ---
-    const normalizar = (s: string) => {
-        if (!s) return "";
-        return s.toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/á/g, "a")
-            .replace(/é/g, "e")
-            .replace(/í/g, "i")
-            .replace(/ó/g, "o")
-            .replace(/ú/g, "u")
-            .trim();
-    };
-
     const currentWeek = useMemo(() => {
         if (fechaInicioSemestre) {
             try {
@@ -236,15 +259,17 @@ export default function AsistenciasPage() {
                 };
             }
 
-            const isExtraordinaria = (a.tipo_sesion || '').toLowerCase() === 'extraordinaria';
-            const isRegular = a.dia_semana && a.horario_id && !isExtraordinaria;
-            if (isRegular) {
-                const horObj = { id: a.horario_id, dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
-                const exists = groups[fac][prog][asig][grup].horarios.some((h: any) => h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula);
-                if (!exists) {
-                    groups[fac][prog][asig][grup].horarios.push(horObj);
-                }
-            }
+             const isExtraordinaria = (a.tipo_sesion || '').toLowerCase() === 'extraordinaria';
+             const sessionDia = a.fecha ? getDiaDeLaSemana(a.fecha) : "";
+             const isRegular = a.dia_semana && a.horario_id && !isExtraordinaria && 
+                 (!a.fecha || normalizeDia(a.dia_semana) === normalizeDia(sessionDia));
+             if (isRegular) {
+                 const horObj = { id: a.horario_id, dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
+                 const exists = groups[fac][prog][asig][grup].horarios.some((h: any) => h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula);
+                 if (!exists) {
+                     groups[fac][prog][asig][grup].horarios.push(horObj);
+                 }
+             }
 
             if (!groups[fac][prog][asig][grup].sesiones[sesionKey]) {
                 const docEstado = a.docente_estado_asistencia === 'presente' ? 'asistencia' :
@@ -405,14 +430,6 @@ export default function AsistenciasPage() {
         ));
     }, [asistenciasRaw, filtAFacultad, filtAPrograma, filtAAsignatura]);
 
-    const getDiaDeLaSemana = (fechaStr: string) => {
-        if (!fechaStr) return "";
-        const [y, m, d] = fechaStr.split('-').map(Number);
-        const date = new Date(y, m - 1, d);
-        const dias = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
-        return dias[date.getDay()];
-    };
-
     const getWeekFromFecha = (fechaStr: string) => {
         if (!fechaStr || !fechaInicioSemestre) return null;
         try {
@@ -430,21 +447,6 @@ export default function AsistenciasPage() {
         } catch (e) {
             return null;
         }
-    };
-
-    const normalizeDia = (dia: string) => {
-        if (!dia) return "";
-        return dia.toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/á/g, "a")
-            .replace(/é/g, "e")
-            .replace(/í/g, "i")
-            .replace(/ó/g, "o")
-            .replace(/ú/g, "u")
-            .replace("miércoles", "miercoles")
-            .replace("sábado", "sabado")
-            .trim();
     };
 
     const { filteredFaculties, filteredCount } = useMemo(() => {
@@ -640,29 +642,6 @@ export default function AsistenciasPage() {
                 return 0;
             }
             
-            const getDiaDeLaSemana = (fechaStr: string) => {
-                if (!fechaStr) return "";
-                const [y, m, d] = fechaStr.split('-').map(Number);
-                const date = new Date(y, m - 1, d);
-                const dias = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
-                return dias[date.getDay()];
-            };
-            
-            const normalizeDia = (dia: string) => {
-                if (!dia) return "";
-                return dia.toLowerCase()
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .replace(/á/g, "a")
-                    .replace(/é/g, "e")
-                    .replace(/í/g, "i")
-                    .replace(/ó/g, "o")
-                    .replace(/ú/g, "u")
-                    .replace("miércoles", "miercoles")
-                    .replace("sábado", "sabado")
-                    .trim();
-            };
-
             const sessionDia = getDiaDeLaSemana(sesionData.fecha);
             const schedule = grupoData.horarios.find((h: any) => normalizeDia(h.dia) === normalizeDia(sessionDia)) || grupoData.horarios[0];
 

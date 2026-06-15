@@ -70,6 +70,8 @@ export async function obtenerAdminStats(rol?: string, semana?: string, usuarioAu
 }
 
 import { listarAsistencias } from "./asistencias";
+import { listarHorarios } from "./admin";
+import { listarSesiones } from "./contingencias";
 
 export interface AlertaDesercion {
     id: string;
@@ -80,112 +82,95 @@ export interface AlertaDesercion {
     isDocente?: boolean;
 }
 
-function isValidVal(val: any): boolean {
-    if (!val) return false;
-    const s = String(val).trim().toLowerCase();
-    return s !== "" && s !== "undefined" && s !== "null" && s !== "sin asignatura" && s !== "sin grupo" && s !== "sin facultad" && s !== "sin programa";
-}
-
-function parseFromSessionId(sesionId: string): { cod_asignatura?: string, grupo?: string } {
-    if (!sesionId) return {};
-    const parts = sesionId.split(/[-_]/);
-    const subjectRegex = /^[A-Z]{3,4}\d{3,4}$/i; // ej: MAT101
-    
-    let cod_asignatura: string | undefined;
-    let grupo: string | undefined;
-
-    for (let i = 0; i < parts.length; i++) {
-        if (subjectRegex.test(parts[i])) {
-            cod_asignatura = parts[i].toUpperCase();
-            if (parts[i + 1] && parts[i + 1].length <= 6) {
-                grupo = parts[i + 1];
-            } else if (parts[i - 1] && parts[i - 1].length <= 6) {
-                grupo = parts[i - 1];
-            }
-            break;
-        }
-    }
-    return { cod_asignatura, grupo };
-}
-
 export async function obtenerAlertasDesercion(docenteId?: string): Promise<AlertaDesercion[]> {
-    const asisList = await listarAsistencias(docenteId ? { docente_id: docenteId } : undefined);
-    
-    // 1. Consolidar información de sesiones por sesion_id o fecha para evitar inconsistencias
+    // 1. Obtener todos los datos del backend en paralelo
+    const [asisList, sessions, horarios] = await Promise.all([
+        listarAsistencias(docenteId ? { docente_id: docenteId } : undefined),
+        listarSesiones(),
+        listarHorarios()
+    ]);
+
+    // 2. Mapear sesiones y horarios para búsquedas rápidas y seguras
+    const sessionsMap: Record<string, any> = {};
+    if (Array.isArray(sessions)) {
+        sessions.forEach((s: any) => {
+            const id = s.id || s.sesion_id;
+            if (id) {
+                sessionsMap[String(id)] = s;
+            }
+        });
+    }
+
+    const horariosMap: Record<string, any> = {};
+    if (Array.isArray(horarios)) {
+        horarios.forEach((h: any) => {
+            if (h.id) {
+                horariosMap[String(h.id)] = h;
+            }
+        });
+    }
+
+    // 3. Consolidar información de sesiones únicas usando sesion_id
     const sessionConsolidation: Record<string, {
         sesion_id: string;
-        fecha: string;
         cod_asignatura: string;
         asignatura: string;
         grupo: string;
+        docente_id: string;
         docente_num_doc: string;
         nombre_docente: string;
         apellido_docente: string;
-        docente_estado: "presente" | "ausente" | null;
+        docente_estado: "presente" | "ausente";
     }> = {};
 
     asisList.forEach((a: any) => {
         const sesionId = a.sesion_id ? String(a.sesion_id) : "";
-        const sessionKey = sesionId || `${a.fecha || "sin-fecha"}-${a.cod_asignatura || "sin-asig"}-${a.grupo || "sin-grupo"}`;
+        if (!sesionId) return; // Se omiten si no tienen sesion_id
 
-        if (!sessionConsolidation[sessionKey]) {
-            // Intentar pre-extraer del sessionKey o sesion_id si es posible
-            const parsed = parseFromSessionId(sesionId);
-            sessionConsolidation[sessionKey] = {
+        if (!sessionConsolidation[sesionId]) {
+            const session = sessionsMap[sesionId];
+            const horarioId = session?.horario_id || a.horario_id;
+            const horario = horarioId ? horariosMap[String(horarioId)] : null;
+
+            // Resolver asignatura y grupo usando la relación descrita
+            const codAsig = horario?.cod_asignatura || a.cod_asignatura || "";
+            const asignatura = horario?.asignatura || a.asignatura || "";
+            const grupo = horario?.grupo || a.grupo || "";
+            const docenteIdStr = horario?.docente_id || a.docente_id || "";
+
+            // Resolver datos del docente
+            const docNumDoc = a.docente_num_doc || "";
+            const docNombre = a.nombre_docente || a.docente_nombre || horario?.docente || "";
+            const docApellido = a.apellido_docente || a.docente_apellido || horario?.apellido_docente || "";
+
+            // Estado del docente: si se marca presente/tarde en la sesión o registro, está presente
+            const docAsistio = session ? session.docente_asistio : a.docente_asistio;
+            const docEstado = (a.docente_estado_asistencia || "").toLowerCase();
+            const isDocPresent = docEstado === "presente" || docEstado === "tarde" || docEstado === "asistencia" || docEstado === "asistencia con retraso" || docAsistio === true;
+
+            sessionConsolidation[sesionId] = {
                 sesion_id: sesionId,
-                fecha: a.fecha || "",
-                cod_asignatura: parsed.cod_asignatura || "",
-                asignatura: "",
-                grupo: parsed.grupo || "",
-                docente_num_doc: "",
-                nombre_docente: "",
-                apellido_docente: "",
-                docente_estado: null
+                cod_asignatura: codAsig,
+                asignatura: asignatura,
+                grupo: grupo,
+                docente_id: docenteIdStr,
+                docente_num_doc: docNumDoc,
+                nombre_docente: docNombre,
+                apellido_docente: docApellido,
+                docente_estado: isDocPresent ? "presente" : "ausente"
             };
-        }
-
-        const s = sessionConsolidation[sessionKey];
-
-        // Consolidar información no vacía de asignatura y grupo
-        if (isValidVal(a.cod_asignatura) && !isValidVal(s.cod_asignatura)) {
-            s.cod_asignatura = a.cod_asignatura;
-            s.asignatura = a.asignatura || "";
-        }
-        if (isValidVal(a.grupo) && !isValidVal(s.grupo)) {
-            s.grupo = a.grupo;
-        }
-        if (isValidVal(a.asignatura) && !isValidVal(s.asignatura)) {
-            s.asignatura = a.asignatura;
-        }
-
-        // Consolidar información de docente
-        if (a.docente_num_doc && !s.docente_num_doc) {
-            s.docente_num_doc = a.docente_num_doc;
-            s.nombre_docente = a.nombre_docente || a.docente_nombre || "";
-            s.apellido_docente = a.apellido_docente || a.docente_apellido || "";
-        }
-
-        // Determinar estado de asistencia del docente
-        const docEstado = (a.docente_estado_asistencia || "").toLowerCase();
-        const isDocPresent = docEstado === "presente" || docEstado === "tarde" || docEstado === "asistencia" || docEstado === "asistencia con retraso" || a.docente_asistio === true;
-        const isDocAbsent = docEstado === "inasistencia" || docEstado === "ausente" || a.docente_asistio === false;
-
-        if (isDocPresent) {
-            s.docente_estado = "presente";
-        } else if (isDocAbsent && s.docente_estado !== "presente") {
-            s.docente_estado = "ausente";
+        } else {
+            // Completar información si faltaba
+            const s = sessionConsolidation[sesionId];
+            if (!s.docente_num_doc && a.docente_num_doc) {
+                s.docente_num_doc = a.docente_num_doc;
+                s.nombre_docente = a.nombre_docente || a.docente_nombre || s.nombre_docente;
+                s.apellido_docente = a.apellido_docente || a.docente_apellido || s.apellido_docente;
+            }
         }
     });
 
-    // Rellenar por defecto a "ausente" para clases pasadas sin registro explícito del docente
-    const todayStr = new Date().toISOString().split("T")[0];
-    Object.values(sessionConsolidation).forEach(s => {
-        if (s.docente_estado === null && s.fecha && s.fecha <= todayStr) {
-            s.docente_estado = "ausente";
-        }
-    });
-
-    // 2. Alertas de Estudiantes
+    // 4. Calcular alertas de Estudiantes (agrupado por estudiante y asignatura)
     const estudianteMateriaMap: Record<string, {
         num_doc: string;
         nombres: string;
@@ -198,36 +183,32 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
 
     asisList.forEach((a: any) => {
         const sesionId = a.sesion_id ? String(a.sesion_id) : "";
-        const sessionKey = sesionId || `${a.fecha || "sin-fecha"}-${a.cod_asignatura || "sin-asig"}-${a.grupo || "sin-grupo"}`;
-        
-        const s = sessionConsolidation[sessionKey];
+        if (!sesionId) return;
+
+        const s = sessionConsolidation[sesionId];
         if (!s) return;
 
-        // Se usa la información resuelta a partir de la consolidación de la sesión
-        const codAsig = s.cod_asignatura || a.cod_asignatura || "";
-        const asignatura = s.asignatura || a.asignatura || "";
-
-        // Solo si el estudiante está definido y el docente sí asistió a esa clase
+        // Solo si el estudiante está definido y el docente asistió a la clase
         if (a.num_doc && s.docente_estado === "presente") {
-            const key = `${a.num_doc}-${codAsig}`;
+            const key = `${a.num_doc}-${s.cod_asignatura}`;
             const estadoNorm = (a.estado || "").toLowerCase();
-            
+
             const isPresent = estadoNorm === "asistencia" || estadoNorm === "asistencia con retraso" || estadoNorm === "presente" || estadoNorm === "tarde";
             const isAbsent = estadoNorm === "inasistencia" || estadoNorm === "ausente";
-            
+
             if (isPresent || isAbsent) {
                 if (!estudianteMateriaMap[key]) {
                     estudianteMateriaMap[key] = {
                         num_doc: a.num_doc,
                         nombres: a.nombre_estudiante || a.nombre || "",
                         apellidos: a.apellido_estudiante || a.apellido || "",
-                        asignatura: asignatura,
-                        cod_asignatura: codAsig,
+                        asignatura: s.asignatura,
+                        cod_asignatura: s.cod_asignatura,
                         total: 0,
                         presentes: 0
                     };
                 }
-                
+
                 estudianteMateriaMap[key].total += 1;
                 if (isPresent) {
                     estudianteMateriaMap[key].presentes += 1;
@@ -235,7 +216,7 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
             }
         }
     });
-    
+
     const studentAlertas: AlertaDesercion[] = [];
     Object.values(estudianteMateriaMap).forEach(em => {
         if (em.total > 0) {
@@ -253,8 +234,9 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         }
     });
 
-    // 3. Alertas de Docentes
+    // 5. Calcular alertas de Docentes (agrupado por docente, asignatura y grupo)
     const docenteMateriaMap: Record<string, {
+        docente_id: string;
         docente_num_doc: string;
         nombres: string;
         apellidos: string;
@@ -266,16 +248,18 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
     }> = {};
 
     Object.values(sessionConsolidation).forEach(s => {
-        if (!s.docente_num_doc || !s.cod_asignatura || !s.grupo) return;
-        if (s.docente_estado === null) return; // Se omiten sesiones futuras sin estado de docente
+        if (!s.cod_asignatura || !s.grupo) return;
+        const teacherId = s.docente_id || s.docente_num_doc;
+        if (!teacherId) return;
 
-        const groupKey = `${s.docente_num_doc}-${s.cod_asignatura}-${s.grupo}`;
+        const groupKey = `${teacherId}-${s.cod_asignatura}-${s.grupo}`;
 
         if (!docenteMateriaMap[groupKey]) {
             docenteMateriaMap[groupKey] = {
+                docente_id: s.docente_id,
                 docente_num_doc: s.docente_num_doc,
-                nombres: s.nombre_docente,
-                apellidos: s.apellido_docente,
+                nombres: s.nombre_docente || "Docente",
+                apellidos: s.apellido_docente || "",
                 asignatura: s.asignatura,
                 cod_asignatura: s.cod_asignatura,
                 grupo: s.grupo,
@@ -295,22 +279,21 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         if (dm.total > 0) {
             const porcentaje = Math.round((dm.presentes / dm.total) * 100);
             if (porcentaje < 80) {
+                const docId = dm.docente_num_doc || dm.docente_id || "sin-id";
                 docenteAlertas.push({
-                    id: `doc-${dm.docente_num_doc}-${dm.cod_asignatura}-${dm.grupo}`,
+                    id: `doc-${docId}-${dm.cod_asignatura}-${dm.grupo}`,
                     nombres: dm.nombres,
                     apellidos: dm.apellidos,
-                    num_doc: dm.docente_num_doc,
+                    num_doc: docId,
                     descripcion: `Asistencia de docente: ${porcentaje}% en ${dm.asignatura} (Grupo ${dm.grupo})`,
                     isDocente: true
                 });
             }
         }
     });
-    
+
     return [...studentAlertas, ...docenteAlertas];
 }
-
-
 
 export async function obtenerEstudianteStats(usuarioId: string): Promise<EstudianteStats> {
     const response = await api.get(`/dashboard/estudiante-stats/${usuarioId}`);

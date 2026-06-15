@@ -236,10 +236,14 @@ export default function AsistenciasPage() {
                 };
             }
 
-            const horObj = { id: a.horario_id, dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
-            const exists = groups[fac][prog][asig][grup].horarios.some((h: any) => h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula);
-            if (a.dia_semana && !exists) {
-                groups[fac][prog][asig][grup].horarios.push(horObj);
+            const isExtraordinaria = (a.tipo_sesion || '').toLowerCase() === 'extraordinaria';
+            const isRegular = a.dia_semana && a.horario_id && !isExtraordinaria;
+            if (isRegular) {
+                const horObj = { id: a.horario_id, dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
+                const exists = groups[fac][prog][asig][grup].horarios.some((h: any) => h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula);
+                if (!exists) {
+                    groups[fac][prog][asig][grup].horarios.push(horObj);
+                }
             }
 
             if (!groups[fac][prog][asig][grup].sesiones[sesionKey]) {
@@ -489,7 +493,7 @@ export default function AsistenciasPage() {
                                 }
 
                                 const isEstudiante = sesion.rol === "Estudiante";
-                                if (isEstudiante && filtAEstado === "inasistencia" && !sData.docente_asistio) {
+                                if (isEstudiante && filtAEstado === "Ausente" && !sData.docente_asistio) {
                                     continue;
                                 }
 
@@ -503,7 +507,13 @@ export default function AsistenciasPage() {
                                 const filteredRecords = sData.records.filter((r: any) => {
                                     const matchEst = !filtAEstudiante || normalizar(`${r.nombre} ${r.apellido} ${r.num_doc}`).includes(normalizar(filtAEstudiante));
                                     const matchMetodo = !filtAMetodo || sessionMatchesMethod || (r.metodo_verificacion && r.metodo_verificacion.toLowerCase() === filtAMetodo.toLowerCase());
-                                    const matchEstado = !filtAEstado || (r.estado && r.estado.toLowerCase() === filtAEstado.toLowerCase());
+                                    const matchEstado = !filtAEstado || (() => {
+                                        const estadoLower = (r.estado || "").toLowerCase();
+                                        if (filtAEstado === "Presente") return estadoLower === "asistencia" || estadoLower === "presente";
+                                        if (filtAEstado === "Tarde") return estadoLower === "asistencia con retraso" || estadoLower === "tarde";
+                                        if (filtAEstado === "Ausente") return estadoLower === "inasistencia" || estadoLower === "ausente";
+                                        return estadoLower === filtAEstado.toLowerCase();
+                                    })();
                                     return matchEst && matchMetodo && matchEstado;
                                 });
 
@@ -1168,7 +1178,7 @@ export default function AsistenciasPage() {
                                             {filtAEstado && <button type="button" onClick={() => setFiltAEstado("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><XCircle size={13} /></button>}
                                             {showAEstadoSugg && (
                                                 <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1">
-                                                    {["asistencia", "asistencia con retraso", "inasistencia"].map(e => (
+                                                    {["Presente", "Tarde", "Ausente"].map(e => (
                                                         <button key={e} type="button" onMouseDown={() => { setFiltAEstado(e); setShowAEstadoSugg(false); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0 cursor-pointer capitalize">{e}</button>
                                                     ))}
                                                 </div>
@@ -1307,7 +1317,7 @@ export default function AsistenciasPage() {
                                                                                                         </div>
 
                                                                                                         {/* Contenedores de Progreso Circulares Premium Horizontales con Layout Vertical */}
-                                                                                                        <div className="flex flex-col sm:flex-row gap-2 shrink-0 items-center">
+                                                                                                        <div className="flex flex-row gap-2 shrink-0 items-center">
                                                                                                             {/* Card 1: Progreso de Sesiones */}
                                                                                                             {(() => {
                                                                                                                 const totalProgramadas = originalGrupoData.sessionProgress?.totalProgramadas || 0;
@@ -1665,9 +1675,9 @@ export default function AsistenciasPage() {
                                                                                                                                   {/* Body Rows */}
                                                                                                                                   <div className="divide-y divide-gray-50">
                                                                                                                                       {sesionData.records.map((a: any) => (
-                                                                                                                                          <div key={a.num_doc} className="px-4 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-center hover:bg-gray-50/40 transition-colors">
+                                                                                                                                          <div key={a.num_doc} className="px-4 py-3 grid grid-cols-2 md:grid-cols-12 gap-x-4 gap-y-3 md:gap-4 items-center hover:bg-gray-50/40 transition-colors">
                                                                                                                                               {/* Estudiante */}
-                                                                                                                                              <div className="md:col-span-4 flex items-center gap-3">
+                                                                                                                                              <div className="col-span-2 md:col-span-4 flex items-center gap-3">
                                                                                                                                                   <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-700 font-black text-[10px] shrink-0 border border-blue-100 shadow-sm">
                                                                                                                                                       ES
                                                                                                                                                   </div>
@@ -1678,20 +1688,20 @@ export default function AsistenciasPage() {
                                                                                                                                               </div>
                                                                                                                                               
                                                                                                                                               {/* Entrada */}
-                                                                                                                                              <div className="md:col-span-2 text-center text-[10px] text-gray-800 font-bold flex justify-between md:justify-center items-center">
-                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden">Entrada</span>
+                                                                                                                                              <div className="col-span-1 md:col-span-2 text-left md:text-center text-[10px] text-gray-800 font-bold flex flex-col md:flex-row md:justify-center items-start md:items-center">
+                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden mb-0.5">Entrada</span>
                                                                                                                                                   <span className="whitespace-nowrap">{a.hora_entrada ? new Date(a.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                                                                                                                                               </div>
                                                                                                                                               
                                                                                                                                               {/* Salida */}
-                                                                                                                                              <div className="md:col-span-2 text-center text-[10px] text-gray-800 font-bold flex justify-between md:justify-center items-center">
-                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden">Salida</span>
+                                                                                                                                              <div className="col-span-1 md:col-span-2 text-left md:text-center text-[10px] text-gray-800 font-bold flex flex-col md:flex-row md:justify-center items-start md:items-center">
+                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden mb-0.5">Salida</span>
                                                                                                                                                   <span className="whitespace-nowrap">{a.hora_salida ? new Date(a.hora_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                                                                                                                                               </div>
                                                                                                                                               
                                                                                                                                               {/* Método */}
-                                                                                                                                              <div className="md:col-span-2 text-center flex justify-between md:justify-center items-center">
-                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden">Método</span>
+                                                                                                                                              <div className="col-span-1 md:col-span-2 flex flex-col md:flex-row md:justify-center items-start md:items-center">
+                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden mb-0.5">Método</span>
                                                                                                                                                   <div className="whitespace-nowrap">
                                                                                                                                                       {!a.metodo_verificacion || a.metodo_verificacion === "N/A" || a.metodo_verificacion === "None" || a.metodo_verificacion.trim() === "" ? (
                                                                                                                                                            "—"
@@ -1708,12 +1718,14 @@ export default function AsistenciasPage() {
                                                                                                                                               </div>
                                                                                                                                               
                                                                                                                                               {/* Estado */}
-                                                                                                                                              <div className="md:col-span-2 text-center flex justify-between md:justify-center items-center">
-                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden">Estado</span>
+                                                                                                                                              <div className="col-span-1 md:col-span-2 flex flex-col md:flex-row md:justify-center items-start md:items-center">
+                                                                                                                                                  <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider md:hidden mb-0.5">Estado</span>
                                                                                                                                                   <div className="whitespace-nowrap">
                                                                                                                                                       {editingEstadoId === a.id ? (
                                                                                                                                                           <select value={a.estado} onChange={e => handleCambiarEstado(a.id, e.target.value)} onBlur={() => setEditingEstadoId(null)} autoFocus className="text-[10px] font-bold p-1 bg-white border border-gray-200 rounded-lg">
-                                                                                                                                                              {["asistencia", "asistencia con retraso", "inasistencia"].map(e => <option key={e} value={e}>{e}</option>)}
+                                                                                                                                                              <option value="asistencia">Presente</option>
+                                                                                                                                                              <option value="asistencia con retraso">Tarde</option>
+                                                                                                                                                              <option value="inasistencia">Ausente</option>
                                                                                                                                                           </select>
                                                                                                                                                       ) : (
                                                                                                                                                           <button onClick={() => setEditingEstadoId(a.id)} className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full transition-all whitespace-nowrap ${a.estado === "asistencia" ? "bg-green-50 text-green-700 hover:bg-green-100" : a.estado === "asistencia con retraso" ? "bg-amber-50 text-amber-700 hover:bg-amber-100" : "bg-red-50 text-red-700 hover:bg-red-100"}`}>

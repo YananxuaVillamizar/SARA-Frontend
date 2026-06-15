@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw, Calendar, Printer, Clock, MapPin } from "lucide-react";
+import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw, Calendar, Printer, Clock, MapPin, SlidersHorizontal } from "lucide-react";
 import { listarUsuarios, crearUsuario, actualizarUsuario, obtenerUsuario, generarPinSeguro, Usuario } from "@/services/usuarios";
 import { listarRoles, Rol } from "@/services/admin";
 import { getSesion } from "@/services/auth";
@@ -85,6 +85,7 @@ export default function UsuariosPage() {
     const [horarioUsuario, setHorarioUsuario] = useState<Usuario | null>(null);
     const [horariosData, setHorariosData] = useState<HorarioSemanal[]>([]);
     const [cargandoHorario, setCargandoHorario] = useState(false);
+    const [mostrarFiltrosMovil, setMostrarFiltrosMovil] = useState(false);
 
     async function openHorarioModal(u: Usuario) {
         setHorarioUsuario(u);
@@ -616,73 +617,87 @@ export default function UsuariosPage() {
             </div>
 
             {/* Barra de búsqueda y Filtros */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="flex flex-col md:grid md:grid-cols-12 gap-4">
                 {/* Búsqueda */}
-                <div className="relative md:col-span-6">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                        id="input-busqueda-usuario"
-                        type="text"
-                        placeholder="Buscar por nombre, documento o correo..."
-                        value={busqueda}
-                        onChange={e => setBusqueda(e.target.value)}
-                        className="w-full pl-11 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none focus:border-sara-red transition-all"
-                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
-                    />
-                    {busqueda && (
-                        <button onClick={() => setBusqueda("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                            <X size={16} />
-                        </button>
-                    )}
-                </div>
-
-                {/* Filtro por Rol */}
-                <div className="relative md:col-span-2">
-                    <select
-                        id="select-filtro-rol"
-                        value={filtroRol}
-                        onChange={e => setFiltroRol(e.target.value)}
-                        className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
+                <div className="relative md:col-span-6 flex gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            id="input-busqueda-usuario"
+                            type="text"
+                            placeholder="Buscar por nombre, documento o correo..."
+                            value={busqueda}
+                            onChange={e => setBusqueda(e.target.value)}
+                            className="w-full pl-11 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none focus:border-sara-red transition-all"
+                            style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+                        />
+                        {busqueda && (
+                            <button onClick={() => setBusqueda("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+                    {/* Botón de Filtros en Móvil */}
+                    <button
+                        type="button"
+                        onClick={() => setMostrarFiltrosMovil(!mostrarFiltrosMovil)}
+                        className="md:hidden flex items-center justify-center p-3 bg-white border border-gray-100 rounded-2xl text-gray-500 hover:text-sara-red transition-all"
                         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
                     >
-                        <option value="todos">Todos los Roles</option>
-                        <option value="Administrativo">Administrativo</option>
-                        <option value="Docente">Docente</option>
-                        <option value="Estudiante">Estudiante</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                        <SlidersHorizontal size={20} className={mostrarFiltrosMovil ? "text-sara-red" : ""} />
+                    </button>
                 </div>
 
-                {/* Filtro por Estado */}
-                <div className="relative md:col-span-2">
-                    <select
-                        id="select-filtro-estado"
-                        value={filtroEstado}
-                        onChange={e => setFiltroEstado(e.target.value)}
-                        className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
-                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
-                    >
-                        <option value="todos">Todos los Estados</option>
-                        <option value="activo">Activos</option>
-                        <option value="inactivo">Inactivos</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
-                </div>
+                {/* Filtros colapsables en móvil / siempre visibles en desktop */}
+                <div className={`${mostrarFiltrosMovil ? "flex" : "hidden"} md:flex flex-col md:grid md:grid-cols-6 md:col-span-6 gap-4`}>
+                    {/* Filtro por Rol */}
+                    <div className="relative md:col-span-2">
+                        <select
+                            id="select-filtro-rol"
+                            value={filtroRol}
+                            onChange={e => setFiltroRol(e.target.value)}
+                            className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
+                            style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+                        >
+                            <option value="todos">Todos los Roles</option>
+                            <option value="Administrativo">Administrativo</option>
+                            <option value="Docente">Docente</option>
+                            <option value="Estudiante">Estudiante</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                    </div>
 
-                {/* Filtro por Biometría */}
-                <div className="relative md:col-span-2">
-                    <select
-                        id="select-filtro-biometria"
-                        value={filtroBiometria}
-                        onChange={e => setFiltroBiometria(e.target.value)}
-                        className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
-                        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
-                    >
-                        <option value="todos">Biometría</option>
-                        <option value="autorizada">Autorizado</option>
-                        <option value="no_autorizada">No Autorizado</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                    {/* Filtro por Estado */}
+                    <div className="relative md:col-span-2">
+                        <select
+                            id="select-filtro-estado"
+                            value={filtroEstado}
+                            onChange={e => setFiltroEstado(e.target.value)}
+                            className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
+                            style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+                        >
+                            <option value="todos">Todos los Estados</option>
+                            <option value="activo">Activos</option>
+                            <option value="inactivo">Inactivos</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                    </div>
+
+                    {/* Filtro por Biometría */}
+                    <div className="relative md:col-span-2">
+                        <select
+                            id="select-filtro-biometria"
+                            value={filtroBiometria}
+                            onChange={e => setFiltroBiometria(e.target.value)}
+                            className="w-full pl-4 pr-10 py-3 bg-white rounded-2xl border border-gray-100 text-sm outline-none appearance-none focus:border-sara-red transition-all cursor-pointer font-medium text-gray-700"
+                            style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+                        >
+                            <option value="todos">Biometría</option>
+                            <option value="autorizada">Autorizado</option>
+                            <option value="no_autorizada">No Autorizado</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                    </div>
                 </div>
             </div>
 
@@ -698,25 +713,93 @@ export default function UsuariosPage() {
                         <p className="text-gray-400 text-sm">No se encontraron usuarios.</p>
                     </div>
                 ) : (
-                    <table className="w-full">
-                        <thead>
-                            <tr style={{ background: "#F9FAFB" }}>
-                                <th className="px-4 py-4 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Usuario</th>
-                                <th className="px-2 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Tipo de Documento</th>
-                                <th className="px-4 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Documento</th>
-                                <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Correo</th>
-                                <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Rol</th>
-                                <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Estado</th>
-                                <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Biometría</th>
-                                <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
+                    <>
+                        {/* Vista de Escritorio */}
+                        <table className="w-full hidden md:table">
+                            <thead>
+                                <tr style={{ background: "#F9FAFB" }}>
+                                    <th className="px-4 py-4 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Usuario</th>
+                                    <th className="px-2 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Tipo de Documento</th>
+                                    <th className="px-4 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Documento</th>
+                                    <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Correo</th>
+                                    <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Rol</th>
+                                    <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Estado</th>
+                                    <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Biometría</th>
+                                    <th className="px-6 py-4 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {usuariosFiltrados.map((u) => (
+                                    <tr key={u.id} className="hover:bg-gray-50 transition-colors font-sans">
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
+                                                    style={{
+                                                        background: 
+                                                            u.rol === "Administrativo" ? "#E2F1F4" : 
+                                                            u.rol === "Docente" ? "#EFF6FF" : 
+                                                            u.rol === "Estudiante" ? "#ECFDF5" : "#F3F4F6",
+                                                        color:
+                                                            u.rol === "Administrativo" ? "#0e5d75" : 
+                                                            u.rol === "Docente" ? "#1D4ED8" : 
+                                                            u.rol === "Estudiante" ? "#065F46" : "#374151"
+                                                    }}>
+                                                    {(u.nombres?.[0] || "").toUpperCase()}{(u.apellidos?.[0] || "").toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold" style={{ color: "#1A1A2E" }}>
+                                                        {u.nombres} {u.apellidos}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-2 py-4 text-sm text-gray-500 font-bold text-center whitespace-nowrap">{u.tipo_doc || "CC"}</td>
+                                        <td className="px-4 py-4 text-sm text-gray-500 font-mono text-center whitespace-nowrap">{u.num_doc}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 text-center">{u.email}</td>
+                                        <td className="px-6 py-4 text-center"><RolBadge rol={u.rol} /></td>
+                                        <td className="px-6 py-4 text-center"><EstadoBadge activo={u.activo} /></td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span
+                                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${u.autoriza_biometria
+                                                    ? "text-purple-700 bg-purple-50"
+                                                    : "text-gray-500 bg-gray-100"
+                                                    }`}
+                                            >
+                                                {u.autoriza_biometria ? "Autorizada" : "No Autorizada"}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => openEditModal(u)}
+                                                    className="p-2 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
+                                                    title="Editar Usuario"
+                                                >
+                                                    <Pencil size={14} strokeWidth={2.5} />
+                                                </button>
+                                                {u.activo && (u.rol === "Estudiante" || u.rol === "Docente") && (
+                                                    <button
+                                                        onClick={() => openHorarioModal(u)}
+                                                        className="p-2 rounded-xl text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors"
+                                                        title="Ver Horario"
+                                                    >
+                                                        <Calendar size={14} strokeWidth={2.5} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {/* Vista de Móvil (Card list) */}
+                        <div className="block md:hidden divide-y divide-gray-100">
                             {usuariosFiltrados.map((u) => (
-                                <tr key={u.id} className="hover:bg-gray-50 transition-colors font-sans">
-                                    <td className="px-4 py-4">
+                                <div key={u.id} className="p-4 space-y-3 hover:bg-gray-50/50 transition-colors">
+                                    <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
+                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
                                                 style={{
                                                     background: 
                                                         u.rol === "Administrativo" ? "#E2F1F4" : 
@@ -730,51 +813,57 @@ export default function UsuariosPage() {
                                                 {(u.nombres?.[0] || "").toUpperCase()}{(u.apellidos?.[0] || "").toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-semibold" style={{ color: "#1A1A2E" }}>
+                                                <p className="text-sm font-bold text-gray-900 leading-tight">
                                                     {u.nombres} {u.apellidos}
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    {u.tipo_doc || "CC"} {u.num_doc}
                                                 </p>
                                             </div>
                                         </div>
-                                    </td>
-                                    <td className="px-2 py-4 text-sm text-gray-500 font-bold text-center whitespace-nowrap">{u.tipo_doc || "CC"}</td>
-                                    <td className="px-4 py-4 text-sm text-gray-500 font-mono text-center whitespace-nowrap">{u.num_doc}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500 text-center">{u.email}</td>
-                                    <td className="px-6 py-4 text-center"><RolBadge rol={u.rol} /></td>
-                                    <td className="px-6 py-4 text-center"><EstadoBadge activo={u.activo} /></td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span
-                                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${u.autoriza_biometria
-                                                ? "text-purple-700 bg-purple-50"
-                                                : "text-gray-500 bg-gray-100"
-                                                }`}
-                                        >
-                                            {u.autoriza_biometria ? "Autorizada" : "No Autorizada"}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <button
-                                                onClick={() => openEditModal(u)}
-                                                className="p-2 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
-                                                title="Editar Usuario"
-                                            >
-                                                <Pencil size={14} strokeWidth={2.5} />
-                                            </button>
-                                            {u.activo && (u.rol === "Estudiante" || u.rol === "Docente") && (
-                                                <button
-                                                    onClick={() => openHorarioModal(u)}
-                                                    className="p-2 rounded-xl text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors"
-                                                    title="Ver Horario"
-                                                >
-                                                    <Calendar size={14} strokeWidth={2.5} />
-                                                </button>
-                                            )}
+                                        <div className="flex flex-col items-end gap-1.5">
+                                            <RolBadge rol={u.rol} />
+                                            <EstadoBadge activo={u.activo} />
                                         </div>
-                                    </td>
-                                </tr>
+                                    </div>
+
+                                    <div className="text-xs text-gray-600 space-y-1 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/40">
+                                        <p className="flex justify-between">
+                                            <span className="text-gray-400 font-medium">Correo:</span>
+                                            <span className="font-semibold text-gray-700 truncate max-w-[200px]" title={u.email}>{u.email}</span>
+                                        </p>
+                                        <p className="flex justify-between">
+                                            <span className="text-gray-400 font-medium">Biometría:</span>
+                                            <span className={`font-bold ${u.autoriza_biometria ? "text-purple-700" : "text-gray-500"}`}>
+                                                {u.autoriza_biometria ? "Autorizada" : "No Autorizada"}
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center justify-end gap-2 pt-1">
+                                        <button
+                                            onClick={() => openEditModal(u)}
+                                            className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-all border border-blue-100"
+                                            title="Editar Usuario"
+                                        >
+                                            <Pencil size={13} strokeWidth={2.5} />
+                                            <span>Editar</span>
+                                        </button>
+                                        {u.activo && (u.rol === "Estudiante" || u.rol === "Docente") && (
+                                            <button
+                                                onClick={() => openHorarioModal(u)}
+                                                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold transition-all border border-amber-100"
+                                                title="Ver Horario"
+                                            >
+                                                <Calendar size={13} strokeWidth={2.5} />
+                                                <span>Ver Horario</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </>
                 )}
             </div>
 
@@ -1202,78 +1291,144 @@ export default function UsuariosPage() {
                                     );
                                 }
 
+                                const clasesPorDiaMovil = DIAS.reduce((acc, dia) => {
+                                    acc[dia] = [];
+                                    filas.forEach((fila: any) => {
+                                        const clases = fila.clasesPorDia[dia] || [];
+                                        clases.forEach((c: any) => {
+                                            acc[dia].push({
+                                                ...c,
+                                                cod_asignatura: fila.cod_asignatura,
+                                                asignatura: fila.asignatura,
+                                                grupo: fila.grupo,
+                                                docente: fila.docente
+                                            });
+                                        });
+                                    });
+                                    acc[dia].sort((a: any, b: any) => a.hora_inicio.localeCompare(b.hora_inicio));
+                                    return acc;
+                                }, {} as Record<string, any[]>);
+
                                 return (
-                                    <div className="w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none">
-                                        <table className="w-full border-collapse min-w-[1000px] print:min-w-full">
-                                            <thead>
-                                                <tr className="bg-[#0e5d75] border-b-[3px] border-[#c9a84c] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#0e5d75] print:border-b-[3px] print:border-[#c9a84c] print:text-white">
-                                                    <th className="py-3 px-4 text-center border-r border-gray-300/40 w-[220px]">Materia</th>
-                                                    {DIAS.map(dia => (
-                                                        <th key={dia} className="py-3 px-3 text-center border-r border-gray-300/40 last:border-r-0 font-bold">{dia}</th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {filas.map((fila: any, idx) => {
-                                                    const esPar = idx % 2 === 1;
-                                                    return (
-                                                        <tr 
-                                                            key={idx} 
-                                                            className={`text-[10px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
-                                                                esPar ? "bg-gray-100/70" : "bg-white"
-                                                            } print:bg-white`}
-                                                        >
-                                                            {/* Columna Materia */}
-                                                            <td className="py-4 px-4 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[220px]">
-                                                                <div className="space-y-1">
-                                                                    <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
-                                                                    <p className="text-[11px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
-                                                                    <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
+                                    <>
+                                        {/* Vista Escritorio */}
+                                        <div className="w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none hidden md:block">
+                                            <table className="w-full border-collapse min-w-[1000px] print:min-w-full">
+                                                <thead>
+                                                    <tr className="bg-[#0e5d75] border-b-[3px] border-[#c9a84c] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#0e5d75] print:border-b-[3px] print:border-[#c9a84c] print:text-white">
+                                                        <th className="py-3 px-4 text-center border-r border-gray-300/40 w-[220px]">Materia</th>
+                                                        {DIAS.map(dia => (
+                                                            <th key={dia} className="py-3 px-3 text-center border-r border-gray-300/40 last:border-r-0 font-bold">{dia}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filas.map((fila: any, idx) => {
+                                                        const esPar = idx % 2 === 1;
+                                                        return (
+                                                            <tr 
+                                                                key={idx} 
+                                                                className={`text-[10px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
+                                                                    esPar ? "bg-gray-100/70" : "bg-white"
+                                                                } print:bg-white`}
+                                                            >
+                                                                {/* Columna Materia */}
+                                                                <td className="py-4 px-4 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[220px]">
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
+                                                                        <p className="text-[11px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
+                                                                        <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
+                                                                        {horarioUsuario.rol === "Estudiante" && (
+                                                                            <p className="text-[9px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
+                                                                                Docente: {fila.docente}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                
+                                                                {/* Columnas de Días */}
+                                                                {DIAS.map(dia => {
+                                                                    const clases = fila.clasesPorDia[dia] || [];
+                                                                    return (
+                                                                        <td key={dia} className="p-2 border border-gray-200/80 align-top w-[110px] min-w-[110px]">
+                                                                            <div className="flex flex-col gap-2">
+                                                                                {clases.map((clase: any, cIdx: number) => (
+                                                                                    <div 
+                                                                                        key={cIdx} 
+                                                                                        className="bg-slate-50 border-l-4 border-[#0e5d75] p-2 rounded-r-lg shadow-sm text-left flex flex-col gap-1 transition-all hover:bg-slate-100/80 print:bg-slate-50 print:border-[#0e5d75]"
+                                                                                    >
+                                                                                        <div className="flex items-center gap-1 text-black font-extrabold text-[9px] tracking-tight print:text-black">
+                                                                                            <Clock size={10} className="text-[#0e5d75] shrink-0" />
+                                                                                            <span>{clase.hora_inicio} - {clase.hora_fin}</span>
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-1 text-[9px] text-gray-600 font-bold leading-tight">
+                                                                                            <MapPin size={10} className="text-gray-400 shrink-0" />
+                                                                                            <span>{clase.aula}</span>
+                                                                                        </div>
+                                                                                        <div 
+                                                                                            className="inline-block self-start px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5 print:bg-gray-100"
+                                                                                            title={fila.docente}
+                                                                                        >
+                                                                                            {fila.cod_asignatura}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </td>
+                                                                    );
+                                                                })}
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* Vista Móvil */}
+                                        <div className="block md:hidden space-y-4">
+                                            {DIAS.map(dia => {
+                                                const clases = clasesPorDiaMovil[dia] || [];
+                                                if (clases.length === 0) return null;
+
+                                                return (
+                                                    <div key={dia} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                                                        <div className="bg-[#0e5d75] px-4 py-2.5 text-white font-extrabold text-xs uppercase tracking-wider">
+                                                            {dia}
+                                                        </div>
+                                                        <div className="divide-y divide-gray-100 p-3 space-y-3">
+                                                            {clases.map((clase: any, cIdx: number) => (
+                                                                <div key={cIdx} className="pt-3 first:pt-0 flex flex-col gap-1.5">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-[11px] font-black text-black uppercase leading-tight">
+                                                                            {clase.asignatura}
+                                                                        </span>
+                                                                        <span className="text-[9px] bg-gray-100 font-bold px-2 py-0.5 rounded-full text-gray-600">
+                                                                            Grupo {clase.grupo}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-gray-500 text-[10px]">
+                                                                        <div className="flex items-center gap-1 font-bold text-gray-700">
+                                                                            <Clock size={11} className="text-[#0e5d75]" />
+                                                                            <span>{clase.hora_inicio} - {clase.hora_fin}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1 font-bold">
+                                                                            <MapPin size={11} className="text-gray-400" />
+                                                                            <span>Aula {clase.aula}</span>
+                                                                        </div>
+                                                                    </div>
                                                                     {horarioUsuario.rol === "Estudiante" && (
-                                                                        <p className="text-[9px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
-                                                                            Docente: {fila.docente}
+                                                                        <p className="text-[9px] text-gray-400 font-medium uppercase mt-0.5">
+                                                                            Docente: {clase.docente}
                                                                         </p>
                                                                     )}
                                                                 </div>
-                                                            </td>
-                                                            
-                                                            {/* Columnas de Días */}
-                                                            {DIAS.map(dia => {
-                                                                const clases = fila.clasesPorDia[dia] || [];
-                                                                return (
-                                                                    <td key={dia} className="p-2 border border-gray-200/80 align-top w-[110px] min-w-[110px]">
-                                                                        <div className="flex flex-col gap-2">
-                                                                            {clases.map((clase: any, cIdx: number) => (
-                                                                                <div 
-                                                                                    key={cIdx} 
-                                                                                    className="bg-slate-50 border-l-4 border-[#0e5d75] p-2 rounded-r-lg shadow-sm text-left flex flex-col gap-1 transition-all hover:bg-slate-100/80 print:bg-slate-50 print:border-[#0e5d75]"
-                                                                                >
-                                                                                    <div className="flex items-center gap-1 text-black font-extrabold text-[9px] tracking-tight print:text-black">
-                                                                                        <Clock size={10} className="text-[#0e5d75] shrink-0" />
-                                                                                        <span>{clase.hora_inicio} - {clase.hora_fin}</span>
-                                                                                    </div>
-                                                                                    <div className="flex items-center gap-1 text-[9px] text-gray-600 font-bold leading-tight">
-                                                                                        <MapPin size={10} className="text-gray-400 shrink-0" />
-                                                                                        <span>{clase.aula}</span>
-                                                                                    </div>
-                                                                                    <div 
-                                                                                        className="inline-block self-start px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5 print:bg-gray-100"
-                                                                                        title={fila.docente}
-                                                                                    >
-                                                                                        {fila.cod_asignatura}
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </td>
-                                                                );
-                                                            })}
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
                                 );
                             })()}
                         </div>

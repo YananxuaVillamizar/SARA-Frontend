@@ -957,9 +957,9 @@ export default function ConfigPage() {
                 </button>
             </div>
 
-            <div className="flex gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-fit flex-wrap">
+            <div className="flex gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-full overflow-x-auto scrollbar-none flex-nowrap">
                 {TABS.map(t => (
-                    <button key={t.id} onClick={() => { setTab(t.id); setPanel(false); resetForm(); }} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${tab === t.id ? "bg-white text-sara-red shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                    <button key={t.id} onClick={() => { setTab(t.id); setPanel(false); resetForm(); }} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shrink-0 ${tab === t.id ? "bg-white text-sara-red shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
                         {t.icon} {t.label}
                     </button>
                 ))}
@@ -968,34 +968,58 @@ export default function ConfigPage() {
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
                 {tab === "facultades" && (
                     facultades.length === 0 ? <div className="py-16 text-center text-gray-400 text-sm">No hay facultades registradas.</div> :
-                        <table className="w-full">
-                            <thead><tr className="bg-gray-50 font-sans">
-                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Nombre</th>
-                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Código</th>
-                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
-                            </tr></thead>
-                            <tbody className="divide-y divide-gray-50 font-sans">
+                        <>
+                            <div className="hidden md:block overflow-x-auto w-full">
+                                <table className="w-full">
+                                    <thead><tr className="bg-gray-50 font-sans">
+                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Nombre</th>
+                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Código</th>
+                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
+                                    </tr></thead>
+                                    <tbody className="divide-y divide-gray-50 font-sans">
+                                        {facultades.map(f => (
+                                            <tr key={f.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-5 py-4 font-semibold text-sm w-1/2" style={{ color: "#1A1A2E" }}>{f.nombre}</td>
+                                                <td className="px-5 py-4 text-sm font-mono text-gray-500 w-28 text-center">{f.codigo}</td>
+                                                <td className="px-5 py-4 w-24 text-center">
+                                                    <div className="flex gap-1 justify-center">
+                                                        <button onClick={() => editarFacultad(f)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
+                                                        <button onClick={() => borrar("facultad", f.id, async () => { await eliminarFacultad(f.id); setFacultades(await listarFacultades()); })} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="md:hidden divide-y divide-gray-100 p-3">
                                 {facultades.map(f => (
-                                    <tr key={f.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-5 py-4 font-semibold text-sm w-1/2" style={{ color: "#1A1A2E" }}>{f.nombre}</td>
-                                        <td className="px-5 py-4 text-sm font-mono text-gray-500 w-28 text-center">{f.codigo}</td>
-                                        <td className="px-5 py-4 w-24 text-center">
-                                            <div className="flex gap-1 justify-center">
-                                                <button onClick={() => editarFacultad(f)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
-                                                <button onClick={() => borrar("facultad", f.id, async () => { await eliminarFacultad(f.id); setFacultades(await listarFacultades()); })} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                    <div key={f.id} className="p-4 space-y-2 bg-white rounded-2xl border border-gray-100/50 my-2">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Facultad</p>
+                                                <h4 className="font-semibold text-sm text-gray-800">{f.nombre}</h4>
                                             </div>
-                                        </td>
-                                    </tr>
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gray-100 text-gray-500 font-mono">
+                                                {f.codigo}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                                            <button onClick={() => editarFacultad(f)} className="p-2 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-1 text-xs font-bold"><Pencil size={14} /> Editar</button>
+                                            <button onClick={() => borrar("facultad", f.id, async () => { await eliminarFacultad(f.id); setFacultades(await listarFacultades()); })} className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-bold"><Trash2 size={14} /> Eliminar</button>
+                                        </div>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
+                            </div>
+                        </>
                 )}
 
                 {tab === "programas" && (() => {
                     return (
                         <div>
                             <div className="p-4 border-b border-gray-50 space-y-2">
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div className="relative">
                                         <div className="relative flex-1">
                                             <input type="text" placeholder="Facultad..." value={filtProgFac}
@@ -1027,29 +1051,58 @@ export default function ConfigPage() {
                                 )}
                             </div>
                             {programasFiltrados.length === 0 ? <div className="py-16 text-center text-gray-400 text-sm">No hay programas registrados.</div> :
-                                <table className="w-full">
-                                    <thead><tr className="bg-gray-50 font-sans">
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Programa</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Código</th>
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider pl-8 font-sans">Facultad</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
-                                    </tr></thead>
-                                    <tbody className="divide-y divide-gray-50 font-sans">
+                                <>
+                                    <div className="hidden md:block overflow-x-auto w-full">
+                                        <table className="w-full">
+                                            <thead><tr className="bg-gray-50 font-sans">
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Programa</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Código</th>
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider pl-8 font-sans">Facultad</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
+                                            </tr></thead>
+                                            <tbody className="divide-y divide-gray-50 font-sans">
+                                                {programasFiltrados.map(p => (
+                                                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-5 py-4 font-semibold text-sm" style={{ color: "#1A1A2E" }}>{p.nombre}</td>
+                                                        <td className="px-5 py-4 text-sm font-mono text-gray-500 text-center">{p.codigo}</td>
+                                                        <td className="px-5 py-4 text-sm text-gray-600 pl-8">{p.facultad}</td>
+                                                        <td className="px-5 py-4 text-center">
+                                                            <div className="flex gap-1 justify-center">
+                                                                <button onClick={() => editarPrograma(p)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
+                                                                <button onClick={() => borrar("programa", p.id, async () => { await eliminarPrograma(p.id); setProgramas(await listarProgramas()); })} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div className="md:hidden divide-y divide-gray-100 p-3">
                                         {programasFiltrados.map(p => (
-                                            <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-5 py-4 font-semibold text-sm" style={{ color: "#1A1A2E" }}>{p.nombre}</td>
-                                                <td className="px-5 py-4 text-sm font-mono text-gray-500 text-center">{p.codigo}</td>
-                                                <td className="px-5 py-4 text-sm text-gray-600 pl-8">{p.facultad}</td>
-                                                <td className="px-5 py-4 text-center">
-                                                    <div className="flex gap-1 justify-center">
-                                                        <button onClick={() => editarPrograma(p)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
-                                                        <button onClick={() => borrar("programa", p.id, async () => { await eliminarPrograma(p.id); setProgramas(await listarProgramas()); })} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                            <div key={p.id} className="p-4 space-y-2.5 bg-white rounded-2xl border border-gray-100/50 my-2 shadow-sm">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Programa</p>
+                                                    <h4 className="font-semibold text-sm text-gray-800">{p.nombre}</h4>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div>
+                                                        <span className="block text-[9px] font-black text-gray-400 uppercase">Código</span>
+                                                        <span className="font-mono text-gray-600">{p.codigo}</span>
                                                     </div>
-                                                </td>
-                                            </tr>
+                                                    <div>
+                                                        <span className="block text-[9px] font-black text-gray-400 uppercase">Facultad</span>
+                                                        <span className="text-gray-600">{p.facultad}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                                                    <button onClick={() => editarPrograma(p)} className="p-2 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-1 text-xs font-bold"><Pencil size={14} /> Editar</button>
+                                                    <button onClick={() => borrar("programa", p.id, async () => { await eliminarPrograma(p.id); setProgramas(await listarProgramas()); })} className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-bold"><Trash2 size={14} /> Eliminar</button>
+                                                </div>
+                                            </div>
                                         ))}
-                                    </tbody>
-                                </table>}
+                                    </div>
+                                </>}
                         </div>
                     );
                 })()}
@@ -1058,7 +1111,7 @@ export default function ConfigPage() {
                     return (
                         <div>
                             <div className="p-4 border-b border-gray-50 space-y-2">
-                                <div className="grid grid-cols-4 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     <div className="relative">
                                         <div className="relative flex-1">
                                             <input type="text" placeholder="Facultad..." value={filtAsigFac}
@@ -1108,33 +1161,71 @@ export default function ConfigPage() {
                                 )}
                             </div>
                             {asignaturasFiltradas.length === 0 ? <div className="py-16 text-center text-gray-400 text-sm">No hay asignaturas registradas.</div> :
-                                <table className="w-full">
-                                    <thead><tr className="bg-gray-50 font-sans">
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Asignatura</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Código</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Créditos</th>
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Facultad</th>
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Programa</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
-                                    </tr></thead>
-                                    <tbody className="divide-y divide-gray-50 font-sans">
+                                <>
+                                    <div className="hidden md:block overflow-x-auto w-full">
+                                        <table className="w-full">
+                                            <thead><tr className="bg-gray-50 font-sans">
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Asignatura</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Código</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Créditos</th>
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Facultad</th>
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Programa</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
+                                            </tr></thead>
+                                            <tbody className="divide-y divide-gray-50 font-sans">
+                                                {asignaturasFiltradas.map(a => (
+                                                    <tr key={a.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-5 py-4 font-semibold text-sm" style={{ color: "#1A1A2E" }}>{a.nombre}</td>
+                                                        <td className="px-5 py-4 text-sm font-mono text-gray-500 text-center">{a.codigo}</td>
+                                                        <td className="px-5 py-4 text-sm text-center font-bold text-gray-700">{a.creditos}</td>
+                                                        <td className="px-5 py-4 text-sm text-gray-500">{a.facultad}</td>
+                                                        <td className="px-5 py-4 text-sm text-gray-600">{a.programa}</td>
+                                                        <td className="px-5 py-4 text-center">
+                                                            <div className="flex gap-1 justify-center">
+                                                                <button onClick={() => editarAsignatura(a)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
+                                                                <button onClick={() => borrar("asignatura", a.id, async () => { await eliminarAsignatura(a.id); setAsignaturas(await listarAsignaturas()); })} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div className="md:hidden divide-y divide-gray-100 p-3">
                                         {asignaturasFiltradas.map(a => (
-                                            <tr key={a.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-5 py-4 font-semibold text-sm" style={{ color: "#1A1A2E" }}>{a.nombre}</td>
-                                                <td className="px-5 py-4 text-sm font-mono text-gray-500 text-center">{a.codigo}</td>
-                                                <td className="px-5 py-4 text-sm text-center font-bold text-gray-700">{a.creditos}</td>
-                                                <td className="px-5 py-4 text-sm text-gray-500">{a.facultad}</td>
-                                                <td className="px-5 py-4 text-sm text-gray-600">{a.programa}</td>
-                                                <td className="px-5 py-4 text-center">
-                                                    <div className="flex gap-1 justify-center">
-                                                        <button onClick={() => editarAsignatura(a)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
-                                                        <button onClick={() => borrar("asignatura", a.id, async () => { await eliminarAsignatura(a.id); setAsignaturas(await listarAsignaturas()); })} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                            <div key={a.id} className="p-4 space-y-2.5 bg-white rounded-2xl border border-gray-100/50 my-2 shadow-sm">
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Asignatura</p>
+                                                        <h4 className="font-semibold text-sm text-gray-800">{a.nombre}</h4>
                                                     </div>
-                                                </td>
-                                            </tr>
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">
+                                                        {a.creditos} CR
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div>
+                                                        <span className="block text-[9px] font-black text-gray-400 uppercase">Código</span>
+                                                        <span className="font-mono text-gray-600">{a.codigo}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="block text-[9px] font-black text-gray-400 uppercase">Programa</span>
+                                                        <span className="text-gray-600">{a.programa}</span>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <span className="block text-[9px] font-black text-gray-400 uppercase">Facultad</span>
+                                                        <span className="text-gray-600">{a.facultad}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                                                    <button onClick={() => editarAsignatura(a)} className="p-2 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-1 text-xs font-bold"><Pencil size={14} /> Editar</button>
+                                                    <button onClick={() => borrar("asignatura", a.id, async () => { await eliminarAsignatura(a.id); setAsignaturas(await listarAsignaturas()); })} className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-bold"><Trash2 size={14} /> Eliminar</button>
+                                                </div>
+                                            </div>
                                         ))}
-                                    </tbody>
-                                </table>}
+                                    </div>
+                                </>}
                         </div>
                     );
                 })()}
@@ -1182,7 +1273,7 @@ export default function ConfigPage() {
                     return (
                         <div className="max-w-7xl mx-auto w-full px-4">
                             <div className="p-4 border-b border-gray-50 space-y-2">
-                                <div className="grid grid-cols-7 gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
                                     <div className="relative">
                                         <div className="relative flex-1">
                                             <input type="text" placeholder="Facultad..." value={filtHorFac}
@@ -1346,57 +1437,135 @@ export default function ConfigPage() {
                             </div>
                             {lista.length === 0
                                 ? <div className="py-16 text-center text-gray-400 text-sm">No hay horarios registrados.</div>
-                                : <table className="w-full min-w-[1000px]">
-                                    <thead><tr className="bg-gray-50 font-sans">
-                                        <th className="pl-5 pr-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans w-[200px]">Facultad</th>
-                                        <th className="pl-2 pr-1 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Programa</th>
-                                        <th className="pl-1 pr-2 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans w-[180px]">Asignatura</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Grupo</th>
-                                        <th className="px-2 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans w-[150px]">Docente</th>
-                                        <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Cupo</th>
-                                        <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Días</th>
-                                        <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Inicio</th>
-                                        <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Fin</th>
-                                        <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Aula</th>
-                                        <th className="pr-5 pl-0 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
-                                    </tr></thead>
-                                    <tbody className="divide-y divide-gray-50 font-sans">
+                                : <>
+                                    <div className="hidden md:block overflow-x-auto w-full">
+                                        <table className="w-full min-w-[1000px]">
+                                            <thead><tr className="bg-gray-50 font-sans">
+                                                <th className="pl-5 pr-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans w-[200px]">Facultad</th>
+                                                <th className="pl-2 pr-1 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Programa</th>
+                                                <th className="pl-1 pr-2 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans w-[180px]">Asignatura</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Grupo</th>
+                                                <th className="px-2 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans w-[150px]">Docente</th>
+                                                <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Cupo</th>
+                                                <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Días</th>
+                                                <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Inicio</th>
+                                                <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Fin</th>
+                                                <th className="px-2 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Aula</th>
+                                                <th className="pr-5 pl-0 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
+                                            </tr></thead>
+                                            <tbody className="divide-y divide-gray-50 font-sans">
+                                                {lista.map((g, i) => {
+                                                    const key = `${g.asignatura_id}__${g.docente_id}__${g.grupo}`;
+                                                    return (
+                                                        <tr key={i} className="hover:bg-gray-50 transition-colors align-top">
+                                                            <td className="pl-5 pr-5 py-4 text-sm text-gray-500 max-w-[200px]">{g.facultad}</td>
+                                                            <td className="pl-2 pr-1 py-4 text-sm text-gray-600">{g.programa}</td>
+                                                            <td className="pl-1 pr-2 py-4 font-semibold text-sm max-w-[180px]" style={{ color: "#1A1A2E" }}>{g.asignatura}</td>
+                                                            <td className="px-5 py-4 text-sm font-bold text-red-700 text-center">{g.grupo}</td>
+                                                            <td className="px-2 py-4 text-sm text-gray-600 max-w-[150px]">{g.docente} {g.apellido}</td>
+                                                            <td className="px-2 py-4 text-center">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className={`text-sm font-black ${g.matriculados >= g.cupo_maximo ? "text-red-600" : "text-green-600"}`}>{g.matriculados}/{g.cupo_maximo}</span>
+                                                                    {g.matriculados >= g.cupo_maximo && <span className="text-[10px] font-bold text-red-400 whitespace-nowrap">CUPO LLENO</span>}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
+                                                                {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-xs font-bold px-2 py-1 rounded-full bg-purple-50 text-purple-700 whitespace-nowrap">{DIA_LABEL[s.dia_semana] ?? s.dia_semana}</span></div>)}
+                                                            </div></td>
+                                                            <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
+                                                                {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{formatHora(s.hora_inicio)}</span></div>)}
+                                                            </div></td>
+                                                            <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
+                                                                {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{formatHora(s.hora_fin)}</span></div>)}
+                                                            </div></td>
+                                                            <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
+                                                                {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{s.aula}</span></div>)}
+                                                            </div></td>
+                                                            <td className="pr-5 pl-0 py-4 text-center">
+                                                                {confirmingDeleteGrupo !== key ? (
+                                                                    <div className="flex gap-1 justify-center items-center">
+                                                                        <button onClick={() => editarGrupo(g)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
+                                                                        <button onClick={() => setConfirmingDeleteGrupo(key)} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex flex-col items-center gap-1.5 p-1.5 bg-amber-50 border border-amber-100 rounded-xl animate-pulse">
+                                                                        <span className="text-[9px] font-extrabold text-amber-900 text-center leading-normal max-w-[120px]">
+                                                                            ¿Borrar clase? Se eliminarán también las sesiones y asistencias asociadas.
+                                                                        </span>
+                                                                        <div className="flex gap-1">
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    try {
+                                                                                        await Promise.all(g.sesiones.map(s => eliminarHorario(s.id)));
+                                                                                        setHorarios(await listarHorarios());
+                                                                                    } catch (err: any) {
+                                                                                        alert(err.message);
+                                                                                    } finally {
+                                                                                        setConfirmingDeleteGrupo(null);
+                                                                                    }
+                                                                                }}
+                                                                                className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-[10px] font-bold transition-all"
+                                                                            >
+                                                                                Sí
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => setConfirmingDeleteGrupo(null)}
+                                                                                className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-[10px] font-bold transition-all"
+                                                                            >
+                                                                                No
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div className="md:hidden divide-y divide-gray-100 p-2">
                                         {lista.map((g, i) => {
                                             const key = `${g.asignatura_id}__${g.docente_id}__${g.grupo}`;
                                             return (
-                                                <tr key={i} className="hover:bg-gray-50 transition-colors align-top">
-                                                    <td className="pl-5 pr-5 py-4 text-sm text-gray-500 max-w-[200px]">{g.facultad}</td>
-                                                    <td className="pl-2 pr-1 py-4 text-sm text-gray-600">{g.programa}</td>
-                                                    <td className="pl-1 pr-2 py-4 font-semibold text-sm max-w-[180px]" style={{ color: "#1A1A2E" }}>{g.asignatura}</td>
-                                                    <td className="px-5 py-4 text-sm font-bold text-red-700 text-center">{g.grupo}</td>
-                                                    <td className="px-2 py-4 text-sm text-gray-600 max-w-[150px]">{g.docente} {g.apellido}</td>
-                                                    <td className="px-2 py-4 text-center">
-                                                        <div className="flex flex-col gap-0.5">
-                                                            <span className={`text-sm font-black ${g.matriculados >= g.cupo_maximo ? "text-red-600" : "text-green-600"}`}>{g.matriculados}/{g.cupo_maximo}</span>
-                                                            {g.matriculados >= g.cupo_maximo && <span className="text-[10px] font-bold text-red-400 whitespace-nowrap">CUPO LLENO</span>}
+                                                <div key={i} className="p-4 space-y-3 bg-white rounded-2xl border border-gray-100/50 my-2 shadow-sm">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div>
+                                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider">{g.programa}</p>
+                                                            <h4 className="font-semibold text-sm text-gray-800">{g.asignatura}</h4>
+                                                            <p className="text-xs text-gray-500 mt-0.5">Docente: {g.docente} {g.apellido}</p>
                                                         </div>
-                                                    </td>
-                                                    <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
-                                                        {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-xs font-bold px-2 py-1 rounded-full bg-purple-50 text-purple-700 whitespace-nowrap">{DIA_LABEL[s.dia_semana] ?? s.dia_semana}</span></div>)}
-                                                    </div></td>
-                                                    <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
-                                                        {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{formatHora(s.hora_inicio)}</span></div>)}
-                                                    </div></td>
-                                                    <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
-                                                        {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{formatHora(s.hora_fin)}</span></div>)}
-                                                    </div></td>
-                                                    <td className="px-2 py-4 text-center"><div className="flex flex-col items-center">
-                                                        {g.sesiones.map(s => <div key={s.id} className="h-8 flex items-center"><span className="text-sm text-gray-600 font-medium whitespace-nowrap">{s.aula}</span></div>)}
-                                                    </div></td>
-                                                    <td className="pr-5 pl-0 py-4 text-center">
-                                                        {confirmingDeleteGrupo !== key ? (
-                                                            <div className="flex gap-1 justify-center items-center">
-                                                                <button onClick={() => editarGrupo(g)} className="p-2 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={14} /></button>
-                                                                <button onClick={() => setConfirmingDeleteGrupo(key)} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-50 text-red-700">
+                                                                Grupo {g.grupo}
+                                                            </span>
+                                                            <span className={`text-[10px] font-black ${g.matriculados >= g.cupo_maximo ? "text-red-600" : "text-green-600"}`}>
+                                                                {g.matriculados}/{g.cupo_maximo} Cupos
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-1.5 p-2 bg-gray-50/70 rounded-xl">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Sesiones de Clase</p>
+                                                        {g.sesiones.map(s => (
+                                                            <div key={s.id} className="text-xs flex items-center justify-between">
+                                                                <span className="font-bold text-gray-700 capitalize">{DIA_LABEL[s.dia_semana] ?? s.dia_semana}</span>
+                                                                <span className="text-gray-500">{formatHora(s.hora_inicio)} - {formatHora(s.hora_fin)}</span>
+                                                                <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 font-bold text-[10px]">Aula {s.aula}</span>
                                                             </div>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                                                        {confirmingDeleteGrupo !== key ? (
+                                                            <>
+                                                                <button onClick={() => editarGrupo(g)} className="p-2 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-1 text-xs font-bold"><Pencil size={14} /> Editar</button>
+                                                                <button onClick={() => setConfirmingDeleteGrupo(key)} className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-bold"><Trash2 size={14} /> Eliminar</button>
+                                                            </>
                                                         ) : (
-                                                            <div className="flex flex-col items-center gap-1.5 p-1.5 bg-amber-50 border border-amber-100 rounded-xl animate-pulse">
-                                                                <span className="text-[9px] font-extrabold text-amber-900 text-center leading-normal max-w-[120px]">
+                                                            <div className="flex flex-col w-full items-center gap-1.5 p-1.5 bg-amber-50 border border-amber-100 rounded-xl animate-pulse">
+                                                                <span className="text-[9px] font-extrabold text-amber-900 text-center leading-normal">
                                                                     ¿Borrar clase? Se eliminarán también las sesiones y asistencias asociadas.
                                                                 </span>
                                                                 <div className="flex gap-1">
@@ -1411,25 +1580,25 @@ export default function ConfigPage() {
                                                                                 setConfirmingDeleteGrupo(null);
                                                                             }
                                                                         }}
-                                                                        className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-[10px] font-bold transition-all"
+                                                                        className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-[10px] font-bold transition-all"
                                                                     >
-                                                                        Sí
+                                                                        Sí, confirmar
                                                                     </button>
                                                                     <button
                                                                         onClick={() => setConfirmingDeleteGrupo(null)}
-                                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-[10px] font-bold transition-all"
+                                                                        className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-[10px] font-bold transition-all"
                                                                     >
                                                                         No
                                                                     </button>
                                                                 </div>
                                                             </div>
                                                         )}
-                                                    </td>
-                                                </tr>
+                                                    </div>
+                                                </div>
                                             );
                                         })}
-                                    </tbody>
-                                </table>}
+                                    </div>
+                                </>}
                         </div>
                     );
                 })()}
@@ -1448,7 +1617,7 @@ export default function ConfigPage() {
                         <div>
                             {/*Barra de búsqueda de matrículas por esta de 4 secciones */}
                             <div className="p-4 border-b border-gray-50 space-y-2">
-                                <div className="grid grid-cols-4 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     {/* Estudiante */}
                                     <div className="relative">
                                         <input type="text" placeholder="Estudiante o documento..." value={filtTabEst}
@@ -1517,80 +1686,151 @@ export default function ConfigPage() {
 
                             {listaGrupos.length === 0
                                 ? <div className="py-16 text-center text-gray-400 text-sm">No hay matrículas registradas.</div>
-                                : <table className="w-full">
-                                    <thead><tr className="bg-gray-50 font-sans">
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Estudiante</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Documento</th>
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Facultad</th>
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Programa</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Sem.</th>
-                                        <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Asignatura</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Grupo</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Estado</th>
-                                        <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
-                                    </tr></thead>
-                                    <tbody className="divide-y divide-gray-50 font-sans">
+                                : <>
+                                    <div className="hidden md:block overflow-x-auto w-full">
+                                        <table className="w-full">
+                                            <thead><tr className="bg-gray-50 font-sans">
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Estudiante</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Documento</th>
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Facultad</th>
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Programa</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Sem.</th>
+                                                <th className="px-5 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Asignatura</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Grupo</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Estado</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-black text-gray-400 uppercase tracking-wider font-sans">Acciones</th>
+                                            </tr></thead>
+                                            <tbody className="divide-y divide-gray-50 font-sans">
+                                                {listaGrupos.map((g, i) => {
+                                                    const sorted = [...g.items].sort((a, b) => a.asignatura.localeCompare(b.asignatura));
+                                                    return (
+                                                        <tr key={i} className="hover:bg-gray-50 transition-colors align-top">
+                                                            <td className="px-5 py-4 font-semibold text-sm" style={{ color: "#1A1A2E" }}>{g.estudiante} {g.apellido_estudiante}</td>
+                                                            <td className="px-5 py-4 text-sm font-mono text-gray-500 text-center">{g.num_doc}</td>
+                                                            <td className="px-5 py-4 text-sm text-gray-500">{g.facultad}</td>
+                                                            <td className="px-2 py-4 text-sm text-gray-600">{g.programa}</td>
+                                                            <td className="px-5 py-4 text-sm text-center font-bold text-gray-700">{g.semestre}</td>
+                                                            <td className="px-5 py-4"><div className="flex flex-col gap-2">
+                                                                {sorted.map(m => (
+                                                                    <div key={m.id} className="min-h-8 flex items-center gap-2 relative">
+                                                                        <span className="text-sm text-gray-700">{m.asignatura}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div></td>
+                                                            <td className="px-5 py-4"><div className="flex flex-col gap-2">
+                                                                {sorted.map(m => <div key={m.id} className="min-h-8 flex items-center justify-center"><span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-purple-50 text-purple-700">{m.grupo}</span></div>)}
+                                                            </div></td>
+                                                            <td className="px-5 py-4"><div className="flex flex-col gap-2">
+                                                                {sorted.map(m => <div key={m.id} className="min-h-8 flex items-center justify-center"><span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${estadoColor(m.estado)}`}>{m.estado.charAt(0).toUpperCase() + m.estado.slice(1)}</span></div>)}
+                                                            </div>
+                                                            </td>
+                                                            <td className="px-5 py-4 text-center">
+                                                                <div className="flex flex-col items-center">
+                                                                    {sorted.map((m, mi) => (
+                                                                        <div key={m.id} className="h-8 flex items-center gap-1">
+                                                                            {mi === 0 && <div className="flex gap-1 justify-center items-center">
+                                                                                <button 
+                                                                                    onClick={() => {
+                                                                                        const est = estudiantes.find(e => e.num_doc === g.num_doc);
+                                                                                        if (est) {
+                                                                                            openHorarioModal(est);
+                                                                                        } else {
+                                                                                            openHorarioModal({
+                                                                                                id: "",
+                                                                                                nombres: g.estudiante,
+                                                                                                apellidos: g.apellido_estudiante,
+                                                                                                num_doc: g.num_doc,
+                                                                                                rol: "Estudiante"
+                                                                                            });
+                                                                                        }
+                                                                                    }} 
+                                                                                    className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-50 transition-colors"
+                                                                                    title="Ver Horario Semanal Completo"
+                                                                                >
+                                                                                    <Calendar size={13} />
+                                                                                </button>
+                                                                                <button onClick={() => editarGrupoMat(g)} className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={13} /></button>
+                                                                                <button onClick={() => { if (!confirm(`¿Eliminar todas las matrículas de ${g.estudiante} en ${g.programa}?`)) return; Promise.all(g.items.map(x => eliminarMatricula(x.id))).then(() => listarMatriculas().then(setMatriculas)); }} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
+                                                                            </div>}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div className="md:hidden divide-y divide-gray-100 p-2">
                                         {listaGrupos.map((g, i) => {
                                             const sorted = [...g.items].sort((a, b) => a.asignatura.localeCompare(b.asignatura));
                                             return (
-                                                <tr key={i} className="hover:bg-gray-50 transition-colors align-top">
-                                                    <td className="px-5 py-4 font-semibold text-sm" style={{ color: "#1A1A2E" }}>{g.estudiante} {g.apellido_estudiante}</td>
-                                                    <td className="px-5 py-4 text-sm font-mono text-gray-500 text-center">{g.num_doc}</td>
-                                                    <td className="px-5 py-4 text-sm text-gray-500">{g.facultad}</td>
-                                                    <td className="px-2 py-4 text-sm text-gray-600">{g.programa}</td>
-                                                    <td className="px-5 py-4 text-sm text-center font-bold text-gray-700">{g.semestre}</td>
-                                                    <td className="px-5 py-4"><div className="flex flex-col gap-2">
+                                                <div key={i} className="p-4 space-y-3 bg-white rounded-2xl border border-gray-100/50 my-2 shadow-sm">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Estudiante</p>
+                                                            <h4 className="font-semibold text-sm text-gray-800">{g.estudiante} {g.apellido_estudiante}</h4>
+                                                            <p className="text-xs text-gray-500 font-mono mt-0.5">{g.num_doc}</p>
+                                                        </div>
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">
+                                                            Sem. {g.semestre}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="col-span-2">
+                                                            <span className="block text-[9px] font-black text-gray-400 uppercase">Programa</span>
+                                                            <span className="text-gray-600">{g.programa}</span>
+                                                        </div>
+                                                        <div className="col-span-2">
+                                                            <span className="block text-[9px] font-black text-gray-400 uppercase">Facultad</span>
+                                                            <span className="text-gray-600">{g.facultad}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-1.5 p-2 bg-gray-50/70 rounded-xl">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Asignaturas Matriculadas</p>
                                                         {sorted.map(m => (
-                                                            <div key={m.id} className="min-h-8 flex items-center gap-2 relative">
-                                                                <span className="text-sm text-gray-700">{m.asignatura}</span>
+                                                            <div key={m.id} className="text-xs flex items-center justify-between gap-2">
+                                                                <span className="text-gray-700 font-medium line-clamp-1">{m.asignatura}</span>
+                                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                                    <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 font-bold text-[10px]">Gr. {m.grupo}</span>
+                                                                    <span className={`px-1.5 py-0.2 rounded font-bold text-[10px] ${estadoColor(m.estado)}`}>{m.estado.charAt(0).toUpperCase() + m.estado.slice(1)}</span>
+                                                                </div>
                                                             </div>
                                                         ))}
-                                                    </div></td>
-                                                    <td className="px-5 py-4"><div className="flex flex-col gap-2">
-                                                        {sorted.map(m => <div key={m.id} className="min-h-8 flex items-center justify-center"><span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-purple-50 text-purple-700">{m.grupo}</span></div>)}
-                                                    </div></td>
-                                                    <td className="px-5 py-4"><div className="flex flex-col gap-2">
-                                                        {sorted.map(m => <div key={m.id} className="min-h-8 flex items-center justify-center"><span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${estadoColor(m.estado)}`}>{m.estado.charAt(0).toUpperCase() + m.estado.slice(1)}</span></div>)}
                                                     </div>
-                                                    </td>
-                                                    <td className="px-5 py-4 text-center">
-                                                        <div className="flex flex-col items-center">
-                                                            {sorted.map((m, mi) => (
-                                                                <div key={m.id} className="h-8 flex items-center gap-1">
-                                                                    {mi === 0 && <div className="flex gap-1 justify-center items-center">
-                                                                        <button 
-                                                                            onClick={() => {
-                                                                                const est = estudiantes.find(e => e.num_doc === g.num_doc);
-                                                                                if (est) {
-                                                                                    openHorarioModal(est);
-                                                                                } else {
-                                                                                    openHorarioModal({
-                                                                                        id: "",
-                                                                                        nombres: g.estudiante,
-                                                                                        apellidos: g.apellido_estudiante,
-                                                                                        num_doc: g.num_doc,
-                                                                                        rol: "Estudiante"
-                                                                                    });
-                                                                                }
-                                                                            }} 
-                                                                            className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-50 transition-colors"
-                                                                            title="Ver Horario Semanal Completo"
-                                                                        >
-                                                                            <Calendar size={13} />
-                                                                        </button>
-                                                                        <button onClick={() => editarGrupoMat(g)} className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"><Pencil size={13} /></button>
-                                                                        <button onClick={() => { if (!confirm(`¿Eliminar todas las matrículas de ${g.estudiante} en ${g.programa}?`)) return; Promise.all(g.items.map(x => eliminarMatricula(x.id))).then(() => listarMatriculas().then(setMatriculas)); }} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
-                                                                    </div>}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </td>
-                                                </tr>
+
+                                                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                                                        <button 
+                                                            onClick={() => {
+                                                                const est = estudiantes.find(e => e.num_doc === g.num_doc);
+                                                                if (est) {
+                                                                    openHorarioModal(est);
+                                                                } else {
+                                                                    openHorarioModal({
+                                                                        id: "",
+                                                                        nombres: g.estudiante,
+                                                                        apellidos: g.apellido_estudiante,
+                                                                        num_doc: g.num_doc,
+                                                                        rol: "Estudiante"
+                                                                    });
+                                                                }
+                                                            }} 
+                                                            className="p-2 rounded-lg text-amber-500 hover:bg-amber-50 transition-colors flex items-center gap-1 text-xs font-bold"
+                                                        >
+                                                            <Calendar size={14} /> Horario
+                                                        </button>
+                                                        <button onClick={() => editarGrupoMat(g)} className="p-2 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-1 text-xs font-bold"><Pencil size={14} /> Editar</button>
+                                                        <button onClick={() => { if (!confirm(`¿Eliminar todas las matrículas de ${g.estudiante} en ${g.programa}?`)) return; Promise.all(g.items.map(x => eliminarMatricula(x.id))).then(() => listarMatriculas().then(setMatriculas)); }} className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-bold"><Trash2 size={14} /> Eliminar</button>
+                                                    </div>
+                                                </div>
                                             );
                                         })}
-                                    </tbody>
-                                </table>
-                            }
+                                    </div>
+                                </>}
                         </div>
                     );
                 })()}
@@ -1735,62 +1975,117 @@ export default function ConfigPage() {
                                         {terminados.length === 0 ? (
                                             <div className="py-8 text-center text-xs text-gray-400 bg-gray-50/50">No hay semestres terminados registrados.</div>
                                         ) : (
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="bg-gray-50/70 border-b border-gray-100">
-                                                        <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Nombre</th>
-                                                        <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Inicio</th>
-                                                        <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Fin</th>
-                                                        <th className="px-5 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-wider">Estado</th>
-                                                        <th className="px-5 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-wider">Acciones</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-50 bg-white">
+                                            <>
+                                                <div className="hidden md:block overflow-x-auto w-full">
+                                                    <table className="w-full">
+                                                        <thead>
+                                                            <tr className="bg-gray-50/70 border-b border-gray-100">
+                                                                <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Nombre</th>
+                                                                <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Inicio</th>
+                                                                <th className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Fin</th>
+                                                                <th className="px-5 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-wider">Estado</th>
+                                                                <th className="px-5 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-wider">Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-50 bg-white">
+                                                            {terminados.map(s => (
+                                                                <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                                                                    <td className="px-5 py-3 font-semibold text-xs text-gray-700">{s.nombre}</td>
+                                                                    <td className="px-5 py-3 text-xs text-gray-500 font-mono">{s.fecha_inicio}</td>
+                                                                    <td className="px-5 py-3 text-xs text-gray-500 font-mono">{s.fecha_fin}</td>
+                                                                    <td className="px-5 py-3 text-center">
+                                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-gray-100 text-gray-500 border border-gray-200">
+                                                                            TERMINADO
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-5 py-3 text-center">
+                                                                        <div className="flex gap-1.5 justify-center items-center">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setEditandoId(s.id);
+                                                                                    setFSemestre({
+                                                                                        nombre: s.nombre,
+                                                                                        fecha_inicio: s.fecha_inicio,
+                                                                                        fecha_fin: s.fecha_fin,
+                                                                                        activo: s.activo,
+                                                                                        estado: s.estado || "terminado"
+                                                                                    });
+                                                                                    setPanel(true);
+                                                                                }}
+                                                                                className="p-1 rounded text-blue-400 hover:bg-blue-50 transition-colors"
+                                                                                title="Editar"
+                                                                            >
+                                                                                <Pencil size={12} />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    if (!confirm(`¿Eliminar semestre "${s.nombre}"?`)) return;
+                                                                                    eliminarSemestre(s.id).then(() => listarSemestres().then(setSemestres));
+                                                                                }}
+                                                                                className="p-1 rounded text-red-400 hover:bg-red-50 transition-colors"
+                                                                                title="Eliminar"
+                                                                            >
+                                                                                <Trash2 size={12} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                <div className="md:hidden divide-y divide-gray-100 bg-white">
                                                     {terminados.map(s => (
-                                                        <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                                                            <td className="px-5 py-3 font-semibold text-xs text-gray-700">{s.nombre}</td>
-                                                            <td className="px-5 py-3 text-xs text-gray-500 font-mono">{s.fecha_inicio}</td>
-                                                            <td className="px-5 py-3 text-xs text-gray-500 font-mono">{s.fecha_fin}</td>
-                                                            <td className="px-5 py-3 text-center">
+                                                        <div key={s.id} className="p-4 space-y-2.5">
+                                                            <div className="flex justify-between items-center">
+                                                                <h4 className="font-bold text-xs text-gray-700">{s.nombre}</h4>
                                                                 <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-gray-100 text-gray-500 border border-gray-200">
                                                                     TERMINADO
                                                                 </span>
-                                                            </td>
-                                                            <td className="px-5 py-3 text-center">
-                                                                <div className="flex gap-1.5 justify-center items-center">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setEditandoId(s.id);
-                                                                            setFSemestre({
-                                                                                nombre: s.nombre,
-                                                                                fecha_inicio: s.fecha_inicio,
-                                                                                fecha_fin: s.fecha_fin,
-                                                                                activo: s.activo,
-                                                                                estado: s.estado || "terminado"
-                                                                            });
-                                                                            setPanel(true);
-                                                                        }}
-                                                                        className="p-1 rounded text-blue-400 hover:bg-blue-50 transition-colors"
-                                                                        title="Editar"
-                                                                    >
-                                                                        <Pencil size={12} />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            if (!confirm(`¿Eliminar semestre "${s.nombre}"?`)) return;
-                                                                            eliminarSemestre(s.id).then(() => listarSemestres().then(setSemestres));
-                                                                        }}
-                                                                        className="p-1 rounded text-red-400 hover:bg-red-50 transition-colors"
-                                                                        title="Eliminar"
-                                                                    >
-                                                                        <Trash2 size={12} />
-                                                                    </button>
+                                                            </div>
+                                                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                                <div>
+                                                                    <span className="block text-[9px] font-black text-gray-400 uppercase">Inicio</span>
+                                                                    <span className="font-semibold text-gray-700">{s.fecha_inicio}</span>
                                                                 </div>
-                                                            </td>
-                                                        </tr>
+                                                                <div className="border-l border-gray-100 h-6"></div>
+                                                                <div>
+                                                                    <span className="block text-[9px] font-black text-gray-400 uppercase">Fin</span>
+                                                                    <span className="font-semibold text-gray-700">{s.fecha_fin}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditandoId(s.id);
+                                                                        setFSemestre({
+                                                                            nombre: s.nombre,
+                                                                            fecha_inicio: s.fecha_inicio,
+                                                                            fecha_fin: s.fecha_fin,
+                                                                            activo: s.activo,
+                                                                            estado: s.estado || "terminado"
+                                                                        });
+                                                                        setPanel(true);
+                                                                    }}
+                                                                    className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-1 text-xs font-bold"
+                                                                >
+                                                                    <Pencil size={12} /> Editar
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (!confirm(`¿Eliminar semestre "${s.nombre}"?`)) return;
+                                                                        eliminarSemestre(s.id).then(() => listarSemestres().then(setSemestres));
+                                                                    }}
+                                                                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-bold"
+                                                                >
+                                                                    <Trash2 size={12} /> Eliminar
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     ))}
-                                                </tbody>
-                                            </table>
+                                                </div>
+                                            </>
                                         )}
                                     </div>
                                 )}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw, Calendar, Printer, Clock, MapPin, SlidersHorizontal } from "lucide-react";
+import { Users, Plus, Search, X, CheckCircle, XCircle, Shield, GraduationCap, BookOpen, Pencil, Eye, EyeOff, Key, RefreshCw, Calendar, Printer, Clock, MapPin, SlidersHorizontal, FilterX } from "lucide-react";
 import { listarUsuarios, crearUsuario, actualizarUsuario, obtenerUsuario, generarPinSeguro, Usuario } from "@/services/usuarios";
 import { listarRoles, Rol } from "@/services/admin";
 import { getSesion } from "@/services/auth";
@@ -86,6 +86,15 @@ export default function UsuariosPage() {
     const [horariosData, setHorariosData] = useState<HorarioSemanal[]>([]);
     const [cargandoHorario, setCargandoHorario] = useState(false);
     const [mostrarFiltrosMovil, setMostrarFiltrosMovil] = useState(false);
+
+    const hayFiltrosActivos = busqueda !== "" || filtroRol !== "todos" || filtroEstado !== "todos" || filtroBiometria !== "todos";
+
+    const limpiarFiltros = () => {
+        setBusqueda("");
+        setFiltroRol("todos");
+        setFiltroEstado("todos");
+        setFiltroBiometria("todos");
+    };
 
     async function openHorarioModal(u: Usuario) {
         setHorarioUsuario(u);
@@ -649,7 +658,7 @@ export default function UsuariosPage() {
                 </div>
 
                 {/* Filtros colapsables en móvil / siempre visibles en desktop */}
-                <div className={`${mostrarFiltrosMovil ? "flex" : "hidden"} md:flex flex-col md:grid md:grid-cols-6 md:col-span-6 gap-4`}>
+                <div className={`${mostrarFiltrosMovil ? "flex" : "hidden"} md:flex flex-col md:grid md:grid-cols-7 md:col-span-6 gap-4`}>
                     {/* Filtro por Rol */}
                     <div className="relative md:col-span-2">
                         <select
@@ -697,6 +706,24 @@ export default function UsuariosPage() {
                             <option value="no_autorizada">No Autorizado</option>
                         </select>
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                    </div>
+
+                    {/* Botón Limpiar Filtros */}
+                    <div className="md:col-span-1 flex items-center">
+                        <button
+                            type="button"
+                            onClick={limpiarFiltros}
+                            disabled={!hayFiltrosActivos}
+                            className={`w-full flex items-center justify-center gap-2 px-3 py-3 rounded-2xl border text-sm font-bold transition-all ${
+                                hayFiltrosActivos
+                                    ? "bg-red-50 border-red-100 text-red-600 hover:bg-red-100/70"
+                                    : "bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                            }`}
+                            title="Limpiar Filtros"
+                        >
+                            <FilterX size={16} />
+                            <span className="md:hidden">Limpiar Filtros</span>
+                        </button>
                     </div>
                 </div>
             </div>

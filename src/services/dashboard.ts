@@ -90,37 +90,27 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         listarHorarios()
     ]);
 
-    // 2. Mapear sesiones y horarios para búsquedas rápidas y seguras
+    // 2. Mapear sesiones y horarios para búsquedas rápidas
     const sessionsMap: Record<string, any> = {};
     if (Array.isArray(sessions)) {
         sessions.forEach((s: any) => {
             const id = s.id || s.sesion_id;
-            if (id) {
-                sessionsMap[String(id)] = s;
-            }
+            if (id) sessionsMap[String(id)] = s;
         });
     }
 
     const horariosMap: Record<string, any> = {};
     if (Array.isArray(horarios)) {
         horarios.forEach((h: any) => {
-            if (h.id) {
-                horariosMap[String(h.id)] = h;
-            }
+            if (h.id) horariosMap[String(h.id)] = h;
         });
     }
 
-    // 3. Estructuras para almacenar los contadores de asistencia
-    const estudianteMateriaMap: Record<string, {
-        num_doc: string;
-        nombres: string;
-        apellidos: string;
-        asignatura: string;
-        cod_asignatura: string;
-        total: number;
-        presentes: number;
-    }> = {};
-
+    // ---------------------------------------------------------------------------
+    // ALERTAS DE DOCENTES
+    // Los registros de asistencia del docente están en la tabla sesiones_clase
+    // a través del campo docente_asistio. Cada sesión = 1 clase del docente.
+    // ---------------------------------------------------------------------------
     const docenteMateriaMap: Record<string, {
         docente_num_doc: string;
         nombres: string;
@@ -128,124 +118,142 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         asignatura: string;
         cod_asignatura: string;
         grupo: string;
-        total: number;
-        presentes: number;
+        total: number;     // sesiones pasadas con registro
+        presentes: number; // sesiones donde docente_asistio === true
     }> = {};
 
-    // 4. Procesar cada registro de asistencia directamente
-    asisList.forEach((a: any) => {
-        const sesionId = a.sesion_id ? String(a.sesion_id) : "";
-        if (!sesionId) return;
+    if (Array.isArray(sessions)) {
+        sessions.forEach((s: any) => {
+            // Solo sesiones donde ya se registró si el docente asistió o no
+            if (s.docente_asistio === null || s.docente_asistio === undefined) return;
 
-        // Resolver asignatura y grupo usando la sesión y el horario correspondiente
-        const session = sessionsMap[sesionId];
-        const horarioId = session?.horario_id || a.horario_id;
-        const horario = horarioId ? horariosMap[String(horarioId)] : null;
+            const horario = s.horario_id ? horariosMap[String(s.horario_id)] : null;
+            if (!horario) return; // Sin horario no podemos saber a qué asignatura/grupo pertenece
 
-        const codAsig = horario?.cod_asignatura || a.cod_asignatura || "";
-        const asignatura = horario?.asignatura || a.asignatura || "";
-        const grupo = horario?.grupo || a.grupo || "";
+            const codAsig = horario.cod_asignatura || "";
+            const asignatura = horario.asignatura || "";
+            const grupo = horario.grupo || "";
+            const docenteNumDoc = horario.docente_num_doc || horario.docente_id || "";
+            const docenteNombre = horario.docente || "";
+            const docenteApellido = horario.apellido_docente || "";
 
-        // Determinar si es una asistencia o inasistencia
-        const estadoNorm = (a.estado || "").toLowerCase();
-        const isPresent = estadoNorm === "asistencia" || estadoNorm === "asistencia con retraso" || estadoNorm === "presente" || estadoNorm === "tarde" || a.docente_asistio === true;
-        const isAbsent = estadoNorm === "inasistencia" || estadoNorm === "ausente" || a.docente_asistio === false;
+            if (!docenteNumDoc || !codAsig || !grupo) return;
 
-        if (!isPresent && !isAbsent) return; // Si no es ni presente ni ausente, no se cuenta
-
-        // Determinar si el registro corresponde a un docente o a un estudiante
-        const isDocenteRecord = a.rol === "Docente" || a.rol_usuario === "Docente" || a.es_docente === true || (a.docente_num_doc && a.num_doc === a.docente_num_doc);
-
-        if (isDocenteRecord) {
-            // Registro de docente
-            const teacherId = a.num_doc || a.docente_num_doc || horario?.docente_num_doc || horario?.docente_id || "docente-sin-id";
-            const groupKey = `${teacherId}-${codAsig}-${grupo}`;
+            const groupKey = `${docenteNumDoc}-${codAsig}-${grupo}`;
 
             if (!docenteMateriaMap[groupKey]) {
-                const docNombre = a.nombre_docente || a.docente_nombre || a.nombres || horario?.docente || "Docente";
-                const docApellido = a.apellido_docente || a.docente_apellido || a.apellidos || horario?.apellido_docente || "";
-                
                 docenteMateriaMap[groupKey] = {
-                    docente_num_doc: teacherId,
-                    nombres: docNombre,
-                    apellidos: docApellido,
-                    asignatura: asignatura,
+                    docente_num_doc: docenteNumDoc,
+                    nombres: docenteNombre,
+                    apellidos: docenteApellido,
+                    asignatura,
                     cod_asignatura: codAsig,
-                    grupo: grupo,
+                    grupo,
                     total: 0,
                     presentes: 0
                 };
             }
 
             docenteMateriaMap[groupKey].total += 1;
-            if (isPresent) {
+            if (s.docente_asistio === true) {
                 docenteMateriaMap[groupKey].presentes += 1;
             }
-        } else {
-            // Registro de estudiante
-            if (a.num_doc) {
-                const key = `${a.num_doc}-${codAsig}`;
+        });
+    }
 
-                if (!estudianteMateriaMap[key]) {
-                    const estNombre = a.nombre_estudiante || a.nombre || a.nombres || "";
-                    const estApellido = a.apellido_estudiante || a.apellido || a.apellidos || "";
-                    
-                    estudianteMateriaMap[key] = {
-                        num_doc: a.num_doc,
-                        nombres: estNombre,
-                        apellidos: estApellido,
-                        asignatura: asignatura,
-                        cod_asignatura: codAsig,
-                        total: 0,
-                        presentes: 0
-                    };
-                }
+    // ---------------------------------------------------------------------------
+    // ALERTAS DE ESTUDIANTES
+    // Los registros de asistencia de los estudiantes están en la tabla asistencias.
+    // Cada registro con estado presente/ausente = 1 clase para ese estudiante.
+    // ---------------------------------------------------------------------------
+    const estudianteMateriaMap: Record<string, {
+        num_doc: string;
+        nombres: string;
+        apellidos: string;
+        asignatura: string;
+        cod_asignatura: string;
+        total: number;     // registros con estado definido (presente + ausente)
+        presentes: number; // registros donde estado = presente/asistencia/etc.
+    }> = {};
 
-                estudianteMateriaMap[key].total += 1;
-                if (isPresent) {
-                    estudianteMateriaMap[key].presentes += 1;
-                }
-            }
+    asisList.forEach((a: any) => {
+        if (!a.num_doc) return;
+        const sesionId = a.sesion_id ? String(a.sesion_id) : "";
+        if (!sesionId) return;
+
+        // Estado del estudiante en este registro
+        const estadoNorm = (a.estado || "").toLowerCase();
+        const isPresent = estadoNorm === "asistencia" || estadoNorm === "asistencia con retraso" || estadoNorm === "presente" || estadoNorm === "tarde";
+        const isAbsent = estadoNorm === "inasistencia" || estadoNorm === "ausente";
+
+        if (!isPresent && !isAbsent) return; // Estado no reconocido, se ignora
+
+        // Resolver asignatura y grupo desde sesión → horario
+        const session = sessionsMap[sesionId];
+        const horarioId = session?.horario_id || a.horario_id;
+        const horario = horarioId ? horariosMap[String(horarioId)] : null;
+
+        const codAsig = horario?.cod_asignatura || a.cod_asignatura || "";
+        const asignatura = horario?.asignatura || a.asignatura || "";
+
+        if (!codAsig) return; // Sin asignatura no podemos agrupar
+
+        const key = `${a.num_doc}-${codAsig}`;
+
+        if (!estudianteMateriaMap[key]) {
+            estudianteMateriaMap[key] = {
+                num_doc: a.num_doc,
+                nombres: a.nombre_estudiante || a.nombre || a.nombres || "",
+                apellidos: a.apellido_estudiante || a.apellido || a.apellidos || "",
+                asignatura,
+                cod_asignatura: codAsig,
+                total: 0,
+                presentes: 0
+            };
+        }
+
+        estudianteMateriaMap[key].total += 1;
+        if (isPresent) {
+            estudianteMateriaMap[key].presentes += 1;
         }
     });
 
-    // 5. Construir alertas de Estudiantes
-    const studentAlertas: AlertaDesercion[] = [];
+    // ---------------------------------------------------------------------------
+    // Construir alertas: solo usuarios con total > 0 y porcentaje < 80%
+    // ---------------------------------------------------------------------------
+    const alertas: AlertaDesercion[] = [];
+
     Object.values(estudianteMateriaMap).forEach(em => {
-        if (em.total > 0) {
-            const porcentaje = Math.round((em.presentes / em.total) * 100);
-            if (porcentaje < 80) {
-                studentAlertas.push({
-                    id: `est-${em.num_doc}-${em.cod_asignatura}`,
-                    nombres: em.nombres,
-                    apellidos: em.apellidos,
-                    num_doc: em.num_doc,
-                    descripcion: `Asistencia de estudiante: ${porcentaje}% en ${em.asignatura} (${em.cod_asignatura})`,
-                    isDocente: false
-                });
-            }
+        if (em.total === 0) return; // Sin registros → no es deserción, es nuevo
+        const porcentaje = Math.round((em.presentes / em.total) * 100);
+        if (porcentaje < 80) {
+            alertas.push({
+                id: `est-${em.num_doc}-${em.cod_asignatura}`,
+                nombres: em.nombres,
+                apellidos: em.apellidos,
+                num_doc: em.num_doc,
+                descripcion: `Asistencia de estudiante: ${porcentaje}% en ${em.asignatura} (${em.cod_asignatura})`,
+                isDocente: false
+            });
         }
     });
 
-    // 6. Construir alertas de Docentes
-    const docenteAlertas: AlertaDesercion[] = [];
     Object.values(docenteMateriaMap).forEach(dm => {
-        if (dm.total > 0) {
-            const porcentaje = Math.round((dm.presentes / dm.total) * 100);
-            if (porcentaje < 80) {
-                docenteAlertas.push({
-                    id: `doc-${dm.docente_num_doc}-${dm.cod_asignatura}-${dm.grupo}`,
-                    nombres: dm.nombres,
-                    apellidos: dm.apellidos,
-                    num_doc: dm.docente_num_doc,
-                    descripcion: `Asistencia de docente: ${porcentaje}% en ${dm.asignatura} (Grupo ${dm.grupo})`,
-                    isDocente: true
-                });
-            }
+        if (dm.total === 0) return; // Sin registros → no es deserción, es nuevo
+        const porcentaje = Math.round((dm.presentes / dm.total) * 100);
+        if (porcentaje < 80) {
+            alertas.push({
+                id: `doc-${dm.docente_num_doc}-${dm.cod_asignatura}-${dm.grupo}`,
+                nombres: dm.nombres,
+                apellidos: dm.apellidos,
+                num_doc: dm.docente_num_doc,
+                descripcion: `Asistencia de docente: ${porcentaje}% en ${dm.asignatura} (Grupo ${dm.grupo})`,
+                isDocente: true
+            });
         }
     });
 
-    return [...studentAlertas, ...docenteAlertas];
+    return alertas;
 }
 
 export async function obtenerEstudianteStats(usuarioId: string): Promise<EstudianteStats> {

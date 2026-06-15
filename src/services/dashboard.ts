@@ -110,67 +110,7 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         });
     }
 
-    // 3. Consolidar información de sesiones únicas usando sesion_id
-    const sessionConsolidation: Record<string, {
-        sesion_id: string;
-        cod_asignatura: string;
-        asignatura: string;
-        grupo: string;
-        docente_id: string;
-        docente_num_doc: string;
-        nombre_docente: string;
-        apellido_docente: string;
-        docente_estado: "presente" | "ausente";
-    }> = {};
-
-    asisList.forEach((a: any) => {
-        const sesionId = a.sesion_id ? String(a.sesion_id) : "";
-        if (!sesionId) return; // Se omiten si no tienen sesion_id
-
-        if (!sessionConsolidation[sesionId]) {
-            const session = sessionsMap[sesionId];
-            const horarioId = session?.horario_id || a.horario_id;
-            const horario = horarioId ? horariosMap[String(horarioId)] : null;
-
-            // Resolver asignatura y grupo usando la relación descrita
-            const codAsig = horario?.cod_asignatura || a.cod_asignatura || "";
-            const asignatura = horario?.asignatura || a.asignatura || "";
-            const grupo = horario?.grupo || a.grupo || "";
-            const docenteIdStr = horario?.docente_id || a.docente_id || "";
-
-            // Resolver datos del docente
-            const docNumDoc = a.docente_num_doc || "";
-            const docNombre = a.nombre_docente || a.docente_nombre || horario?.docente || "";
-            const docApellido = a.apellido_docente || a.docente_apellido || horario?.apellido_docente || "";
-
-            // Estado del docente: si se marca presente/tarde en la sesión o registro, está presente
-            const docAsistio = session ? session.docente_asistio : a.docente_asistio;
-            const docEstado = (a.docente_estado_asistencia || "").toLowerCase();
-            const isDocPresent = docEstado === "presente" || docEstado === "tarde" || docEstado === "asistencia" || docEstado === "asistencia con retraso" || docAsistio === true;
-
-            sessionConsolidation[sesionId] = {
-                sesion_id: sesionId,
-                cod_asignatura: codAsig,
-                asignatura: asignatura,
-                grupo: grupo,
-                docente_id: docenteIdStr,
-                docente_num_doc: docNumDoc,
-                nombre_docente: docNombre,
-                apellido_docente: docApellido,
-                docente_estado: isDocPresent ? "presente" : "ausente"
-            };
-        } else {
-            // Completar información si faltaba
-            const s = sessionConsolidation[sesionId];
-            if (!s.docente_num_doc && a.docente_num_doc) {
-                s.docente_num_doc = a.docente_num_doc;
-                s.nombre_docente = a.nombre_docente || a.docente_nombre || s.nombre_docente;
-                s.apellido_docente = a.apellido_docente || a.docente_apellido || s.apellido_docente;
-            }
-        }
-    });
-
-    // 4. Calcular alertas de Estudiantes (agrupado por estudiante y asignatura)
+    // 3. Estructuras para almacenar los contadores de asistencia
     const estudianteMateriaMap: Record<string, {
         num_doc: string;
         nombres: string;
@@ -181,29 +121,81 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         presentes: number;
     }> = {};
 
+    const docenteMateriaMap: Record<string, {
+        docente_num_doc: string;
+        nombres: string;
+        apellidos: string;
+        asignatura: string;
+        cod_asignatura: string;
+        grupo: string;
+        total: number;
+        presentes: number;
+    }> = {};
+
+    // 4. Procesar cada registro de asistencia directamente
     asisList.forEach((a: any) => {
         const sesionId = a.sesion_id ? String(a.sesion_id) : "";
         if (!sesionId) return;
 
-        const s = sessionConsolidation[sesionId];
-        if (!s) return;
+        // Resolver asignatura y grupo usando la sesión y el horario correspondiente
+        const session = sessionsMap[sesionId];
+        const horarioId = session?.horario_id || a.horario_id;
+        const horario = horarioId ? horariosMap[String(horarioId)] : null;
 
-        // Solo si el estudiante está definido y el docente asistió a la clase
-        if (a.num_doc && s.docente_estado === "presente") {
-            const key = `${a.num_doc}-${s.cod_asignatura}`;
-            const estadoNorm = (a.estado || "").toLowerCase();
+        const codAsig = horario?.cod_asignatura || a.cod_asignatura || "";
+        const asignatura = horario?.asignatura || a.asignatura || "";
+        const grupo = horario?.grupo || a.grupo || "";
 
-            const isPresent = estadoNorm === "asistencia" || estadoNorm === "asistencia con retraso" || estadoNorm === "presente" || estadoNorm === "tarde";
-            const isAbsent = estadoNorm === "inasistencia" || estadoNorm === "ausente";
+        // Determinar si es una asistencia o inasistencia
+        const estadoNorm = (a.estado || "").toLowerCase();
+        const isPresent = estadoNorm === "asistencia" || estadoNorm === "asistencia con retraso" || estadoNorm === "presente" || estadoNorm === "tarde" || a.docente_asistio === true;
+        const isAbsent = estadoNorm === "inasistencia" || estadoNorm === "ausente" || a.docente_asistio === false;
 
-            if (isPresent || isAbsent) {
+        if (!isPresent && !isAbsent) return; // Si no es ni presente ni ausente, no se cuenta
+
+        // Determinar si el registro corresponde a un docente o a un estudiante
+        const isDocenteRecord = a.rol === "Docente" || a.rol_usuario === "Docente" || a.es_docente === true || (a.docente_num_doc && a.num_doc === a.docente_num_doc);
+
+        if (isDocenteRecord) {
+            // Registro de docente
+            const teacherId = a.num_doc || a.docente_num_doc || horario?.docente_num_doc || horario?.docente_id || "docente-sin-id";
+            const groupKey = `${teacherId}-${codAsig}-${grupo}`;
+
+            if (!docenteMateriaMap[groupKey]) {
+                const docNombre = a.nombre_docente || a.docente_nombre || a.nombres || horario?.docente || "Docente";
+                const docApellido = a.apellido_docente || a.docente_apellido || a.apellidos || horario?.apellido_docente || "";
+                
+                docenteMateriaMap[groupKey] = {
+                    docente_num_doc: teacherId,
+                    nombres: docNombre,
+                    apellidos: docApellido,
+                    asignatura: asignatura,
+                    cod_asignatura: codAsig,
+                    grupo: grupo,
+                    total: 0,
+                    presentes: 0
+                };
+            }
+
+            docenteMateriaMap[groupKey].total += 1;
+            if (isPresent) {
+                docenteMateriaMap[groupKey].presentes += 1;
+            }
+        } else {
+            // Registro de estudiante
+            if (a.num_doc) {
+                const key = `${a.num_doc}-${codAsig}`;
+
                 if (!estudianteMateriaMap[key]) {
+                    const estNombre = a.nombre_estudiante || a.nombre || a.nombres || "";
+                    const estApellido = a.apellido_estudiante || a.apellido || a.apellidos || "";
+                    
                     estudianteMateriaMap[key] = {
                         num_doc: a.num_doc,
-                        nombres: a.nombre_estudiante || a.nombre || "",
-                        apellidos: a.apellido_estudiante || a.apellido || "",
-                        asignatura: s.asignatura,
-                        cod_asignatura: s.cod_asignatura,
+                        nombres: estNombre,
+                        apellidos: estApellido,
+                        asignatura: asignatura,
+                        cod_asignatura: codAsig,
                         total: 0,
                         presentes: 0
                     };
@@ -217,6 +209,7 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         }
     });
 
+    // 5. Construir alertas de Estudiantes
     const studentAlertas: AlertaDesercion[] = [];
     Object.values(estudianteMateriaMap).forEach(em => {
         if (em.total > 0) {
@@ -234,57 +227,17 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         }
     });
 
-    // 5. Calcular alertas de Docentes (agrupado por docente, asignatura y grupo)
-    const docenteMateriaMap: Record<string, {
-        docente_id: string;
-        docente_num_doc: string;
-        nombres: string;
-        apellidos: string;
-        asignatura: string;
-        cod_asignatura: string;
-        grupo: string;
-        total: number;
-        presentes: number;
-    }> = {};
-
-    Object.values(sessionConsolidation).forEach(s => {
-        if (!s.cod_asignatura || !s.grupo) return;
-        const teacherId = s.docente_id || s.docente_num_doc;
-        if (!teacherId) return;
-
-        const groupKey = `${teacherId}-${s.cod_asignatura}-${s.grupo}`;
-
-        if (!docenteMateriaMap[groupKey]) {
-            docenteMateriaMap[groupKey] = {
-                docente_id: s.docente_id,
-                docente_num_doc: s.docente_num_doc,
-                nombres: s.nombre_docente || "Docente",
-                apellidos: s.apellido_docente || "",
-                asignatura: s.asignatura,
-                cod_asignatura: s.cod_asignatura,
-                grupo: s.grupo,
-                total: 0,
-                presentes: 0
-            };
-        }
-
-        docenteMateriaMap[groupKey].total += 1;
-        if (s.docente_estado === "presente") {
-            docenteMateriaMap[groupKey].presentes += 1;
-        }
-    });
-
+    // 6. Construir alertas de Docentes
     const docenteAlertas: AlertaDesercion[] = [];
     Object.values(docenteMateriaMap).forEach(dm => {
         if (dm.total > 0) {
             const porcentaje = Math.round((dm.presentes / dm.total) * 100);
             if (porcentaje < 80) {
-                const docId = dm.docente_num_doc || dm.docente_id || "sin-id";
                 docenteAlertas.push({
-                    id: `doc-${docId}-${dm.cod_asignatura}-${dm.grupo}`,
+                    id: `doc-${dm.docente_num_doc}-${dm.cod_asignatura}-${dm.grupo}`,
                     nombres: dm.nombres,
                     apellidos: dm.apellidos,
-                    num_doc: docId,
+                    num_doc: dm.docente_num_doc,
                     descripcion: `Asistencia de docente: ${porcentaje}% en ${dm.asignatura} (Grupo ${dm.grupo})`,
                     isDocente: true
                 });

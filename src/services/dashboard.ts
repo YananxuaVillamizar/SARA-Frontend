@@ -69,6 +69,8 @@ export async function obtenerAdminStats(rol?: string, semana?: string, usuarioAu
     return response.data;
 }
 
+import { listarAsistencias } from "./asistencias";
+
 export interface AlertaDesercion {
     id: string;
     nombres: string;
@@ -78,13 +80,61 @@ export interface AlertaDesercion {
 }
 
 export async function obtenerAlertasDesercion(docenteId?: string): Promise<AlertaDesercion[]> {
-    const response = await api.get("/dashboard/alertas-desercion", {
-        params: {
-            ...(docenteId ? { docente_id: docenteId } : {})
+    const asisList = await listarAsistencias(docenteId ? { docente_id: docenteId } : undefined);
+    
+    const estudianteMateriaMap: Record<string, {
+        num_doc: string;
+        nombres: string;
+        apellidos: string;
+        asignatura: string;
+        cod_asignatura: string;
+        total: number;
+        presentes: number;
+    }> = {};
+    
+    asisList.forEach((a: any) => {
+        if (!a.num_doc) return;
+        if (a.docente_asistio === false) return;
+        
+        const key = `${a.num_doc}-${a.cod_asignatura}`;
+        if (!estudianteMateriaMap[key]) {
+            estudianteMateriaMap[key] = {
+                num_doc: a.num_doc,
+                nombres: a.nombre_estudiante || a.nombre || "",
+                apellidos: a.apellido_estudiante || a.apellido || "",
+                asignatura: a.asignatura || "",
+                cod_asignatura: a.cod_asignatura || "",
+                total: 0,
+                presentes: 0
+            };
+        }
+        
+        estudianteMateriaMap[key].total += 1;
+        const estadoNorm = (a.estado || "").toLowerCase();
+        if (estadoNorm === "asistencia" || estadoNorm === "asistencia con retraso" || estadoNorm === "presente" || estadoNorm === "tarde") {
+            estudianteMateriaMap[key].presentes += 1;
         }
     });
-    return response.data;
+    
+    const alertas: AlertaDesercion[] = [];
+    Object.values(estudianteMateriaMap).forEach(em => {
+        if (em.total > 0) {
+            const porcentaje = Math.round((em.presentes / em.total) * 100);
+            if (porcentaje < 80) {
+                alertas.push({
+                    id: `${em.num_doc}-${em.cod_asignatura}`,
+                    nombres: em.nombres,
+                    apellidos: em.apellidos,
+                    num_doc: em.num_doc,
+                    descripcion: `Asistencia de ${porcentaje}% en ${em.asignatura} (${em.cod_asignatura})`
+                });
+            }
+        }
+    });
+    
+    return alertas;
 }
+
 
 
 export async function obtenerEstudianteStats(usuarioId: string): Promise<EstudianteStats> {

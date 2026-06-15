@@ -938,9 +938,9 @@ export default function DashboardPage() {
 
                                             return {
 
-                                                clase: { label: "Pendiente: Por iniciar", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" },
+                                                clase: null,
 
-                                                asistencia: { label: "Registro de inicio pendiente", bg: "bg-amber-50 text-amber-700 border border-amber-200/60 font-bold" }
+                                                asistencia: null
 
                                             };
 

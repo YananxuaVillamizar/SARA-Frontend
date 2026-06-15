@@ -24,13 +24,13 @@ const DIA_MAP: Record<string, string> = {
 // ── Helpers visuales ──────────────────────────────────────────
 const RolBadge = ({ rol }: { rol: string }) => {
     const config: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
-        Administrativo: { color: "#0e5d75", bg: "#E2F1F4", icon: <Shield size={11} /> },
-        Docente: { color: "#1D4ED8", bg: "#EFF6FF", icon: <BookOpen size={11} /> },
-        Estudiante: { color: "#065F46", bg: "#ECFDF5", icon: <GraduationCap size={11} /> },
+        Administrativo: { color: "#0e5d75", bg: "#E2F1F4", icon: <Shield size={13} /> },
+        Docente: { color: "#1D4ED8", bg: "#EFF6FF", icon: <BookOpen size={13} /> },
+        Estudiante: { color: "#065F46", bg: "#ECFDF5", icon: <GraduationCap size={13} /> },
     };
     const c = config[rol] ?? { color: "#6B7280", bg: "#F3F4F6", icon: null };
     return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold"
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
             style={{ color: c.color, background: c.bg }}>
             {c.icon} {rol}
         </span>
@@ -38,9 +38,9 @@ const RolBadge = ({ rol }: { rol: string }) => {
 };
 
 const EstadoBadge = ({ activo }: { activo: boolean }) => (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold ${activo ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${activo ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"
         }`}>
-        {activo ? <CheckCircle size={11} /> : <XCircle size={11} />}
+        {activo ? <CheckCircle size={13} /> : <XCircle size={13} />}
         {activo ? "Activo" : "Inactivo"}
     </span>
 );
@@ -799,7 +799,7 @@ export default function UsuariosPage() {
                                 <div key={u.id} className="p-4 space-y-3 hover:bg-gray-50/50 transition-colors">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-inner border border-gray-100/50 shrink-0"
+                                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-black shadow-inner border border-gray-100/50 shrink-0"
                                                 style={{
                                                     background: 
                                                         u.rol === "Administrativo" ? "#E2F1F4" : 
@@ -813,21 +813,21 @@ export default function UsuariosPage() {
                                                 {(u.nombres?.[0] || "").toUpperCase()}{(u.apellidos?.[0] || "").toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900 leading-tight">
+                                                <p className="text-base font-black text-gray-900 leading-tight">
                                                     {u.nombres} {u.apellidos}
                                                 </p>
-                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                <p className="text-sm text-gray-500 mt-1">
                                                     {u.tipo_doc || "CC"} {u.num_doc}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col items-end gap-1.5">
+                                        <div className="flex flex-col items-end gap-2">
                                             <RolBadge rol={u.rol} />
                                             <EstadoBadge activo={u.activo} />
                                         </div>
                                     </div>
 
-                                    <div className="text-xs text-gray-600 space-y-1 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/40">
+                                    <div className="text-sm text-gray-600 space-y-2 bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
                                         <p className="flex justify-between">
                                             <span className="text-gray-400 font-medium">Correo:</span>
                                             <span className="font-semibold text-gray-700 truncate max-w-[200px]" title={u.email}>{u.email}</span>
@@ -840,22 +840,22 @@ export default function UsuariosPage() {
                                         </p>
                                     </div>
 
-                                    <div className="flex items-center justify-end gap-2 pt-1">
+                                    <div className="flex items-center justify-end gap-3 pt-2">
                                         <button
                                             onClick={() => openEditModal(u)}
-                                            className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-all border border-blue-100"
+                                            className="flex items-center gap-1.5 px-4.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-sm font-bold transition-all border border-blue-100"
                                             title="Editar Usuario"
                                         >
-                                            <Pencil size={13} strokeWidth={2.5} />
+                                            <Pencil size={14} strokeWidth={2.5} />
                                             <span>Editar</span>
                                         </button>
                                         {u.activo && (u.rol === "Estudiante" || u.rol === "Docente") && (
                                             <button
                                                 onClick={() => openHorarioModal(u)}
-                                                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold transition-all border border-amber-100"
+                                                className="flex items-center gap-1.5 px-4.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-sm font-bold transition-all border border-amber-100"
                                                 title="Ver Horario"
                                             >
-                                                <Calendar size={13} strokeWidth={2.5} />
+                                                <Calendar size={14} strokeWidth={2.5} />
                                                 <span>Ver Horario</span>
                                             </button>
                                         )}

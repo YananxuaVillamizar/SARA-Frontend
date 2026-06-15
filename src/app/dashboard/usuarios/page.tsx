@@ -828,9 +828,9 @@ export default function UsuariosPage() {
                                     </div>
 
                                     <div className="text-sm text-gray-600 space-y-2 bg-gray-50/50 p-3 rounded-xl border border-gray-100/40">
-                                        <p className="flex justify-between">
-                                            <span className="text-gray-400 font-medium">Correo:</span>
-                                            <span className="font-semibold text-gray-700 truncate max-w-[200px]" title={u.email}>{u.email}</span>
+                                        <p className="flex justify-between items-start gap-2">
+                                            <span className="text-gray-400 font-medium shrink-0">Correo:</span>
+                                            <span className="font-semibold text-gray-700 text-right break-all" title={u.email}>{u.email}</span>
                                         </p>
                                         <p className="flex justify-between">
                                             <span className="text-gray-400 font-medium">Biometría:</span>

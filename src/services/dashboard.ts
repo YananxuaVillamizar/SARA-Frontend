@@ -80,6 +80,34 @@ export interface AlertaDesercion {
     isDocente?: boolean;
 }
 
+function isValidVal(val: any): boolean {
+    if (!val) return false;
+    const s = String(val).trim().toLowerCase();
+    return s !== "" && s !== "undefined" && s !== "null" && s !== "sin asignatura" && s !== "sin grupo" && s !== "sin facultad" && s !== "sin programa";
+}
+
+function parseFromSessionId(sesionId: string): { cod_asignatura?: string, grupo?: string } {
+    if (!sesionId) return {};
+    const parts = sesionId.split(/[-_]/);
+    const subjectRegex = /^[A-Z]{3,4}\d{3,4}$/i; // ej: MAT101
+    
+    let cod_asignatura: string | undefined;
+    let grupo: string | undefined;
+
+    for (let i = 0; i < parts.length; i++) {
+        if (subjectRegex.test(parts[i])) {
+            cod_asignatura = parts[i].toUpperCase();
+            if (parts[i + 1] && parts[i + 1].length <= 6) {
+                grupo = parts[i + 1];
+            } else if (parts[i - 1] && parts[i - 1].length <= 6) {
+                grupo = parts[i - 1];
+            }
+            break;
+        }
+    }
+    return { cod_asignatura, grupo };
+}
+
 export async function obtenerAlertasDesercion(docenteId?: string): Promise<AlertaDesercion[]> {
     const asisList = await listarAsistencias(docenteId ? { docente_id: docenteId } : undefined);
     
@@ -101,12 +129,14 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         const sessionKey = sesionId || `${a.fecha || "sin-fecha"}-${a.cod_asignatura || "sin-asig"}-${a.grupo || "sin-grupo"}`;
 
         if (!sessionConsolidation[sessionKey]) {
+            // Intentar pre-extraer del sessionKey o sesion_id si es posible
+            const parsed = parseFromSessionId(sesionId);
             sessionConsolidation[sessionKey] = {
                 sesion_id: sesionId,
                 fecha: a.fecha || "",
-                cod_asignatura: "",
+                cod_asignatura: parsed.cod_asignatura || "",
                 asignatura: "",
-                grupo: "",
+                grupo: parsed.grupo || "",
                 docente_num_doc: "",
                 nombre_docente: "",
                 apellido_docente: "",
@@ -117,12 +147,15 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         const s = sessionConsolidation[sessionKey];
 
         // Consolidar información no vacía de asignatura y grupo
-        if (a.cod_asignatura && !s.cod_asignatura) {
+        if (isValidVal(a.cod_asignatura) && !isValidVal(s.cod_asignatura)) {
             s.cod_asignatura = a.cod_asignatura;
             s.asignatura = a.asignatura || "";
         }
-        if (a.grupo && !s.grupo) {
+        if (isValidVal(a.grupo) && !isValidVal(s.grupo)) {
             s.grupo = a.grupo;
+        }
+        if (isValidVal(a.asignatura) && !isValidVal(s.asignatura)) {
+            s.asignatura = a.asignatura;
         }
 
         // Consolidar información de docente
@@ -140,6 +173,14 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
         if (isDocPresent) {
             s.docente_estado = "presente";
         } else if (isDocAbsent && s.docente_estado !== "presente") {
+            s.docente_estado = "ausente";
+        }
+    });
+
+    // Rellenar por defecto a "ausente" para clases pasadas sin registro explícito del docente
+    const todayStr = new Date().toISOString().split("T")[0];
+    Object.values(sessionConsolidation).forEach(s => {
+        if (s.docente_estado === null && s.fecha && s.fecha <= todayStr) {
             s.docente_estado = "ausente";
         }
     });
@@ -226,7 +267,7 @@ export async function obtenerAlertasDesercion(docenteId?: string): Promise<Alert
 
     Object.values(sessionConsolidation).forEach(s => {
         if (!s.docente_num_doc || !s.cod_asignatura || !s.grupo) return;
-        if (s.docente_estado === null) return; // Se omiten sesiones donde no hay registro marcado para el docente
+        if (s.docente_estado === null) return; // Se omiten sesiones futuras sin estado de docente
 
         const groupKey = `${s.docente_num_doc}-${s.cod_asignatura}-${s.grupo}`;
 

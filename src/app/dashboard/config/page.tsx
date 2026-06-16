@@ -898,6 +898,49 @@ export default function ConfigPage() {
                     }
                     setHorarios(await listarHorarios()); break;
                 case "matriculas":
+                    // Validación de cruce de horarios en el cliente
+                    const activeAsigs = asigsMat.filter(a => !((a as any).estado && (a as any).estado !== "activa"));
+                    const parseTimeToMinutes = (timeStr: string): number => {
+                        const [h, m] = timeStr.split(":").map(Number);
+                        return h * 60 + m;
+                    };
+                    const overlap = (
+                        h1: { dia_semana: string; hora_inicio: string; hora_fin: string },
+                        h2: { dia_semana: string; hora_inicio: string; hora_fin: string }
+                    ) => {
+                        if (h1.dia_semana.toLowerCase() !== h2.dia_semana.toLowerCase()) return false;
+                        const start1 = parseTimeToMinutes(h1.hora_inicio);
+                        const end1 = parseTimeToMinutes(h1.hora_fin);
+                        const start2 = parseTimeToMinutes(h2.hora_inicio);
+                        const end2 = parseTimeToMinutes(h2.hora_fin);
+                        return start1 < end2 && start2 < end1;
+                    };
+
+                    const allSessions: { asignatura: string; grupo: string; dia_semana: string; hora_inicio: string; hora_fin: string }[] = [];
+                    for (const a of activeAsigs) {
+                        const matches = horarios.filter(h => h.asignatura_id === a.asignatura_id && h.grupo === a.grupo);
+                        for (const m of matches) {
+                            allSessions.push({
+                                asignatura: a.asignatura,
+                                grupo: a.grupo,
+                                dia_semana: m.dia_semana,
+                                hora_inicio: m.hora_inicio,
+                                hora_fin: m.hora_fin
+                            });
+                        }
+                    }
+
+                    for (let i = 0; i < allSessions.length; i++) {
+                        for (let j = i + 1; j < allSessions.length; j++) {
+                            const s1 = allSessions[i];
+                            const s2 = allSessions[j];
+                            if (overlap(s1, s2)) {
+                                const dayName = DIA_LABEL[s1.dia_semana.toLowerCase()] || s1.dia_semana;
+                                throw new Error(`Cruce de horarios detectado: "${s1.asignatura}" (Grupo ${s1.grupo}) y "${s2.asignatura}" (Grupo ${s2.grupo}) coinciden el día ${dayName} entre ${s1.hora_inicio.slice(0, 5)} y ${s1.hora_fin.slice(0, 5)}.`);
+                            }
+                        }
+                    }
+
                     if (editandoId) {
                         // 1. Ejecutar primero las eliminaciones de matrícula de manera secuencial/paralela aislada
                         if (asigMatAEliminar.length > 0) {

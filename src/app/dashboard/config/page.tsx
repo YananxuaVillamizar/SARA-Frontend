@@ -1000,9 +1000,9 @@ export default function ConfigPage() {
                 </button>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-full">
+            <div className="grid grid-cols-3 md:flex md:flex-row gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-full">
                 {TABS.map(t => (
-                    <button key={t.id} onClick={() => { setTab(t.id); setPanel(false); resetForm(); }} className={`flex items-center justify-start md:justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all w-full md:w-auto ${tab === t.id ? "bg-white text-sara-red shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                    <button key={t.id} onClick={() => { setTab(t.id); setPanel(false); resetForm(); }} className={`flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2 px-3 py-2.5 md:px-5 md:py-2.5 rounded-xl text-[10px] md:text-sm font-black md:font-bold transition-all w-full md:w-auto text-center ${tab === t.id ? "bg-white text-sara-red shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
                         {t.icon} {t.label}
                     </button>
                 ))}
@@ -1593,18 +1593,22 @@ export default function ConfigPage() {
                                                         ))}
                                                     </div>
 
-                                                    <div className="flex justify-center items-center gap-3 pt-2 border-t border-gray-50 flex-wrap">
-                                                        {confirmingDeleteGrupo !== key ? (
-                                                            <>
-                                                                <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-red-50 text-red-700 border border-red-100 shrink-0">
-                                                                    Grupo {g.grupo}
-                                                                </span>
-                                                                <button onClick={() => editarGrupo(g)} className="p-2 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-1 text-xs font-bold"><Pencil size={14} /> Editar</button>
-                                                                <button onClick={() => setConfirmingDeleteGrupo(key)} className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-bold"><Trash2 size={14} /> Eliminar</button>
-                                                                <span className={`px-2.5 py-1 rounded-xl text-xs font-black border shrink-0 ${g.matriculados >= g.cupo_maximo ? "bg-red-50 text-red-700 border-red-100" : "bg-green-50 text-green-700 border-green-100"}`}>
-                                                                    {g.matriculados}/{g.cupo_maximo} Cupos
-                                                                </span>
-                                                            </>
+                                                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                                                    {confirmingDeleteGrupo !== key ? (
+                                                    <>
+                                                    <div className="flex flex-col gap-1.5 items-start">
+                                                    <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-red-50 text-red-700 border border-red-100">
+                                                    Grupo {g.grupo}
+                                                    </span>
+                                                    <span className={`px-2.5 py-1 rounded-xl text-xs font-black border ${g.matriculados >= g.cupo_maximo ? "bg-red-50 text-red-700 border-red-100" : "bg-green-50 text-green-700 border-green-100"}`}>
+                                                    {g.matriculados}/{g.cupo_maximo} Cupos
+                                                    </span>
+                                                    </div>
+                                                    <div className="flex flex-col gap-1.5 items-end">
+                                                    <button onClick={() => editarGrupo(g)} className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold transition-all"><Pencil size={12} /> Editar</button>
+                                                    <button onClick={() => setConfirmingDeleteGrupo(key)} className="flex items-center gap-1.5 px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition-all"><Trash2 size={12} /> Eliminar</button>
+                                                    </div>
+                                                    </>
                                                         ) : (
                                                             <div className="flex flex-col w-full items-center gap-1.5 p-1.5 bg-amber-50 border border-amber-100 rounded-xl animate-pulse">
                                                                 <span className="text-[9px] font-extrabold text-amber-900 text-center leading-normal">
@@ -2006,8 +2010,8 @@ export default function ConfigPage() {
                                                                         setLoading(false);
                                                                     }
                                                                 }}
-                                                                className="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
-                                                            >
+                                                                className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-[10px] font-black rounded-lg transition-all shadow-sm"
+                                                                >
                                                                 Marcar como Actual
                                                             </button>
                                                         )}
@@ -2552,7 +2556,11 @@ export default function ConfigPage() {
                                         <p className="text-sm font-semibold text-gray-800">{editMatStudent.programa}</p>
                                     </div>
                                     <div><label className={lbl}>Semestre</label>
-                                        <input type="number" min="1" max="10" className={inp} value={fMat.semestre || ""} onChange={e => setFMat({ ...fMat, semestre: parseInt(e.target.value) || 1 })} />
+                                        <select className={inp} value={fMat.semestre} onChange={e => setFMat({ ...fMat, semestre: parseInt(e.target.value) || 1 })}>
+                                        {Array.from({ length: 10 }, (_, idx) => (
+                                        <option key={idx + 1} value={idx + 1}>Semestre {idx + 1}</option>
+                                        ))}
+                                        </select>
                                     </div>
                                 </> : <>
                                     {/* Estudiante con botón desplegable */}
@@ -2618,7 +2626,11 @@ export default function ConfigPage() {
                                         )}
                                     </div>
                                     <div><label className={lbl}>Semestre</label>
-                                        <input type="number" min="1" max="10" className={inp} value={fMat.semestre || ""} onChange={e => setFMat({ ...fMat, semestre: parseInt(e.target.value) || 1 })} />
+                                        <select className={inp} value={fMat.semestre} onChange={e => setFMat({ ...fMat, semestre: parseInt(e.target.value) || 1 })}>
+                                        {Array.from({ length: 10 }, (_, idx) => (
+                                        <option key={idx + 1} value={idx + 1}>Semestre {idx + 1}</option>
+                                        ))}
+                                        </select>
                                     </div>
                                     <div><label className={lbl}>Fecha Inicio</label>
                                         <input type="date" className={inp} value={fMat.fecha_inicio} onChange={e => setFMat({ ...fMat, fecha_inicio: e.target.value })} />
@@ -2925,7 +2937,7 @@ export default function ConfigPage() {
                                     });
 
                                     const filas = Object.values(filasMap);
-
+                                    
                                     if (filas.length === 0) {
                                         return (
                                             <div className="bg-white p-12 rounded-3xl border border-gray-100 text-center space-y-4 shadow-sm flex flex-col items-center justify-center h-64 print:border-0 print:shadow-none">
@@ -2939,79 +2951,145 @@ export default function ConfigPage() {
                                             </div>
                                         );
                                     }
-
+                                    
+                                    const clasesPorDiaMovil = DIAS_SEMANA.reduce((acc, dia) => {
+                                        acc[dia] = [];
+                                        filas.forEach((fila: any) => {
+                                            const clases = fila.clasesPorDia[dia] || [];
+                                            clases.forEach((c: any) => {
+                                                acc[dia].push({
+                                                    ...c,
+                                                    cod_asignatura: fila.cod_asignatura,
+                                                    asignatura: fila.asignatura,
+                                                    grupo: fila.grupo,
+                                                    docente: fila.docente
+                                                });
+                                            });
+                                        });
+                                        acc[dia].sort((a: any, b: any) => a.hora_inicio.localeCompare(b.hora_inicio));
+                                        return acc;
+                                    }, {} as Record<string, any[]>);
+                                    
                                     return (
-                                        <div className="w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none">
-                                            <table className="w-full border-collapse min-w-[1000px] print:min-w-full">
-                                                <thead>
-                                                    <tr className="bg-[#0e5d75] border-b-[3px] border-[#c9a84c] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#0e5d75] print:border-b-[3px] print:border-[#c9a84c] print:text-white">
-                                                        <th className="py-3 px-4 text-center border-r border-gray-300/40 w-[220px]">Materia</th>
-                                                        {DIAS_SEMANA.map(dia => (
-                                                            <th key={dia} className="py-3 px-3 text-center border-r border-gray-300/40 last:border-r-0 font-bold">{dia}</th>
-                                                        ))}
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {filas.map((fila: any, idx) => {
-                                                        const esPar = idx % 2 === 1;
-                                                        return (
-                                                            <tr 
-                                                                key={idx} 
-                                                                className={`text-[10px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
-                                                                    esPar ? "bg-gray-100/70" : "bg-white"
-                                                                } print:bg-white`}
-                                                            >
-                                                                {/* Columna Materia */}
-                                                                <td className="py-4 px-4 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[220px]">
-                                                                    <div className="space-y-1">
-                                                                        <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
-                                                                        <p className="text-[11px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
-                                                                        <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
+                                        <>
+                                            {/* Vista Escritorio */}
+                                            <div className="hidden md:block w-full overflow-x-auto rounded-3xl border border-gray-200/80 shadow-md bg-white print:border-gray-300 print:shadow-none">
+                                                <table className="w-full border-collapse min-w-[1000px] print:min-w-full">
+                                                    <thead>
+                                                        <tr className="bg-[#0e5d75] border-b-[3px] border-[#c9a84c] text-white text-[11px] font-black uppercase tracking-wider print:bg-[#0e5d75] print:border-b-[3px] print:border-[#c9a84c] print:text-white">
+                                                            <th className="py-3 px-4 text-center border-r border-gray-300/40 w-[220px]">Materia</th>
+                                                            {DIAS_SEMANA.map(dia => (
+                                                                <th key={dia} className="py-3 px-3 text-center border-r border-gray-300/40 last:border-r-0 font-bold">{dia}</th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {filas.map((fila: any, idx) => {
+                                                            const esPar = idx % 2 === 1;
+                                                            return (
+                                                                <tr
+                                                                    key={idx}
+                                                                    className={`text-[10px] border-b border-gray-200/80 transition-colors hover:bg-red-50/10 ${
+                                                                        esPar ? "bg-gray-100/70" : "bg-white"
+                                                                    } print:bg-white`}
+                                                                >
+                                                                    {/* Columna Materia */}
+                                                                    <td className="py-4 px-4 font-bold text-gray-700 border border-gray-200/80 bg-gray-50/30 print:bg-white w-[220px]">
+                                                                        <div className="space-y-1">
+                                                                            <p className="text-gray-400 font-extrabold tracking-wider text-[9px]">{fila.cod_asignatura}</p>
+                                                                            <p className="text-[11px] font-black text-black uppercase leading-tight print:text-black">{fila.asignatura}</p>
+                                                                            <p className="text-[10px] text-gray-500 font-semibold">Grupo : {fila.grupo}</p>
+                                                                            {horarioUsuario.rol === "Estudiante" && (
+                                                                                <p className="text-[9px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
+                                                                                    Docente: {fila.docente}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                    
+                                                                    {/* Columnas de Días */}
+                                                                    {DIAS_SEMANA.map(dia => {
+                                                                        const clases = fila.clasesPorDia[dia] || [];
+                                                                        return (
+                                                                            <td key={dia} className="p-2 border border-gray-200/80 align-top w-[110px] min-w-[110px]">
+                                                                                <div className="flex flex-col gap-2">
+                                                                                    {clases.map((clase: any, cIdx: number) => (
+                                                                                        <div
+                                                                                            key={cIdx}
+                                                                                            className="bg-slate-50 border-l-4 border-[#0e5d75] p-2 rounded-r-lg shadow-sm text-left flex flex-col gap-1 transition-all hover:bg-slate-100/80 print:bg-slate-50 print:border-[#0e5d75]"
+                                                                                        >
+                                                                                            <div className="flex items-center gap-1 text-black font-extrabold text-[9px] tracking-tight print:text-black">
+                                                                                                <Clock size={10} className="text-[#0e5d75] shrink-0" />
+                                                                                                <span>{clase.hora_inicio} - {clase.hora_fin}</span>
+                                                                                            </div>
+                                                                                            <div className="flex items-center gap-1 text-[9px] text-gray-600 font-bold leading-tight">
+                                                                                                <MapPin size={10} className="text-gray-400 shrink-0" />
+                                                                                                <span>{clase.aula}</span>
+                                                                                            </div>
+                                                                                            <div
+                                                                                                className="inline-block self-start px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5 print:bg-gray-100"
+                                                                                                title={fila.docente}
+                                                                                            >
+                                                                                                {fila.cod_asignatura}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </td>
+                                                                        );
+                                                                    })}
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                    
+                                            {/* Vista Móvil */}
+                                            <div className="block md:hidden space-y-4">
+                                                {DIAS_SEMANA.map(dia => {
+                                                    const clases = clasesPorDiaMovil[dia] || [];
+                                                    if (clases.length === 0) return null;
+                                    
+                                                    return (
+                                                        <div key={dia} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                                                            <div className="bg-[#0e5d75] px-4 py-2.5 text-white font-extrabold text-xs uppercase tracking-wider">
+                                                                {dia}
+                                                            </div>
+                                                            <div className="divide-y divide-gray-100 p-3 space-y-3">
+                                                                {clases.map((clase: any, cIdx: number) => (
+                                                                    <div key={cIdx} className="pt-3 first:pt-0 flex flex-col gap-1.5">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-[11px] font-black text-black uppercase leading-tight">
+                                                                                {clase.asignatura}
+                                                                            </span>
+                                                                            <span className="text-[9px] bg-gray-100 font-bold px-2 py-0.5 rounded-full text-gray-600">
+                                                                                Grupo {clase.grupo}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-gray-500 text-[10px]">
+                                                                            <div className="flex items-center gap-1 font-bold text-gray-700">
+                                                                                <Clock size={11} className="text-[#0e5d75]" />
+                                                                                <span>{clase.hora_inicio} - {clase.hora_fin}</span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1 font-bold">
+                                                                                <MapPin size={11} className="text-gray-400" />
+                                                                                <span>Aula {clase.aula}</span>
+                                                                            </div>
+                                                                        </div>
                                                                         {horarioUsuario.rol === "Estudiante" && (
-                                                                            <p className="text-[9px] text-gray-800 font-bold mt-1 uppercase" title={fila.docente}>
-                                                                                Docente: {fila.docente}
+                                                                            <p className="text-[9px] text-gray-400 font-medium uppercase mt-0.5">
+                                                                                Docente: {clase.docente}
                                                                             </p>
                                                                         )}
                                                                     </div>
-                                                                </td>
-                                                                
-                                                                {/* Columnas de Días */}
-                                                                {DIAS_SEMANA.map(dia => {
-                                                                    const clases = fila.clasesPorDia[dia] || [];
-                                                                    return (
-                                                                        <td key={dia} className="p-2 border border-gray-200/80 align-top w-[110px] min-w-[110px]">
-                                                                            <div className="flex flex-col gap-2">
-                                                                                {clases.map((clase: any, cIdx: number) => (
-                                                                                    <div 
-                                                                                        key={cIdx} 
-                                                                                        className="bg-slate-50 border-l-4 border-[#0e5d75] p-2 rounded-r-lg shadow-sm text-left flex flex-col gap-1 transition-all hover:bg-slate-100/80 print:bg-slate-50 print:border-[#0e5d75]"
-                                                                                    >
-                                                                                        <div className="flex items-center gap-1 text-black font-extrabold text-[9px] tracking-tight print:text-black">
-                                                                                            <Clock size={10} className="text-[#0e5d75] shrink-0" />
-                                                                                            <span>{clase.hora_inicio} - {clase.hora_fin}</span>
-                                                                                        </div>
-                                                                                        <div className="flex items-center gap-1 text-[9px] text-gray-600 font-bold leading-tight">
-                                                                                            <MapPin size={10} className="text-gray-400 shrink-0" />
-                                                                                            <span>{clase.aula}</span>
-                                                                                        </div>
-                                                                                        <div 
-                                                                                            className="inline-block self-start px-1.5 py-0.5 bg-gray-200/60 rounded-md text-[8px] font-black text-gray-600 tracking-wider mt-0.5 print:bg-gray-100"
-                                                                                            title={fila.docente}
-                                                                                        >
-                                                                                            {fila.cod_asignatura}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        </td>
-                                                                    );
-                                                                })}
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
                                     );
                                 })()}
                             </div>

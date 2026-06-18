@@ -12,6 +12,7 @@ import {
     listarSesiones, crearSesion, listarTodasContingencias
 } from "@/services/contingencias";
 import { listarHorarios, Horario, listarSemestres } from "@/services/admin";
+import { listarMatriculas } from "@/services/matriculas";
 
 // Componentes Reutilizables de Estilo
 const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
@@ -68,6 +69,7 @@ export default function AsistenciasPage() {
     const [reporte, setReporte] = useState<any[]>([]);
     const [contingencias, setContingencias] = useState<any[]>([]);
     const [horarios, setHorarios] = useState<Horario[]>([]);
+    const [matriculas, setMatriculas] = useState<any[]>([]);
     const [modal, setModal] = useState(false);
     const [error, setError] = useState("");
 
@@ -151,36 +153,46 @@ export default function AsistenciasPage() {
                 }
 
                 if (s.rol === "Estudiante") {
-                    const [rep, cont, asis] = await Promise.all([
+                    const [rep, cont, asis, hor, mats] = await Promise.all([
                         obtenerReporteEstudiante(s.num_doc!),
                         listarContingenciasEstudiante(s.num_doc!),
-                        listarAsistencias({ usuario_id: s.id || undefined })
+                        listarAsistencias({ usuario_id: s.id || undefined }),
+                        listarHorarios(),
+                        listarMatriculas()
                     ]);
                     setReporte(Array.isArray(rep) ? rep : []);
                     setContingencias(cont);
+                    setHorarios(hor);
+                    setMatriculas(mats);
                     setAsistenciasRaw(normalizarEstados(asis));
                 } else if (s.rol === "Docente") {
-                    const [rep, pend, hor, asis] = await Promise.all([
+                    const [rep, pend, hor, asis, mats] = await Promise.all([
                         obtenerReporteDocente(s.num_doc!),
                         listarContingenciasPendientes(),
                         listarHorarios(),
-                        listarAsistencias({ docente_id: s.id || undefined })
+                        listarAsistencias({ docente_id: s.id || undefined }),
+                        listarMatriculas()
                     ]);
                     setReporte(Array.isArray(rep) ? rep : []);
                     setContingencias(pend);
                     // Solo horarios de este docente
                     setHorarios(hor.filter(h => h.docente_id === s.id));
+                    setMatriculas(mats);
                     setAsistenciasRaw(normalizarEstados(asis));
                 } else {
                     // Admin
-                    const [cont, ses, asis] = await Promise.all([
+                    const [cont, ses, asis, hor, mats] = await Promise.all([
                         listarTodasContingencias(),
                         listarSesiones(),
-                        listarAsistencias()
+                        listarAsistencias(),
+                        listarHorarios(),
+                        listarMatriculas()
                     ]);
                     setContingencias(cont);
                     setReporte(ses); // Reutilizamos el estado reporte para sesiones en Admin
                     setAsistenciasRaw(normalizarEstados(asis));
+                    setHorarios(hor);
+                    setMatriculas(mats);
                 }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
@@ -316,6 +328,47 @@ export default function AsistenciasPage() {
             }
         });
 
+        // Synthesize groups from schedules (horarios) if they have matriculados but no attendance records
+        horarios.forEach(h => {
+            const fac = h.facultad || "Sin Facultad";
+            const prog = h.programa || "Sin Programa";
+            const asig = h.asignatura || "Sin Asignatura";
+            const grup = h.grupo || "Sin Grupo";
+
+            // Check if there are enrolled students
+            const hasStudents = (h.matriculados ?? 0) > 0 || matriculas.some(m => 
+                m.asignatura_id === h.asignatura_id && 
+                m.grupo === h.grupo &&
+                (!m.estado || (m.estado.toLowerCase() !== 'cancelada' && m.estado.toLowerCase() !== 'perdida' && m.estado.toLowerCase() !== 'inactiva'))
+            );
+
+            if (!hasStudents) return;
+
+            if (!groups[fac]) groups[fac] = {};
+            if (!groups[fac][prog]) groups[fac][prog] = {};
+            if (!groups[fac][prog][asig]) groups[fac][prog][asig] = {};
+            if (!groups[fac][prog][asig][grup]) {
+                groups[fac][prog][asig][grup] = {
+                    aula: h.aula,
+                    docente: h.docente ? `${h.docente} ${h.apellido_docente || ''}` : "Sin Docente",
+                    horarios: [],
+                    sesiones: {},
+                    codAsig: h.cod_asignatura,
+                    asignatura: asig,
+                    grupo: grup
+                };
+            }
+
+            // Ensure the schedule is added to the group's schedules list
+            const horObj = { id: h.id, dia: h.dia_semana, horas: `${h.hora_inicio}–${h.hora_fin}`, aula: h.aula };
+            const exists = groups[fac][prog][asig][grup].horarios.some((item: any) => 
+                item.dia === h.dia_semana && item.horas === horObj.horas && item.aula === h.aula
+            );
+            if (!exists) {
+                groups[fac][prog][asig][grup].horarios.push(horObj);
+            }
+        });
+
         // Precalcular estadísticas y ordenar colecciones para evitar recalculaciones en el render path
         const daysOrder = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
         
@@ -397,38 +450,68 @@ export default function AsistenciasPage() {
         }
 
         return groups;
-    }, [asistenciasRaw, semanasSemestre]);
+    }, [asistenciasRaw, semanasSemestre, horarios, matriculas]);
 
     const facultades = useMemo(() => {
-        return Array.from(new Set(asistenciasRaw.map(a => a.facultad).filter(Boolean)));
-    }, [asistenciasRaw]);
+        const facs = new Set<string>();
+        for (const fac in allGroups) {
+            facs.add(fac);
+        }
+        return Array.from(facs).filter(Boolean);
+    }, [allGroups]);
 
     const programas = useMemo(() => {
-        return Array.from(new Set(
-            asistenciasRaw
-                .filter(a => !filtAFacultad || a.facultad === filtAFacultad)
-                .map(a => a.programa)
-                .filter(Boolean)
-        ));
-    }, [asistenciasRaw, filtAFacultad]);
+        const progs = new Set<string>();
+        for (const fac in allGroups) {
+            if (!filtAFacultad || fac === filtAFacultad) {
+                for (const prog in allGroups[fac]) {
+                    progs.add(prog);
+                }
+            }
+        }
+        return Array.from(progs).filter(Boolean);
+    }, [allGroups, filtAFacultad]);
 
     const asignaturas = useMemo(() => {
-        return Array.from(new Set(
-            asistenciasRaw
-                .filter(a => (!filtAFacultad || a.facultad === filtAFacultad) && (!filtAPrograma || a.programa === filtAPrograma))
-                .map(a => a.asignatura)
-                .filter(Boolean)
-        ));
-    }, [asistenciasRaw, filtAFacultad, filtAPrograma]);
+        const asigs = new Set<string>();
+        for (const fac in allGroups) {
+            if (!filtAFacultad || fac === filtAFacultad) {
+                for (const prog in allGroups[fac]) {
+                    if (!filtAPrograma || prog === filtAPrograma) {
+                        for (const asig in allGroups[fac][prog]) {
+                            asigs.add(asig);
+                        }
+                    }
+                }
+            }
+        }
+        return Array.from(asigs).filter(Boolean);
+    }, [allGroups, filtAFacultad, filtAPrograma]);
 
     const aulas = useMemo(() => {
-        return Array.from(new Set(
-            asistenciasRaw
-                .filter(a => (!filtAFacultad || a.facultad === filtAFacultad) && (!filtAPrograma || a.programa === filtAPrograma) && (!filtAAsignatura || a.asignatura === filtAAsignatura))
-                .map(a => a.aula_sesion || a.aula)
-                .filter(Boolean)
-        ));
-    }, [asistenciasRaw, filtAFacultad, filtAPrograma, filtAAsignatura]);
+        const rooms = new Set<string>();
+        for (const fac in allGroups) {
+            if (!filtAFacultad || fac === filtAFacultad) {
+                for (const prog in allGroups[fac]) {
+                    if (!filtAPrograma || prog === filtAPrograma) {
+                        for (const asig in allGroups[fac][prog]) {
+                            if (!filtAAsignatura || asig === filtAAsignatura) {
+                                for (const grup in allGroups[fac][prog][asig]) {
+                                    const grupoData = allGroups[fac][prog][asig][grup];
+                                    if (grupoData.aula) rooms.add(grupoData.aula);
+                                    for (const sKey in grupoData.sesiones) {
+                                        const s = grupoData.sesiones[sKey];
+                                        if (s.aula_sesion) rooms.add(s.aula_sesion);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return Array.from(rooms).filter(Boolean);
+    }, [allGroups, filtAFacultad, filtAPrograma, filtAAsignatura]);
 
     const getWeekFromFecha = (fechaStr: string) => {
         if (!fechaStr || !fechaInicioSemestre) return null;

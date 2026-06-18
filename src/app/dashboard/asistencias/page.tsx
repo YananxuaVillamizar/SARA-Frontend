@@ -153,46 +153,45 @@ export default function AsistenciasPage() {
                 }
 
                 if (s.rol === "Estudiante") {
-                    const [rep, cont, asis, hor, mats] = await Promise.all([
+                    // Estudiantes only need their own attendance records — no group synthesis needed
+                    const [rep, cont, asis] = await Promise.all([
                         obtenerReporteEstudiante(s.num_doc!),
                         listarContingenciasEstudiante(s.num_doc!),
-                        listarAsistencias({ usuario_id: s.id || undefined }),
-                        listarHorarios(),
-                        listarMatriculas()
+                        listarAsistencias({ usuario_id: s.id || undefined })
                     ]);
                     setReporte(Array.isArray(rep) ? rep : []);
                     setContingencias(cont);
-                    setHorarios(hor);
-                    setMatriculas(mats);
                     setAsistenciasRaw(normalizarEstados(asis));
                 } else if (s.rol === "Docente") {
-                    const [rep, pend, hor, asis, mats] = await Promise.all([
+                    // listarHorarios was already used before; load matriculas safely
+                    const [rep, pend, hor, asis] = await Promise.all([
                         obtenerReporteDocente(s.num_doc!),
                         listarContingenciasPendientes(),
                         listarHorarios(),
-                        listarAsistencias({ docente_id: s.id || undefined }),
-                        listarMatriculas()
+                        listarAsistencias({ docente_id: s.id || undefined })
                     ]);
                     setReporte(Array.isArray(rep) ? rep : []);
                     setContingencias(pend);
                     // Solo horarios de este docente
-                    setHorarios(hor.filter(h => h.docente_id === s.id));
-                    setMatriculas(mats);
+                    const docenteHorarios = hor.filter((h: any) => h.docente_id === s.id);
+                    setHorarios(docenteHorarios);
                     setAsistenciasRaw(normalizarEstados(asis));
+                    // Load matriculas separately so a permission error doesn't break the main load
+                    listarMatriculas().then(setMatriculas).catch(() => setMatriculas([]));
                 } else {
                     // Admin
-                    const [cont, ses, asis, hor, mats] = await Promise.all([
+                    const [cont, ses, asis, hor] = await Promise.all([
                         listarTodasContingencias(),
                         listarSesiones(),
                         listarAsistencias(),
-                        listarHorarios(),
-                        listarMatriculas()
+                        listarHorarios()
                     ]);
                     setContingencias(cont);
                     setReporte(ses); // Reutilizamos el estado reporte para sesiones en Admin
                     setAsistenciasRaw(normalizarEstados(asis));
                     setHorarios(hor);
-                    setMatriculas(mats);
+                    // Load matriculas separately so a permission error doesn't break the main load
+                    listarMatriculas().then(setMatriculas).catch(() => setMatriculas([]));
                 }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }

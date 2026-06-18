@@ -569,10 +569,12 @@ export default function AsistenciasPage() {
                                 const sData = grupoData.sesiones[sKey];
 
                                 // Skip uncompleted sessions whose day of week doesn't match the current schedule days
+                                // Extraordinary sessions are always kept regardless of schedule day
+                                const isExtraordinaria = (sData.tipo_sesion || '').toLowerCase() === 'extraordinaria';
                                 const isUncompleted = sData.estado_sesion === 'no_completada';
                                 const sessionDia = sData.fecha ? normalizeDia(getDiaDeLaSemana(sData.fecha)) : "";
                                 const dayMatchesSchedule = grupoData.horarios.some((h: any) => normalizeDia(h.dia) === sessionDia);
-                                if (isUncompleted && !dayMatchesSchedule) {
+                                if (!isExtraordinaria && isUncompleted && !dayMatchesSchedule) {
                                     continue;
                                 }
 
@@ -581,7 +583,8 @@ export default function AsistenciasPage() {
                                     continue;
                                 }
 
-                                const matchSemana = !targetWeekStr || sData.semana?.toString() === targetWeekStr;
+                                // Extraordinary sessions are not bound to the current week — always show them
+                                const matchSemana = isExtraordinaria || !targetWeekStr || sData.semana?.toString() === targetWeekStr;
                                 const matchFecha = !filtAFecha || (sData.fecha && sData.fecha === filtAFecha);
                                 const actualSessionDia = sData.fecha ? getDiaDeLaSemana(sData.fecha) : (sData.dia_virtual || "");
                                 const matchDiaSesion = !filtADia || normalizeDia(actualSessionDia) === normalizeDia(filtADia);

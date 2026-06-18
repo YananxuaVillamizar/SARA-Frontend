@@ -334,6 +334,11 @@ export default function AsistenciasPage() {
             const asig = h.asignatura || "Sin Asignatura";
             const grup = h.grupo || "Sin Grupo";
 
+            // Only synthesize truly NEW groups — never modify existing ones whose schedules
+            // are already correctly built from real attendance records
+            const groupAlreadyExists = !!(groups[fac]?.[prog]?.[asig]?.[grup]);
+            if (groupAlreadyExists) return;
+
             // Check if there are enrolled students
             const hasStudents = (h.matriculados ?? 0) > 0 || matriculas.some(m => 
                 m.asignatura_id === h.asignatura_id && 
@@ -358,7 +363,7 @@ export default function AsistenciasPage() {
                 };
             }
 
-            // Ensure the schedule is added to the group's schedules list
+            // Add this schedule to the new group's horarios list (deduplicating)
             const horObj = { id: h.id, dia: h.dia_semana, horas: `${h.hora_inicio}–${h.hora_fin}`, aula: h.aula };
             const exists = groups[fac][prog][asig][grup].horarios.some((item: any) => 
                 item.dia === h.dia_semana && item.horas === horObj.horas && item.aula === h.aula

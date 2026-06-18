@@ -390,6 +390,39 @@ export default function AsistenciasPage() {
                             return daysOrder.indexOf(a.dia.toLowerCase()) - daysOrder.indexOf(b.dia.toLowerCase());
                         });
                         
+                        // 1.5. Completar listado de estudiantes matriculados en cada sesión del grupo
+                        const groupMatriculas = matriculas.filter((m: any) => 
+                            (m.cod_asignatura === grupoData.codAsig || m.asignatura === asig) && 
+                            m.grupo === grup &&
+                            (!m.estado || (m.estado.toLowerCase() !== 'cancelada' && m.estado.toLowerCase() !== 'perdida' && m.estado.toLowerCase() !== 'inactiva'))
+                        );
+
+                        for (const sKey in grupoData.sesiones) {
+                            if (sKey === 'sin-sesion') continue;
+                            const sesion = grupoData.sesiones[sKey];
+                            
+                            groupMatriculas.forEach((m: any) => {
+                                const exists = sesion.records.some((r: any) => r.num_doc === m.num_doc);
+                                if (!exists) {
+                                    sesion.records.push({
+                                        id: `sintetizado-${m.num_doc}-${sKey}`,
+                                        num_doc: m.num_doc,
+                                        tipo_doc: m.tipo_doc || "C.C.",
+                                        nombre: m.estudiante,
+                                        apellido: m.apellido_estudiante,
+                                        nombre_estudiante: m.estudiante,
+                                        apellido_estudiante: m.apellido_estudiante,
+                                        estado: "inasistencia",
+                                        metodo_verificacion: "N/A",
+                                        programa: m.programa || prog,
+                                        hora_entrada: null,
+                                        hora_salida: null,
+                                        cod_asignatura: grupoData.codAsig
+                                    });
+                                }
+                            });
+                        }
+                        
                         // 2. Extraer todos los records del grupo
                         const grupoRecords = Object.values(grupoData.sesiones).flatMap((s: any) => 
                             s.docente_asistio ? s.records : []

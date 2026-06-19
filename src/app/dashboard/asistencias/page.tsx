@@ -643,7 +643,8 @@ export default function AsistenciasPage() {
                                 }
 
                                 // Extraordinary sessions are not bound to the current week — always show them
-                                const matchSemana = isExtraordinaria || !targetWeekStr || sData.semana?.toString() === targetWeekStr;
+                                const sSemana = sData.semana || (sData.fecha ? getWeekFromFecha(sData.fecha) : null);
+                                 const matchSemana = !targetWeekStr || sSemana?.toString() === targetWeekStr;
                                 const matchFecha = !filtAFecha || (sData.fecha && sData.fecha === filtAFecha);
                                 const actualSessionDia = sData.fecha ? getDiaDeLaSemana(sData.fecha) : (sData.dia_virtual || "");
                                 const matchDiaSesion = !filtADia || normalizeDia(actualSessionDia) === normalizeDia(filtADia);

@@ -682,19 +682,6 @@ export default function DashboardPage() {
 
                     </div>
 
-                    <button
-
-                        onClick={handlePrint}
-
-                        className="no-print px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md active:scale-95 shrink-0 flex items-center gap-2"
-
-                        style={{ border: "none" }}
-
-                    >
-
-                        <Award size={14} /> Guardar Reporte (PDF)
-
-                    </button>
 
                     <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-radial-gradient opacity-10 pointer-events-none" />
 
@@ -2066,19 +2053,6 @@ export default function DashboardPage() {
 
                     </div>
 
-                    <button
-
-                        onClick={handlePrint}
-
-                        className="no-print px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md active:scale-95 shrink-0 flex items-center gap-2"
-
-                        style={{ border: "none" }}
-
-                    >
-
-                        <Award size={14} /> Guardar Reporte (PDF)
-
-                    </button>
 
                 </div>
 
@@ -3341,4 +3315,3 @@ function strTime(t: any): string {
     return String(t).substring(0, 5);
 
 }
-

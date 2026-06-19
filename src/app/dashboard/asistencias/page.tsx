@@ -270,15 +270,36 @@ export default function AsistenciasPage() {
                 };
             }
 
-             const isExtraordinaria = (a.tipo_sesion || '').toLowerCase() === 'extraordinaria';
-             const sessionDia = a.fecha ? getDiaDeLaSemana(a.fecha) : "";
-             const isRegular = a.dia_semana && a.horario_id && !isExtraordinaria && 
-                 (!a.fecha || normalizeDia(a.dia_semana) === normalizeDia(sessionDia));
-             if (isRegular) {
-                 const horObj = { id: a.horario_id, dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
-                 const exists = groups[fac][prog][asig][grup].horarios.some((h: any) => h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula);
-                 if (!exists) {
-                     groups[fac][prog][asig][grup].horarios.push(horObj);
+             // Asociar horarios del grupo usando la lista oficial de horarios activos
+             const activeHorarios = horarios.filter((h: any) => 
+                 (h.cod_asignatura === a.cod_asignatura || h.asignatura === asig) && 
+                 h.grupo === grup
+             );
+
+             if (activeHorarios.length > 0) {
+                 // Si existen horarios activos oficiales, usamos únicamente esos para evitar duplicados históricos
+                 groups[fac][prog][asig][grup].horarios = activeHorarios.map((h: any) => ({
+                     id: h.id,
+                     dia: h.dia_semana,
+                     horas: `${h.hora_inicio}–${h.hora_fin}`,
+                     aula: h.aula
+                 })).filter((item, index, self) => 
+                     self.findIndex((t: any) => t.dia === item.dia && t.horas === item.horas && t.aula === item.aula) === index
+                 );
+             } else {
+                 // Histórico fallback: si no hay horarios activos, extraemos el horario del propio registro
+                 const isExtraordinaria = (a.tipo_sesion || '').toLowerCase() === 'extraordinaria';
+                 const sessionDia = a.fecha ? getDiaDeLaSemana(a.fecha) : "";
+                 const isRegular = a.dia_semana && a.horario_id && !isExtraordinaria && 
+                     (!a.fecha || normalizeDia(a.dia_semana) === normalizeDia(sessionDia));
+                 if (isRegular) {
+                     const horObj = { id: a.horario_id, dia: a.dia_semana, horas: `${a.hora_inicio}–${a.hora_fin}`, aula: a.aula };
+                     const exists = groups[fac][prog][asig][grup].horarios.some((h: any) => 
+                         h.dia === a.dia_semana && h.horas === horObj.horas && h.aula === a.aula
+                     );
+                     if (!exists) {
+                         groups[fac][prog][asig][grup].horarios.push(horObj);
+                     }
                  }
              }
 
